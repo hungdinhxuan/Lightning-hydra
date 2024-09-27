@@ -13,9 +13,7 @@ scheduler:
   factor: 0.1
   patience: 10
 
-net:
-  _target_: src.models.components.xlsr_aasist.XlsrAasist
-  ssl_pretrained_path: /home/hungdx/code/xlsr2_300m.pt
+ssl_pretrained_path: /home/hungdx/code/xlsr2_300m.pt
 
 # compile model for faster training with pytorch 2.0
 compile: false

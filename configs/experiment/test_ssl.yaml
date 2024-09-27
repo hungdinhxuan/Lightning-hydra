@@ -5,14 +5,14 @@
 
 defaults:
   - override /data: asvspoof
-  - override /model: aasist
+  - override /model: xlsr_aasist
   - override /callbacks: default
   - override /trainer: default
 
 # all parameters below will be merged with parameters from default configurations set above
 # this allows you to overwrite only specified parameters
 
-tags: ["asvspoof", "aasist"]
+tags: ["asvspoof", "xlsr_aasist"]
 
 seed: 12345
 
@@ -35,7 +35,7 @@ model:
   compile: false
 
 data:
-  batch_size: 64
+  batch_size: 16
   num_workers: 4
 
 logger:

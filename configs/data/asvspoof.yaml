@@ -1,5 +1,5 @@
 _target_: src.data.asvspoof_datamodule.ASVSpoofDataModule
-data_dir: ${paths.data_dir}/Datasets/
+data_dir: ${oc.env:ASVSPOOF_PATH}
 batch_size: 16 # Needs to be divisible by the number of devices (e.g., if in a distributed setup)
-num_workers: 0
+num_workers: 4
 pin_memory: False
