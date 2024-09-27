@@ -1,11 +1,10 @@
-_target_: src.data.asvspoof_datamodule.ASVSpoofDataModule
+_target_: src.data.asvspoof_aasistssl_reproduce_datamodule.ASVSpoofDataModule
 data_dir: ${oc.env:ASVSPOOF_PATH}
 batch_size: 16 # Needs to be divisible by the number of devices (e.g., if in a distributed setup)
 num_workers: 4
 pin_memory: False
 args:
+  # The number of seconds to consider for each audio file
+  duration: 3
   # The sampling rate of the audio files
   sampling_rate: 16000
-  cut: 64000
-  padding_type: zero
-  random_start: True
