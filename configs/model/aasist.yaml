@@ -1,4 +1,4 @@
-_target_: src.models.aasist_module.AASISTLitModule
+_target_: src.models.asvspoof_aasistssl_reproduce_datamodule.AASISTLitModule
 
 optimizer:
   _target_: torch.optim.Adam

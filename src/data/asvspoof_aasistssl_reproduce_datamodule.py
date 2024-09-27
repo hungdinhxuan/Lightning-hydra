@@ -1,14 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Optional
 from lightning import LightningDataModule
 from torch.utils.data import DataLoader, Dataset
 from torch import Tensor
 import librosa
 import numpy as np
 import os
-from scipy import signal
-import copy
 from src.data.components.RawBoost import process_Rawboost_feature
 
 '''

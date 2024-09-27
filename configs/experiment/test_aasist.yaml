@@ -35,7 +35,7 @@ model:
   compile: false
 
 data:
-  batch_size: 16
+  batch_size: 64
   num_workers: 4
 
 logger:
