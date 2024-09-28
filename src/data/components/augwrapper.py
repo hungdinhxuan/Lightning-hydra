@@ -4,9 +4,11 @@ import torch
 import torchaudio
 from torch import Tensor
 import librosa
-from datautils.RawBoost import ISD_additive_noise, LnL_convolutive_noise, SSI_additive_noise, normWav
-from datautils.audio_augmentor import BackgroundNoiseAugmentor, PitchAugmentor, ReverbAugmentor, SpeedAugmentor, VolumeAugmentor, TelephoneEncodingAugmentor, GaussianAugmentor, CopyPasteAugmentor, BaseAugmentor, TimeMaskingAugmentor, FrequencyMaskingAugmentor, MaskingAugmentor, TimeSwapAugmentor, FrequencySwapAugmentor, SwappingAugmentor, LinearFilterAugmentor, BandpassAugmentor
-from datautils.audio_augmentor.utils import pydub_to_librosa, librosa_to_pydub
+
+from src.data.components.RawBoost import ISD_additive_noise, LnL_convolutive_noise, SSI_additive_noise, normWav
+from src.data.components.audio_augmentor import BackgroundNoiseAugmentor, PitchAugmentor, ReverbAugmentor, SpeedAugmentor, VolumeAugmentor, TelephoneEncodingAugmentor, GaussianAugmentor, CopyPasteAugmentor, BaseAugmentor, TimeMaskingAugmentor, FrequencyMaskingAugmentor, MaskingAugmentor, TimeSwapAugmentor, FrequencySwapAugmentor, SwappingAugmentor, LinearFilterAugmentor, BandpassAugmentor
+from src.data.components.audio_augmentor.utils import pydub_to_librosa, librosa_to_pydub
+
 import soundfile as sf
 import random
 

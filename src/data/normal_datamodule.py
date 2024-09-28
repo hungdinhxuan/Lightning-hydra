@@ -105,7 +105,7 @@ class Dataset_for_eval(Dataset_base):
         x_inp = Tensor(X)
         return x_inp, utt_id
 
-class CyberpcupNormalDataModule(LightningDataModule):
+class NormalDataModule(LightningDataModule):
     """`LightningDataModule` for the ASVSpoof dataset.
 
     The ASVspoof 2019 database for logical access is based upon a standard multi-speaker speech synthesis database called VCTK2. 
@@ -356,4 +356,4 @@ class CyberpcupNormalDataModule(LightningDataModule):
             return d_meta, file_list
 
 if __name__ == "__main__":
-    _ = CyberpcupNormalDataModule()
+    _ = NormalDataModule()

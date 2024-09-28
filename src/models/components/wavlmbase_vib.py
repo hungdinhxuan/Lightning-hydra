@@ -1,29 +1,12 @@
-import random
-from typing import Union
 
-import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch import Tensor
-import os
-from torch.nn.modules.transformer import _get_clones
-from .WavLM.fe import WavLMFe
-try:
-    from model.loss_metrics import supcon_loss
-    from model.RawNet3.model import RawNet3
-    from model.RawNet3.RawNetBasicBlock import Bottle2neck
-    from model.conformer_tcm.model import MyConformer
-    
-except:
-    from .loss_metrics import supcon_loss
-    from .RawNet3.model import RawNet3
-    from .RawNet3.RawNetBasicBlock import Bottle2neck
-    from .conformer_tcm.model import MyConformer
+from src.models.components.WavLM.fe import WavLMFe
+from src.models.components.loss_metrics import supcon_loss
     
 
-___author__ = "Hemlata Tak"
-__email__ = "tak@eurecom.fr"
+
 class DropoutForMC(nn.Module):
     """Dropout layer for Bayesian model
     THe difference is that we do dropout even in eval stage
@@ -148,15 +131,14 @@ class VIB(nn.Module):
     
 
 class Model(nn.Module):
-    def __init__(self, args, device, is_train = True):
+    def __init__(self, args, is_train = True):
         super().__init__()
-        self.device = device
         self.is_train = is_train
-        self.flag_fix_ssl = args['flag_fix_ssl']
+
         self.contra_mode = args['contra_mode']
         self.loss_type = args['loss_type']
         
-        self.loss_CE = nn.CrossEntropyLoss(weight = torch.FloatTensor([float(1-args['ce_loss_weight']), float(args['ce_loss_weight'])]).to(device))
+        self.loss_CE = nn.CrossEntropyLoss(weight = torch.FloatTensor([float(1-args['ce_loss_weight']), float(args['ce_loss_weight'])]))
         self.sim_metric_seq = lambda mat1, mat2: torch.bmm(
             mat1.permute(1, 0, 2), mat2.permute(1, 2, 0)).mean(0)
         # front-end kwargs
@@ -253,29 +235,29 @@ class Model(nn.Module):
         KLD = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
         # print("KLD: ", KLD)
         # Recon_loss = 0.000001*(BCE + 0.05*KLD) / real_bzs
-        Recon_loss = config['model']['recon_weight_l']*(BCE + config['model']['recon_weight_b']*KLD) / real_bzs
+        Recon_loss = config['recon_weight_l']*(BCE + config['recon_weight_b']*KLD) / real_bzs
         # reshape the feats_w2v to match the supcon loss format
         feats_w2v = feats_w2v.unsqueeze(1)
         # print("feats_w2v.shape", feats_w2v.shape)
-        L_CF1 = 1/real_bzs * supcon_loss(feats_w2v, labels=labels, contra_mode=config['model']['contra_mode'], sim_metric=sim_metric_seq)
+        L_CF1 = 1/real_bzs * supcon_loss(feats_w2v, labels=labels, contra_mode=config['contra_mode'], sim_metric=sim_metric_seq)
         
         # reshape the emb to match the supcon loss format
         emb = emb.unsqueeze(1)
         emb = emb.unsqueeze(-1)
         # print("emb.shape", emb.shape)
-        L_CF2 = 1/real_bzs *supcon_loss(emb, labels=labels, contra_mode=config['model']['contra_mode'], sim_metric=sim_metric_seq)
+        L_CF2 = 1/real_bzs *supcon_loss(emb, labels=labels, contra_mode=config['contra_mode'], sim_metric=sim_metric_seq)
         
-        if config['model']['loss_type'] == 1:
+        if config['loss_type'] == 1:
             return {'L_CE':L_CE, 'L_CF1':L_CF1, 'L_CF2':L_CF2, 'Recon_loss':Recon_loss}
-        elif config['model']['loss_type'] == 2:
+        elif config['loss_type'] == 2:
             return {'L_CE':L_CE, 'L_CF1':L_CF1}
-        elif config['model']['loss_type'] == 3:
+        elif config['loss_type'] == 3:
             return {'L_CE':L_CE, 'L_CF2':L_CF2}
         # ablation study
-        elif config['model']['loss_type'] == 4:
+        elif config['loss_type'] == 4:
             return {'L_CE':L_CE}
-        elif config['model']['loss_type'] == 5:
+        elif config['loss_type'] == 5:
             return {'L_CF1':L_CF1, 'L_CF2':L_CF2}
-        elif config['model']['loss_type'] == 6:
+        elif config['loss_type'] == 6:
             return {'L_CE':L_CE, 'Recon_loss':Recon_loss}
         

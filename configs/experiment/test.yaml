@@ -4,15 +4,15 @@
 # python train.py experiment=example
 
 defaults:
-  - override /data: asvspoof
-  - override /model: aasist
+  - override /data: scl_normal_largecorpus_for_asvspoof5
+  - override /model: wavlmbase_vib
   - override /callbacks: default
   - override /trainer: default
 
 # all parameters below will be merged with parameters from default configurations set above
 # this allows you to overwrite only specified parameters
 
-tags: ["asvspoof", "aasist"]
+tags: ["scl_normal_largecorpus_for_asvspoof5", "wavlmbase_vib"]
 
 seed: 12345
 
@@ -25,6 +25,8 @@ trainer:
 model:
   optimizer:
     lr: 0.000001
+  args:
+    loss_type: 1
   net:
     d_args:
       first_conv: 128
@@ -34,13 +36,31 @@ model:
       temperatures: [2.0, 2.0, 100.0, 100.0]
   compile: false
 
+  scheduler:
+    _target_: torch.optim.lr_scheduler.CyclicLR
+    _partial_: true
+    cycle_momentum: false
+    base_lr: 0.000001
+    max_lr: 0.00001
+    mode: "exp_range"
+    gamma: 0.85
+
+
+
 data:
-  batch_size: 16
-  num_workers: 4
+  batch_size: 1
+  num_workers: 8
+  args:
+    portion: 0.1 # 10% of the data
+    data:
+      trim_length: 100000 # 6s
+      repeat_pad: true #  If true, repeat the audio to the trim_length
+      random_start: true # If true, randomly pick a start point for the audio
+
 
 logger:
   wandb:
     tags: ${tags}
-    group: "asvspoof"
+    group: "scl_normal_largecorpus_for_asvspoof5"
   aim:
-    experiment: "asvspoof"
+    experiment: "scl_normal_largecorpus_for_asvspoof5"

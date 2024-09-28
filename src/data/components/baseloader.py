@@ -6,7 +6,8 @@ class Dataset_base(Dataset):
     def __init__(self, args, list_IDs, labels, base_dir, algo=5, vocoders=[], 
                  augmentation_methods=[], eval_augment=None, num_additional_real=2, num_additional_spoof=2, 
                  trim_length=64000, wav_samp_rate=16000, noise_path=None, rir_path=None, 
-                 aug_dir=None, online_aug=False, repeat_pad=True, is_train=True):
+                 aug_dir=None, online_aug=False, repeat_pad=True, is_train=True,
+                 random_start=False):
         """
         Args:
             list_IDs (string): Path to the .lst file with real audio filenames.
@@ -39,6 +40,7 @@ class Dataset_base(Dataset):
         self.args.aug_dir = aug_dir
         self.args.online_aug = online_aug
         self.repeat_pad = repeat_pad
+        self.random_start = random_start
         self.is_train = is_train
 
     def __len__(self):

@@ -8,17 +8,9 @@ import torch.nn.functional as F
 from torch import Tensor
 import os
 from torch.nn.modules.transformer import _get_clones
-from .WavLM.fe import WavLMFe
-try:
-    from model.loss_metrics import supcon_loss
-    from model.RawNet3.model import RawNet3
-    from model.RawNet3.RawNetBasicBlock import Bottle2neck
-    from model.conformer_tcm.model import MyConformer
-except:
-    from .loss_metrics import supcon_loss
-    from .RawNet3.model import RawNet3
-    from .RawNet3.RawNetBasicBlock import Bottle2neck
-    from .conformer_tcm.model import MyConformer
+from src.models.components.WavLM.fe import WavLMFe
+from src.models.components.loss_metrics import supcon_loss
+from src.models.components.conformer_tcm.model import MyConformer
 
 
 class Model(nn.Module):
@@ -120,28 +112,3 @@ class Model(nn.Module):
         elif self.loss_type == 5:
             return {'L_CF1':L_CF1, 'L_CF2':L_CF2}
         
-if __name__ == '__main__':
-    import yaml
-    # LoRA
-    from peft import LoraConfig, TaskType, PeftModel, get_peft_model
-
-    config = yaml.load(open("/data/hungdx/asvspoof5/configs/3_augall_wavlm_conformertcm_res2net_seblock_sclnormal.yaml", 'r'), Loader=yaml.FullLoader)
-    device = "cpu"
-    model = Model(config['model'], device)
-    # print("Hello")
-    # print(model)
-
-    # Trying apply lora
-    # Using the best config from this paper
-    # https://arxiv.org/pdf/2306.05617
-    target_modules = ["q_proj", "v_proj"]
-    r = 4
-
-    lora_config = LoraConfig(
-        r=r,
-        target_modules=target_modules,
-        #modules_to_save=["qkv"]
-    )
-    peft_model = get_peft_model(model, lora_config)
-    print(peft_model)
-    peft_model.print_trainable_parameters()

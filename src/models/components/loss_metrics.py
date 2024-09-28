@@ -200,7 +200,7 @@ def supcon_loss(input_feat,
     # print("log_prob.shape", log_prob.shape)
     # compute mean of log-likelihood over positive
     # print(mask_ * log_prob)
-    mean_log_prob_pos = (mask_ * log_prob).sum(1) / mask_.sum(1)
+    mean_log_prob_pos = (mask_ * log_prob).sum(1) / (mask_.sum(1) + 1e-8) # avoid zero division
     # print("mean_log_prob_pos.shape", mean_log_prob_pos.shape)
     # print(mean_log_prob_pos)
     # loss

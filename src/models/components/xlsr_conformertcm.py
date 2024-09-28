@@ -8,21 +8,9 @@ import torch.nn.functional as F
 from torch import Tensor
 from torch.nn.modules.transformer import _get_clones
 import fairseq
-try:
-    from model.loss_metrics import supcon_loss
-    from model.RawNet3.model import RawNet3
-    from model.RawNet3.RawNetBasicBlock import Bottle2neck
-    from model.conformer_tcm.model import MyConformer
-except:
-    from .loss_metrics import supcon_loss
-    from .RawNet3.model import RawNet3
-    from .RawNet3.RawNetBasicBlock import Bottle2neck
-    from .conformer_tcm.model import MyConformer
 
-
-############################
-## FOR fine-tuned SSL MODEL
-############################
+from src.models.components.loss_metrics import supcon_loss
+from src.models.components.conformer_tcm.model import MyConformer
 
 
 class SSLModel(nn.Module):
@@ -155,52 +143,3 @@ class Model(nn.Module):
             return {'L_CE':L_CE}
         elif self.loss_type == 5:
             return {'L_CF1':L_CF1, 'L_CF2':L_CF2}
-
-# if __name__ == '__main__':
-#     import yaml
-#     # LoRA
-#     from peft import LoraConfig, TaskType, PeftModel, get_peft_model
-
-
-#     config = yaml.load(open("/data/hungdx/asvspoof5/configs_21/xlsr_aasist_baseline.yaml", 'r'), Loader=yaml.FullLoader)
-#     device = "cpu"
-#     model = Model(config['model'], device)
-#     # Ensure model is moved to the correct device
-#     model = model.to(device)
-
-#     # print("Hello")
-#     # print(model)
-
-#     # Trying apply lora
-#     # Using the best config from this paper
-#     # https://arxiv.org/pdf/2306.05617
-#     target_modules = ["q_proj", "v_proj"]
-#     r = 4
-
-#     lora_config = LoraConfig(
-#         r=r,
-#         target_modules=target_modules,
-#         #modules_to_save=config['lora']['modules_to_save'], # Modules to continue fine-tuning
-#     )
-#     peft_model = get_peft_model(model, lora_config)
-#     #print(peft_model)
-#     peft_model.print_trainable_parameters()
-
-#     x = torch.randn(1, 64000)
-#     x_ori = x.detach().clone()
-    
-#     x = x.to(device)
-
-#     output, feats, emb = peft_model(x)
-
-#     cross_entropy = nn.CrossEntropyLoss()
-#     labels = torch.tensor([1])
-#     labels = labels.to(device)
-
-#     loss = cross_entropy(output, labels)
-
-#     loss.backward()
-
-#     # Ensure that after backward pass, the x_ori and x still have the same value
-#     assert torch.allclose(x_ori, x.detach().clone()), "The input x has been changed after backward pass"
-#     print("Done")
