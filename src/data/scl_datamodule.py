@@ -212,6 +212,7 @@ class SclNormalDataModule(LightningDataModule):
         num_workers: int = 0,
         pin_memory: bool = False,
         args: Optional[Dict[str, Any]] = None,
+        batch_size_eval: int = 32,
         # list_IDs: list = [], labels: list = [], base_dir: str = '', algo: int = 5, vocoders: list = [],
         # augmentation_methods: list = [], eval_augment: Optional[str] = None, num_additional_real: int = 2, num_additional_spoof: int = 2,
         # trim_length: int = 64000, wav_samp_rate: int = 16000, noise_path: Optional[str] = None, rir_path: Optional[str] = None,
@@ -235,6 +236,7 @@ class SclNormalDataModule(LightningDataModule):
         self.data_test: Optional[Dataset] = None
 
         self.batch_size_per_device = batch_size
+        self.batch_size_eval = batch_size_eval
         self.data_dir = data_dir
 
         self.args = args
@@ -329,7 +331,7 @@ class SclNormalDataModule(LightningDataModule):
         """
         return DataLoader(
             dataset=self.data_val,
-            batch_size=self.batch_size_per_device,
+            batch_size=self.batch_size_eval,
             num_workers=self.hparams.num_workers,
             pin_memory=self.hparams.pin_memory,
             shuffle=False,
@@ -342,7 +344,7 @@ class SclNormalDataModule(LightningDataModule):
         """
         return DataLoader(
             dataset=self.data_test,
-            batch_size=self.batch_size_per_device,
+            batch_size=self.batch_size_eval,
             num_workers=self.hparams.num_workers,
             pin_memory=self.hparams.pin_memory,
             shuffle=False,

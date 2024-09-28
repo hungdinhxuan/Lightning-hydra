@@ -16,9 +16,9 @@ from torch import Tensor
 import fairseq
 from src.models.components.wavlmbase_vib import Model as WavlmBaseVIB
 from src.utils.debug import NaNErrorMode
+from src.models.components.xlsr_conformertcm import Model as XLSRConformerTCM
 
-
-class WAVLMVIBLLitModule(LightningModule):
+class XLSRConformerTCMLitModule(LightningModule):
     """Example of a `LightningModule` for MNIST classification.
 
     A `LightningModule` implements 8 key methods:
@@ -58,6 +58,7 @@ class WAVLMVIBLLitModule(LightningModule):
         scheduler: torch.optim.lr_scheduler,
         compile: bool,
         args: Union[Dict[str, Any], None] = None,
+        cp_path: str = None,
         is_train: bool = True
     ) -> None:
         """Initialize a `MNISTLitModule`.
@@ -72,7 +73,7 @@ class WAVLMVIBLLitModule(LightningModule):
         # also ensures init params will be stored in ckpt
         self.save_hyperparameters(logger=False)
 
-        self.net = WavlmBaseVIB(args, is_train)
+        self.net = XLSRConformerTCM(args, cp_path, is_train)
 
         # metric objects for calculating and averaging accuracy across batches
         self.train_acc = BinaryAccuracy()
@@ -90,7 +91,6 @@ class WAVLMVIBLLitModule(LightningModule):
         self.is_train = is_train
 
         # for optimizer and scheduler
-        print("We are in the WAVLMVIBLLitModule")
         self.running_loss = 0.0
         self.num_total = 0.0
         self.train_loss_detail = {}
@@ -175,11 +175,11 @@ class WAVLMVIBLLitModule(LightningModule):
         # update and log metrics
         self.train_loss(self.running_loss) 
         self.train_acc(preds, targets)
-        self.log("train/loss", self.train_loss, on_step=False, on_epoch=True, prog_bar=True)
-        self.log("train/acc", self.train_acc, on_step=False, on_epoch=True, prog_bar=True)
+        self.log("train/loss", self.train_loss, on_step=True, on_epoch=True, prog_bar=True)
+        self.log("train/acc", self.train_acc, on_step=True, on_epoch=True, prog_bar=True)
         
         for loss_name, _loss in train_loss_detail.items():
-            self.log(f"train/{loss_name}", _loss, on_step=False, on_epoch=True, prog_bar=True)
+            self.log(f"train/{loss_name}", _loss, on_step=True, on_epoch=True, prog_bar=True)
 
         return loss
 

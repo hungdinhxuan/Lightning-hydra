@@ -1,0 +1,28 @@
+_target_: src.models.xlsr_conformertcm_module.XLSRConformerTCMLitModule
+
+optimizer:
+  _target_: torch.optim.Adam
+  _partial_: true
+  lr: 0.000001
+  weight_decay: 0.00001
+
+scheduler: null
+
+args:
+  contra_mode: "all" # 'one' or 'all'
+  loss_type: 1 # 1: 2loss, 2: loss emb only, 3: loss final hidden state only, 4: CE loss
+  ce_loss_weight: 0.5 # weight of the cross entropy loss for bona fide class
+  conformer:
+    emb_size: 128
+    heads: 4
+    kernel_size: 32
+    n_encoders: 4
+    type: "conv_res2net_seblock" # conv_res2net, conv_seblock, conv_res2net_seblock
+    pooling: "first"
+
+cp_path: ${oc.env:XLSR_PRETRAINED_MODEL_PATH}
+
+is_train: true
+
+# compile model for faster training with pytorch 2.0
+compile: false
