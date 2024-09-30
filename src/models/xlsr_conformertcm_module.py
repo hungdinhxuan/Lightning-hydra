@@ -175,11 +175,11 @@ class XLSRConformerTCMLitModule(LightningModule):
         # update and log metrics
         self.train_loss(self.running_loss) 
         self.train_acc(preds, targets)
-        self.log("train/loss", self.train_loss, on_step=True, on_epoch=True, prog_bar=True)
-        self.log("train/acc", self.train_acc, on_step=True, on_epoch=True, prog_bar=True)
+        self.log("train/loss", self.train_loss, on_step=False, on_epoch=True, prog_bar=True)
+        self.log("train/acc", self.train_acc, on_step=False, on_epoch=True, prog_bar=True)
         
         for loss_name, _loss in train_loss_detail.items():
-            self.log(f"train/{loss_name}", _loss, on_step=True, on_epoch=True, prog_bar=True)
+            self.log(f"train/{loss_name}", _loss, on_step=False, on_epoch=True, prog_bar=True)
 
         return loss
 
