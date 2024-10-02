@@ -1,9 +1,13 @@
 defaults:
   - model_checkpoint
   - early_stopping
-  - model_summary
+#  - model_summary
   - rich_progress_bar
+  - learning_rate_logger
   - _self_
+
+learning_rate_logger:
+  logging_interval: 'epoch'
 
 model_checkpoint:
   dirpath: ${paths.output_dir}/checkpoints
@@ -15,7 +19,7 @@ model_checkpoint:
 
 early_stopping:
   monitor: "val/acc"
-  patience: 100
+  patience: 20
   mode: "max"
 
 model_summary:
