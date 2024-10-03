@@ -156,10 +156,7 @@ class NormalDataModule(LightningDataModule):
         num_workers: int = 0,
         pin_memory: bool = False,
         args: Optional[Dict[str, Any]] = None,
-        # list_IDs: list = [], labels: list = [], base_dir: str = '', algo: int = 5, vocoders: list = [],
-        # augmentation_methods: list = [], eval_augment: Optional[str] = None, num_additional_real: int = 2, num_additional_spoof: int = 2,
-        # trim_length: int = 64000, wav_samp_rate: int = 16000, noise_path: Optional[str] = None, rir_path: Optional[str] = None,
-        # aug_dir: Optional[str] = None, online_aug: bool = False, repeat_pad: bool = True, is_train: bool = True, enable_chunking: bool = False
+        train_mode: Optional[bool] = True, # Optional[bool] = True
     ) -> None:
         """Initialize a `ASVSpoofDataModule`.
 
@@ -180,7 +177,7 @@ class NormalDataModule(LightningDataModule):
 
         self.batch_size_per_device = batch_size
         self.data_dir = data_dir
-
+        self.train_mode = train_mode
         self.args = args
 
     @property
@@ -216,40 +213,40 @@ class NormalDataModule(LightningDataModule):
         if not self.data_train and not self.data_val and not self.data_test:
             
             # define train dataloader
+            if self.self.train_mode:
+                d_label_trn, file_train = self.genList(dir_meta=os.path.join(
+                        self.data_dir), is_train=True, is_eval=False, is_dev=False)
+                
+                if 'portion' in self.args:
+                    idx = range(len(file_train))
+                    idx = np.random.choice(
+                        idx, int(len(file_train)*self.args['portion']), replace=False)
+                    file_train = [file_train[i] for i in idx]
+                    if len(d_label_trn) > 0:  # the case of train without label
+                        d_label_trn = {k: d_label_trn[k] for k in file_train}
+                print('no. of training trials', len(file_train))
 
-            d_label_trn, file_train = self.genList(dir_meta=os.path.join(
-                    self.data_dir), is_train=True, is_eval=False, is_dev=False)
-            
-            if 'portion' in self.args:
-                idx = range(len(file_train))
-                idx = np.random.choice(
-                    idx, int(len(file_train)*self.args['portion']), replace=False)
-                file_train = [file_train[i] for i in idx]
-                if len(d_label_trn) > 0:  # the case of train without label
-                    d_label_trn = {k: d_label_trn[k] for k in file_train}
-            print('no. of training trials', len(file_train))
+                d_label_dev, file_dev = self.genList(dir_meta=os.path.join(self.data_dir), is_train=False, is_eval=False, is_dev=True)
+                
+                if 'portion' in self.args:
+                    idx = range(len(file_dev))
+                    idx = np.random.choice(
+                        idx, int(len(file_dev)*self.args['portion']), replace=False)
+                    file_dev = [file_dev[i] for i in idx]
+                    if len(d_label_dev) > 0:  # the case of train without label
+                        d_label_dev = {k: d_label_dev[k] for k in file_dev}
 
-            d_label_dev, file_dev = self.genList(dir_meta=os.path.join(self.data_dir), is_train=False, is_eval=False, is_dev=True)
-            
-            if 'portion' in self.args:
-                idx = range(len(file_dev))
-                idx = np.random.choice(
-                    idx, int(len(file_dev)*self.args['portion']), replace=False)
-                file_dev = [file_dev[i] for i in idx]
-                if len(d_label_dev) > 0:  # the case of train without label
-                    d_label_dev = {k: d_label_dev[k] for k in file_dev}
+                print('no. of validation trials', len(file_dev))
+                
+                self.data_train = Dataset_for(self.args, list_IDs=file_train, labels=d_label_trn,
+                                base_dir=self.data_dir+'/',  **self.args['data'])
 
-            print('no. of validation trials', len(file_dev))
-            file_eval = self.genList(dir_meta=os.path.join(self.data_dir), is_train=False, is_eval=True, is_dev=False)
-            
-            self.data_train = Dataset_for(self.args, list_IDs=file_train, labels=d_label_trn,
-                            base_dir=self.data_dir+'/',  **self.args['data'])
-
-            self.data_val = Dataset_for_dev(self.args, list_IDs=file_dev, labels=d_label_dev,
-                                  base_dir=self.data_dir+'/',  is_train=False, **self.args['data'])
-
-            self.data_test = Dataset_for_eval(self.args, list_IDs=file_eval, labels=None,
-                                    base_dir=self.data_dir+'/',  **self.args['data'])
+                self.data_val = Dataset_for_dev(self.args, list_IDs=file_dev, labels=d_label_dev,
+                                      base_dir=self.data_dir+'/',  is_train=False, **self.args['data'])
+            else:
+                file_eval = self.genList(dir_meta=os.path.join(self.data_dir), is_train=False, is_eval=True, is_dev=False)
+                self.data_test = Dataset_for_eval(self.args, list_IDs=file_eval, labels=None,
+                                        base_dir=self.data_dir+'/',  **self.args['data'])
             
 
     def train_dataloader(self) -> DataLoader[Any]:
@@ -359,15 +356,16 @@ class NormalDataModule(LightningDataModule):
         
         if (is_eval):
             # no eval protocol yet
-            with open(protocol, 'r') as f:
+            # with open(protocol, 'r') as f:
+            #     l_meta = f.readlines()
+            # for line in l_meta:
+            #     utt, subset, label = line.strip().split()
+            #     file_list.append(utt)
+            with open(os.path.join(dir_meta, "eval.txt"), 'r') as f:
                 l_meta = f.readlines()
             for line in l_meta:
-                utt, subset, label = line.strip().split()
-                #if subset == 'dev':
-                #    file_list.append(utt)
-                file_list.append(utt)
-                    #d_meta[utt] = 1 if label == 'bonafide' else 0
-            # return d_meta, file_list
+                file_list.append(line.strip())
+            print("Number of eval files: ", len(file_list))
             return file_list
 
 if __name__ == "__main__":

@@ -4,7 +4,7 @@
 # python train.py experiment=example
 
 defaults:
-  - override /data: cyberaicup_track2_mixed
+  - override /data: cyberaicup_track2
   - override /model: xlsr_conformertcm
   - override /callbacks: default
   - override /trainer: default
@@ -12,7 +12,7 @@ defaults:
 # all parameters below will be merged with parameters from default configurations set above
 # this allows you to overwrite only specified parameters
 
-tags: ["cyberaicup_track2_mixed", "xlsr_conformertcm"]
+tags: ["cyberaicup_track2", "xlsr_conformertcm"]
 
 seed: 12345
 
@@ -22,10 +22,11 @@ trainer:
   gradient_clip_val: 0.0 # 0.0 means don't clip
   accelerator: cuda
   #check_val_every_n_epoch: 0.5 # 0.5 means every 0.5 epoch
+  #strategy: ddp_find_unused_parameters_false
 
 model:
   optimizer:
-    lr: 0.000005
+    lr: 0.00001
   args:
     loss_type: 4
   net: null
@@ -51,6 +52,7 @@ model:
 data:
   batch_size: 10
   num_workers: 8
+  pin_memory: true
   args:
     portion: 1 # 100% of the data
     data:
@@ -62,6 +64,6 @@ data:
 logger:
   wandb:
     tags: ${tags}
-    group: "cyberaicup_track2_mixed"
+    group: "cyberaicup_track2"
   aim:
-    experiment: "cyberaicup_track2_mixed"
+    experiment: "cyberaicup_track2"
