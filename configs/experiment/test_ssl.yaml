@@ -4,7 +4,7 @@
 # python train.py experiment=example
 
 defaults:
-  - override /data: asvspoof
+  - override /data: asvspoof_reproduce
   - override /model: xlsr_aasist
   - override /callbacks: default
   - override /trainer: default
@@ -12,7 +12,7 @@ defaults:
 # all parameters below will be merged with parameters from default configurations set above
 # this allows you to overwrite only specified parameters
 
-tags: ["asvspoof", "xlsr_aasist"]
+tags: ["asvspoof_reproduce", "xlsr_aasist"]
 
 seed: 12345
 

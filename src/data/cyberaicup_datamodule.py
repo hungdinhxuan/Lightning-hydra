@@ -9,252 +9,103 @@ import numpy as np
 import os
 from scipy import signal
 import copy
+import random
+from src.core_scripts.data_io import wav_augmentation as nii_wav_aug
+from src.core_scripts.data_io import wav_tools as nii_wav_tools
+from src.data.components.dataio import load_audio, pad
+from src.data.components.baseloader import Dataset_base
 
-'''
-   Hemlata Tak, Madhu Kamble, Jose Patino, Massimiliano Todisco, Nicholas Evans.
-   RawBoost: A Raw Data Boosting and Augmentation Method applied to Automatic Speaker Verification Anti-Spoofing.
-   In Proc. ICASSP 2022, pp:6382--6386.
-'''
+# augwrapper
+from src.data.components.augwrapper import SUPPORTED_AUGMENTATION
 
-def randRange(x1, x2, integer):
-    y = np.random.uniform(low=x1, high=x2, size=(1,))
-    if integer:
-        y = int(y)
-    return y
+# dynamic import of augmentation methods
+for aug in SUPPORTED_AUGMENTATION:
+    exec(f"from src.data.components.augwrapper import {aug}")
 
-def normWav(x,always):
-    if always:
-        x = x/np.amax(abs(x))
-    elif np.amax(abs(x)) > 1:
-            x = x/np.amax(abs(x))
-    return x
+class Dataset_for(Dataset_base):
+    def __init__(self, args, list_IDs, labels, base_dir, algo=5, vocoders=[],
+                    augmentation_methods=[], eval_augment=None, num_additional_real=2, num_additional_spoof=2,
+                    trim_length=64000, wav_samp_rate=16000, noise_path=None, rir_path=None,
+                    aug_dir=None, online_aug=False, repeat_pad=True, is_train=True, random_start=False):
+        super(Dataset_for, self).__init__(args, list_IDs, labels, base_dir, algo, vocoders, 
+                 augmentation_methods, eval_augment, num_additional_real, num_additional_spoof, 
+                 trim_length, wav_samp_rate, noise_path, rir_path, 
+                 aug_dir, online_aug, repeat_pad, is_train, random_start)
 
-def genNotchCoeffs(nBands,minF,maxF,minBW,maxBW,minCoeff,maxCoeff,minG,maxG,fs):
-    b = 1
-    for i in range(0, nBands):
-        fc = randRange(minF,maxF,0)
-        bw = randRange(minBW,maxBW,0)
-        c = randRange(minCoeff,maxCoeff,1)
-          
-        if c/2 == int(c/2):
-            c = c + 1
-        f1 = fc - bw/2
-        f2 = fc + bw/2
-        if f1 <= 0:
-            f1 = 1/1000
-        if f2 >= fs/2:
-            f2 =  fs/2-1/1000
-        b = np.convolve(signal.firwin(c, [float(f1), float(f2)], window='hamming', fs=fs),b)
-
-    G = randRange(minG,maxG,0) 
-    _, h = signal.freqz(b, 1, fs=fs)    
-    b = pow(10, G/20)*b/np.amax(abs(h))   
-    return b
-
-
-def filterFIR(x,b):
-    N = b.shape[0] + 1
-    xpad = np.pad(x, (0, N), 'constant')
-    y = signal.lfilter(b, 1, xpad)
-    y = y[int(N/2):int(y.shape[0]-N/2)]
-    return y
-
-# Linear and non-linear convolutive noise
-def LnL_convolutive_noise(x,N_f,nBands,minF,maxF,minBW,maxBW,minCoeff,maxCoeff,minG,maxG,minBiasLinNonLin,maxBiasLinNonLin,fs):
-    y = [0] * x.shape[0]
-    for i in range(0, N_f):
-        if i == 1:
-            minG = minG-minBiasLinNonLin
-            maxG = maxG-maxBiasLinNonLin
-        b = genNotchCoeffs(nBands,minF,maxF,minBW,maxBW,minCoeff,maxCoeff,minG,maxG,fs)
-        y = y + filterFIR(np.power(x, (i+1)),  b)     
-    y = y - np.mean(y)
-    y = normWav(y,0)
-    return y
-
-
-# Impulsive signal dependent noise
-def ISD_additive_noise(x, P, g_sd):
-    beta = randRange(0, P, 0)
-    
-    y = copy.deepcopy(x)
-    x_len = x.shape[0]
-    n = int(x_len*(beta/100))
-    p = np.random.permutation(x_len)[:n]
-    f_r= np.multiply(((2*np.random.rand(p.shape[0]))-1),((2*np.random.rand(p.shape[0]))-1))
-    r = g_sd * x[p] * f_r
-    y[p] = x[p] + r
-    y = normWav(y,0)
-    return y
-
-
-# Stationary signal independent noise
-
-def SSI_additive_noise(x,SNRmin,SNRmax,nBands,minF,maxF,minBW,maxBW,minCoeff,maxCoeff,minG,maxG,fs):
-    noise = np.random.normal(0, 1, x.shape[0])
-    b = genNotchCoeffs(nBands,minF,maxF,minBW,maxBW,minCoeff,maxCoeff,minG,maxG,fs)
-    noise = filterFIR(noise, b)
-    noise = normWav(noise,1)
-    SNR = randRange(SNRmin, SNRmax, 0)
-    noise = noise / np.linalg.norm(noise,2) * np.linalg.norm(x,2) / 10.0**(0.05 * SNR)
-    x = x + noise
-    return x
-
-#--------------RawBoost data augmentation algorithms---------------------------##
-def process_Rawboost_feature(feature, sr,args,algo):
-    
-    # Data process by Convolutive noise (1st algo)
-    if algo==1:
-
-        feature =LnL_convolutive_noise(feature,args.N_f,args.nBands,args.minF,args.maxF,args.minBW,args.maxBW,args.minCoeff,args.maxCoeff,args.minG,args.maxG,args.minBiasLinNonLin,args.maxBiasLinNonLin,sr)
-                            
-    # Data process by Impulsive noise (2nd algo)
-    elif algo==2:
+    def __getitem__(self, idx):
+        utt_id = self.list_IDs[idx]
+        filepath = os.path.join(self.base_dir, utt_id)
+        X = load_audio(filepath, self.sample_rate)
         
-        feature=ISD_additive_noise(feature, args.P, args.g_sd)
-                            
-    # Data process by coloured additive noise (3rd algo)
-    elif algo==3:
-        
-        feature=SSI_additive_noise(feature,args.SNRmin,args.SNRmax,args.nBands,args.minF,args.maxF,args.minBW,args.maxBW,args.minCoeff,args.maxCoeff,args.minG,args.maxG,sr)
-    
-    # Data process by all 3 algo. together in series (1+2+3)
-    elif algo==4:
-        
-        feature =LnL_convolutive_noise(feature,args.N_f,args.nBands,args.minF,args.maxF,args.minBW,args.maxBW,
-                 args.minCoeff,args.maxCoeff,args.minG,args.maxG,args.minBiasLinNonLin,args.maxBiasLinNonLin,sr)                         
-        feature=ISD_additive_noise(feature, args.P, args.g_sd)  
-        feature=SSI_additive_noise(feature,args.SNRmin,args.SNRmax,args.nBands,args.minF,
-                args.maxF,args.minBW,args.maxBW,args.minCoeff,args.maxCoeff,args.minG,args.maxG,sr)                 
+        # apply augmentation
+        # randomly choose an augmentation method
+        if self.is_train:
+            augmethod_index = random.choice(range(len(self.augmentation_methods))) if len(self.augmentation_methods) > 0 else -1
+            if augmethod_index >= 0:
+                X = globals()[self.augmentation_methods[augmethod_index]](X, self.args, self.sample_rate, 
+                                                                        audio_path = filepath)
 
-    # Data process by 1st two algo. together in series (1+2)
-    elif algo==5:
-        
-        feature =LnL_convolutive_noise(feature,args.N_f,args.nBands,args.minF,args.maxF,args.minBW,args.maxBW,
-                 args.minCoeff,args.maxCoeff,args.minG,args.maxG,args.minBiasLinNonLin,args.maxBiasLinNonLin,sr)                         
-        feature=ISD_additive_noise(feature, args.P, args.g_sd)                
-                            
-
-    # Data process by 1st and 3rd algo. together in series (1+3)
-    elif algo==6:  
-        
-        feature =LnL_convolutive_noise(feature,args.N_f,args.nBands,args.minF,args.maxF,args.minBW,args.maxBW,
-                 args.minCoeff,args.maxCoeff,args.minG,args.maxG,args.minBiasLinNonLin,args.maxBiasLinNonLin,sr)                         
-        feature=SSI_additive_noise(feature,args.SNRmin,args.SNRmax,args.nBands,args.minF,args.maxF,args.minBW,args.maxBW,args.minCoeff,args.maxCoeff,args.minG,args.maxG,sr) 
-
-    # Data process by 2nd and 3rd algo. together in series (2+3)
-    elif algo==7: 
-        
-        feature=ISD_additive_noise(feature, args.P, args.g_sd)
-        feature=SSI_additive_noise(feature,args.SNRmin,args.SNRmax,args.nBands,args.minF,args.maxF,args.minBW,args.maxBW,args.minCoeff,args.maxCoeff,args.minG,args.maxG,sr) 
-   
-    # Data process by 1st two algo. together in Parallel (1||2)
-    elif algo==8:
-        
-        feature1 =LnL_convolutive_noise(feature,args.N_f,args.nBands,args.minF,args.maxF,args.minBW,args.maxBW,
-                 args.minCoeff,args.maxCoeff,args.minG,args.maxG,args.minBiasLinNonLin,args.maxBiasLinNonLin,sr)                         
-        feature2=ISD_additive_noise(feature, args.P, args.g_sd)
-
-        feature_para=feature1+feature2
-        feature=normWav(feature_para,0)  #normalized resultant waveform
- 
-    # original data without Rawboost processing           
-    else:
-        
-        feature=feature
-    
-    return feature
-
-
-def pad(x, max_len=64600):
-    x_len = x.shape[0]
-    if x_len >= max_len:
-        return x[:max_len]
-    # need to pad
-    num_repeats = int(max_len / x_len)+1
-    padded_x = np.tile(x, (1, num_repeats))[:, :max_len][0]
-    return padded_x	
-			
-class Dataset_ASVspoof2019_train(Dataset):
-    def __init__(self,args,list_IDs, labels, base_dir,algo):
-        '''self.list_IDs	: list of strings (each string: utt key),
-            self.labels      : dictionary (key: utt key, value: label integer)'''
-               
-        self.list_IDs = list_IDs
-        self.labels = labels
-        self.base_dir = base_dir
-        self.algo=algo
-        self.args=args
-        self.cut=64600 # take ~4 sec audio (64600 samples)
-
-    def __len__(self):
-        return len(self.list_IDs)
-
-
-    def __getitem__(self, index):            
-        utt_id = self.list_IDs[index]
-        X,fs = librosa.load(self.base_dir+utt_id+'.flac', sr=16000) 
-        Y=process_Rawboost_feature(X,fs,self.args,self.algo)
-        X_pad= pad(Y,self.cut)
+        X_pad= pad(X,padding_type="repeat" if self.repeat_pad else "zero", max_len=self.trim_length, random_start=True)
         x_inp= Tensor(X_pad)
         target = self.labels[utt_id]
+        return idx, x_inp, target		
 
-        return x_inp, target
-                  
-class Dataset_ASVspoof2021_eval(Dataset):
-    def __init__(self, list_IDs, base_dir):       
-        self.list_IDs = list_IDs
-        self.base_dir = base_dir
-        self.cut=64600 # take ~4 sec audio (64600 samples)
 
-    def __len__(self):
-        return len(self.list_IDs)
+class Dataset_for_dev(Dataset_base):
+    def __init__(self, args, list_IDs, labels, base_dir, algo=5, vocoders=[],
+                    augmentation_methods=[], eval_augment=None, num_additional_real=2, num_additional_spoof=2,
+                    trim_length=64000, wav_samp_rate=16000, noise_path=None, rir_path=None,
+                    aug_dir=None, online_aug=False, repeat_pad=False, is_train=True,
+                    random_start=False
+                    ):
+        super(Dataset_for_dev, self).__init__(args, list_IDs, labels, base_dir, algo, vocoders, 
+                 augmentation_methods, eval_augment, num_additional_real, num_additional_spoof, 
+                 trim_length, wav_samp_rate, noise_path, rir_path, 
+                 aug_dir, online_aug, repeat_pad, is_train, random_start)
 
+        if repeat_pad:
+            self.padding_type = "repeat"
+        else:
+            self.padding_type = "zero"
+    
     def __getitem__(self, index):
         utt_id = self.list_IDs[index]
-        X, fs = librosa.load(self.base_dir+utt_id+'.flac', sr=16000)
-        X_pad = pad(X,self.cut)
+        X, fs = librosa.load(self.base_dir + "/" + utt_id, sr=16000)
+        X_pad = pad(X,self.padding_type,self.trim_length, random_start=self.random_start)
         x_inp = Tensor(X_pad)
-        return x_inp,utt_id  
+        target = self.labels[utt_id]
+        return index, x_inp, target
 
-class Args:
-    def __init__(self):
-        self.database_path = '/your/path/to/data/ASVspoof_database/DF/'
-        self.protocols_path = '/data/hungdx/Datasets/protocols/database/'
-        self.batch_size = 14
-        self.num_epochs = 100
-        self.lr = 0.000001
-        self.weight_decay = 0.0001
-        self.loss = 'weighted_CCE'
-        self.seed = 1234
-        self.model_path = None
-        self.comment = None
-        self.track = 'DF'
-        self.eval_output = None
-        self.eval = False
-        self.is_eval = False
-        self.eval_part = 0
-        self.cudnn_deterministic_toggle = True
-        self.cudnn_benchmark_toggle = False
-        self.algo = 3
-        self.nBands = 5
-        self.minF = 20
-        self.maxF = 8000
-        self.minBW = 100
-        self.maxBW = 1000
-        self.minCoeff = 10
-        self.maxCoeff = 100
-        self.minG = 0
-        self.maxG = 0
-        self.minBiasLinNonLin = 5
-        self.maxBiasLinNonLin = 20
-        self.N_f = 5
-        self.P = 10
-        self.g_sd = 2
-        self.SNRmin = 10
-        self.SNRmax = 40
+class Dataset_for_eval(Dataset_base):
+    def __init__(self, args, list_IDs, labels, base_dir, algo=5, vocoders=[],
+                    augmentation_methods=[], eval_augment=None, num_additional_real=2, num_additional_spoof=2,
+                    trim_length=64000, wav_samp_rate=16000, noise_path=None, rir_path=None,
+                    aug_dir=None, online_aug=False, repeat_pad=True, is_train=True, enable_chunking=False, random_start=False
+                    ):
+        super(Dataset_for_eval, self).__init__(args, list_IDs, labels, base_dir, algo, vocoders, 
+                 augmentation_methods, eval_augment, num_additional_real, num_additional_spoof, 
+                 trim_length, wav_samp_rate, noise_path, rir_path, 
+                 aug_dir, online_aug, repeat_pad, is_train, random_start)
+        self.enable_chunking = enable_chunking
+        if repeat_pad:
+            self.padding_type = "repeat"
+        else:
+            self.padding_type = "zero"
+    
+    def __getitem__(self, idx):
+        utt_id = self.list_IDs[idx]
+        filepath = os.path.join(self.base_dir, utt_id)
+        X, _ = librosa.load(filepath, sr=16000)
+        # apply augmentation at inference time
+        if self.eval_augment is not None:
+            # print("eval_augment:", self.eval_augment)
+            X = globals()[self.eval_augment](X, self.args, self.sample_rate, audio_path = filepath)
+        if not self.enable_chunking:
+            X= pad(X,padding_type=self.padding_type,max_len=self.trim_length, random_start=self.random_start)
+        x_inp = Tensor(X)
+        return x_inp, utt_id
 
-class CyberAiCupDataModule(LightningDataModule):
+class CyberpcupNormalDataModule(LightningDataModule):
     """`LightningDataModule` for the ASVSpoof dataset.
 
     The ASVspoof 2019 database for logical access is based upon a standard multi-speaker speech synthesis database called VCTK2. 
@@ -304,6 +155,11 @@ class CyberAiCupDataModule(LightningDataModule):
         batch_size: int = 64,
         num_workers: int = 0,
         pin_memory: bool = False,
+        args: Optional[Dict[str, Any]] = None,
+        # list_IDs: list = [], labels: list = [], base_dir: str = '', algo: int = 5, vocoders: list = [],
+        # augmentation_methods: list = [], eval_augment: Optional[str] = None, num_additional_real: int = 2, num_additional_spoof: int = 2,
+        # trim_length: int = 64000, wav_samp_rate: int = 16000, noise_path: Optional[str] = None, rir_path: Optional[str] = None,
+        # aug_dir: Optional[str] = None, online_aug: bool = False, repeat_pad: bool = True, is_train: bool = True, enable_chunking: bool = False
     ) -> None:
         """Initialize a `ASVSpoofDataModule`.
 
@@ -324,6 +180,8 @@ class CyberAiCupDataModule(LightningDataModule):
 
         self.batch_size_per_device = batch_size
         self.data_dir = data_dir
+
+        self.args = args
 
     @property
     def num_classes(self) -> int:
@@ -358,18 +216,40 @@ class CyberAiCupDataModule(LightningDataModule):
         if not self.data_train and not self.data_val and not self.data_test:
             
             # define train dataloader
-            args = Args()
-            args.database_path = self.data_dir
-            track = args.track
-            prefix_2021 = 'ASVspoof2021.{}'.format(track)
 
-            d_label_trn,file_train = self.genSpoof_list( dir_meta =  os.path.join(args.protocols_path+'ASVspoof_LA_cm_protocols/ASVspoof2019.LA.cm.train.trn.txt'),is_train=True,is_eval=False)
-            d_label_dev,file_dev = self.genSpoof_list( dir_meta =  os.path.join(args.protocols_path+'ASVspoof_LA_cm_protocols/ASVspoof2019.LA.cm.dev.trl.txt'),is_train=False,is_eval=False)
-            file_eval = self.genSpoof_list( dir_meta =  os.path.join(args.protocols_path+'ASVspoof_{}_cm_protocols/{}.cm.eval.trl.txt'.format(track,prefix_2021)),is_train=False,is_eval=True)
+            d_label_trn, file_train = self.genList(dir_meta=os.path.join(
+                    self.data_dir), is_train=True, is_eval=False, is_dev=False)
             
-            self.data_train = Dataset_ASVspoof2019_train(args,list_IDs = file_train,labels = d_label_trn,base_dir = os.path.join(args.database_path+'ASVspoof2019_LA_train/'),algo=args.algo)
-            self.data_val = Dataset_ASVspoof2019_train(args,list_IDs = file_dev,labels = d_label_dev,base_dir = os.path.join(args.database_path+'ASVspoof2019_LA_dev/'),algo=args.algo)
-            self.data_test = Dataset_ASVspoof2021_eval(list_IDs = file_eval,base_dir = os.path.join(args.database_path+'ASVspoof2021_{}_eval/'.format(args.track)))
+            if 'portion' in self.args:
+                idx = range(len(file_train))
+                idx = np.random.choice(
+                    idx, int(len(file_train)*self.args['portion']), replace=False)
+                file_train = [file_train[i] for i in idx]
+                if len(d_label_trn) > 0:  # the case of train without label
+                    d_label_trn = {k: d_label_trn[k] for k in file_train}
+            print('no. of training trials', len(file_train))
+
+            d_label_dev, file_dev = self.genList(dir_meta=os.path.join(self.data_dir), is_train=False, is_eval=False, is_dev=True)
+            
+            if 'portion' in self.args:
+                idx = range(len(file_dev))
+                idx = np.random.choice(
+                    idx, int(len(file_dev)*self.args['portion']), replace=False)
+                file_dev = [file_dev[i] for i in idx]
+                if len(d_label_dev) > 0:  # the case of train without label
+                    d_label_dev = {k: d_label_dev[k] for k in file_dev}
+
+            print('no. of validation trials', len(file_dev))
+            file_eval = self.genList(dir_meta=os.path.join(self.data_dir), is_train=False, is_eval=True, is_dev=False)
+            
+            self.data_train = Dataset_for(self.args, list_IDs=file_train, labels=d_label_trn,
+                            base_dir=self.data_dir+'/',  **self.args['data'])
+
+            self.data_val = Dataset_for_dev(self.args, list_IDs=file_dev, labels=d_label_dev,
+                                  base_dir=self.data_dir+'/',  is_train=False, **self.args['data'])
+
+            self.data_test = Dataset_for_eval(self.args, list_IDs=file_eval, labels=None,
+                                    base_dir=self.data_dir+'/',  **self.args['data'])
             
 
     def train_dataloader(self) -> DataLoader[Any]:
@@ -383,6 +263,7 @@ class CyberAiCupDataModule(LightningDataModule):
             num_workers=self.hparams.num_workers,
             pin_memory=self.hparams.pin_memory,
             shuffle=True,
+            drop_last=True
         )
 
     def val_dataloader(self) -> DataLoader[Any]:
@@ -435,37 +316,44 @@ class CyberAiCupDataModule(LightningDataModule):
         """
         pass
     
-    def genSpoof_list(self, dir_meta, is_train=False, is_eval=False):
-        """
-        This function is from the following source: https://github.com/TakHemlata/SSL_Anti-spoofing/blob/main/data_utils_SSL.py#L17
-        Official source: https://arxiv.org/abs/2202.12233
-        Automatic speaker verification spoofing and deepfake detection using wav2vec 2.0 and data augmentation
-        """
+    def genList(self, dir_meta, is_train=False, is_eval=False, is_dev=False):
+        # bonafide: 1, spoof: 0
         d_meta = {}
         file_list=[]
-        with open(dir_meta, 'r') as f:
-            l_meta = f.readlines()
+        protocol = os.path.join(dir_meta, "protocol.txt")
 
         if (is_train):
+            with open(protocol, 'r') as f:
+                l_meta = f.readlines()
             for line in l_meta:
-                _,key,_,_,label = line.strip().split()
-                
-                file_list.append(key)
-                d_meta[key] = 1 if label == 'bonafide' else 0
-            return d_meta,file_list
+                utt, subset, label = line.strip().split()
+                if subset == 'train':
+                    file_list.append(utt)
+                    d_meta[utt] = 1 if label == 'bonafide' else 0
+
+            return d_meta, file_list
+        if (is_dev):
+            with open(protocol, 'r') as f:
+                l_meta = f.readlines()
+            for line in l_meta:
+                utt, subset, label = line.strip().split()
+                if subset == 'dev':
+                    file_list.append(utt)
+                    d_meta[utt] = 1 if label == 'bonafide' else 0
+            return d_meta, file_list
         
-        elif(is_eval):
+        if (is_eval):
+            # no eval protocol yet
+            with open(protocol, 'r') as f:
+                l_meta = f.readlines()
             for line in l_meta:
-                key= line.strip()
-                file_list.append(key)
-            return file_list
-        else:
-            for line in l_meta:
-                _,key,_,_,label = line.strip().split()
-                
-                file_list.append(key)
-                d_meta[key] = 1 if label == 'bonafide' else 0
-            return d_meta,file_list
+                utt, subset, label = line.strip().split()
+                if subset == 'eval':
+                    file_list.append(utt)
+                file_list.append(utt)
+                d_meta[utt] = 1 if label == 'bonafide' else 0
+            # return d_meta, file_list
+            return d_meta, file_list
 
 if __name__ == "__main__":
-    _ = CyberAiCupDataModule()
+    _ = CyberpcupNormalDataModule()

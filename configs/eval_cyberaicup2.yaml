@@ -1,0 +1,77 @@
+# @package _global_
+
+# to execute this experiment run:
+# python train.py experiment=example
+
+defaults:
+  - override /data: cyberaicup_track2_mixed
+  - override /model: xlsr_conformertcm
+  - override /callbacks: none
+  - override /trainer: default
+
+# all parameters below will be merged with parameters from default configurations set above
+# this allows you to overwrite only specified parameters
+
+#tags: ["cyberaicup_track2_mixed", "xlsr_conformertcm"]
+
+seed: 12345
+
+trainer:
+  min_epochs: 30
+  max_epochs: 100
+  gradient_clip_val: 0.0 # 0.0 means don't clip
+  accelerator: cuda
+
+model:
+  optimizer:
+    lr: 0.00001
+  args:
+    loss_type: 4
+  net: null
+  compile: false
+
+  scheduler:
+    _target_: torch.optim.lr_scheduler.CyclicLR
+    _partial_: true
+    cycle_momentum: false
+    base_lr: 0.000001
+    max_lr: 0.00001
+    mode: "exp_range"
+    gamma: 0.85
+  
+  score_save_path: logs/eval/cyberaicup_track2_mixed_xlsr_conformertcm_epoch_25.txt
+
+
+data:
+  batch_size: 10
+  num_workers: 8
+  args:
+    portion: 1 # 100% of the data
+    data:
+      trim_length: 160000 # 10s
+      repeat_pad: false #  If true, repeat the audio to the trim_length
+      random_start: true # If true, randomly pick a start point for the audio
+      augmentation_methods: []
+
+logger: null
+
+
+# task name, determines output directory path
+task_name: "eval"
+
+# tags to help you identify your experiments
+# you can overwrite this in experiment configs
+# overwrite from command line with `python train.py tags="[first_tag, second_tag]"`
+# appending lists from command line is currently not supported :(
+# https://github.com/facebookresearch/hydra/issues/1547
+tags: ["dev"]
+
+# set False to skip model training
+train: False
+
+# evaluate on test set, using best model weights achieved during training
+# lightning chooses best weights based on the metric specified in checkpoint callback
+test: True
+
+# simply provide checkpoint path to resume training
+ckpt_path: logs/train/checkpoints/last-v3.ckpt

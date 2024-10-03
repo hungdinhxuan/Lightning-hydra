@@ -10,22 +10,13 @@ import os
 from scipy import signal
 import copy
 from src.data.components.RawBoost import process_Rawboost_feature
-
+from src.data.components.dataio import load_audio, pad
 '''
    Hemlata Tak, Madhu Kamble, Jose Patino, Massimiliano Todisco, Nicholas Evans.
    RawBoost: A Raw Data Boosting and Augmentation Method applied to Automatic Speaker Verification Anti-Spoofing.
    In Proc. ICASSP 2022, pp:6382--6386.
 '''
 
-def pad(x, max_len=64600):
-    x_len = x.shape[0]
-    if x_len >= max_len:
-        return x[:max_len]
-    # need to pad
-    num_repeats = int(max_len / x_len)+1
-    padded_x = np.tile(x, (1, num_repeats))[:, :max_len][0]
-    return padded_x	
-			
 class Dataset_ASVspoof2019_train(Dataset):
     def __init__(self,args,list_IDs, labels, base_dir,algo):
         '''self.list_IDs	: list of strings (each string: utt key),
@@ -36,7 +27,13 @@ class Dataset_ASVspoof2019_train(Dataset):
         self.base_dir = base_dir
         self.algo=algo
         self.args=args
-        self.cut=64600 # take ~4 sec audio (64600 samples)
+
+        # Sampling rate and cut-off
+        print('args:',args)
+        self.fs = args.get('sampling_rate', 16000) if args is not None else 16000
+        self.cut = args.get('cut', 64600) if args is not None else 64600
+        self.padding_type = args.get('padding_type', 'zero') if args is not None else 'zero'
+        self.random_start = args.get('random_start', False) if args is not None else False
 
     def __len__(self):
         return len(self.list_IDs)
@@ -44,66 +41,35 @@ class Dataset_ASVspoof2019_train(Dataset):
 
     def __getitem__(self, index):            
         utt_id = self.list_IDs[index]
-        X,fs = librosa.load(self.base_dir+utt_id+'.flac', sr=16000) 
+        X,fs = librosa.load(self.base_dir+utt_id+'.flac', sr=self.fs) 
         Y=process_Rawboost_feature(X,fs,self.args,self.algo)
-        X_pad= pad(Y,self.cut)
+        X_pad= pad(Y, self.padding_type, self.cut, self.random_start)
         x_inp= Tensor(X_pad)
         target = self.labels[utt_id]
 
         return x_inp, target
                   
 class Dataset_ASVspoof2021_eval(Dataset):
-    def __init__(self, list_IDs, base_dir):       
+    def __init__(self, args, list_IDs, base_dir):       
         self.list_IDs = list_IDs
         self.base_dir = base_dir
-        self.cut=64600 # take ~4 sec audio (64600 samples)
+        
+        # Sampling rate and cut-off
+        self.fs = args.get('sampling_rate', 16000) if args is not None else 16000
+        self.cut = args.get('cut', 64600) if args is not None else 64600
+        self.padding_type = args.get('padding_type', 'zero') if args is not None else 'zero'
+        self.random_start = args.get('random_start', False) if args is not None else False
 
     def __len__(self):
         return len(self.list_IDs)
 
     def __getitem__(self, index):
         utt_id = self.list_IDs[index]
-        X, fs = librosa.load(self.base_dir+utt_id+'.flac', sr=16000)
-        X_pad = pad(X,self.cut)
+        X, fs = librosa.load(self.base_dir+utt_id+'.flac', sr=self.fs)
+        X_pad = pad(X,self.padding_type, self.cut, self.random_start)
         x_inp = Tensor(X_pad)
         return x_inp,utt_id  
 
-class Args:
-    def __init__(self):
-        self.database_path = '/your/path/to/data/ASVspoof_database/DF/'
-        self.protocols_path = '/data/hungdx/Datasets/protocols/database/'
-        self.batch_size = 14
-        self.num_epochs = 100
-        self.lr = 0.000001
-        self.weight_decay = 0.0001
-        self.loss = 'weighted_CCE'
-        self.seed = 1234
-        self.model_path = None
-        self.comment = None
-        self.track = 'DF'
-        self.eval_output = None
-        self.eval = False
-        self.is_eval = False
-        self.eval_part = 0
-        self.cudnn_deterministic_toggle = True
-        self.cudnn_benchmark_toggle = False
-        self.algo = 3
-        self.nBands = 5
-        self.minF = 20
-        self.maxF = 8000
-        self.minBW = 100
-        self.maxBW = 1000
-        self.minCoeff = 10
-        self.maxCoeff = 100
-        self.minG = 0
-        self.maxG = 0
-        self.minBiasLinNonLin = 5
-        self.maxBiasLinNonLin = 20
-        self.N_f = 5
-        self.P = 10
-        self.g_sd = 2
-        self.SNRmin = 10
-        self.SNRmax = 40
 
 class ASVSpoofDataModule(LightningDataModule):
     """`LightningDataModule` for the ASVSpoof dataset.
@@ -155,6 +121,7 @@ class ASVSpoofDataModule(LightningDataModule):
         batch_size: int = 64,
         num_workers: int = 0,
         pin_memory: bool = False,
+        args: Optional[Dict[str, Any]] = None,
     ) -> None:
         """Initialize a `ASVSpoofDataModule`.
 
@@ -175,6 +142,7 @@ class ASVSpoofDataModule(LightningDataModule):
 
         self.batch_size_per_device = batch_size
         self.data_dir = data_dir
+        self.args = args
 
     @property
     def num_classes(self) -> int:
@@ -209,18 +177,21 @@ class ASVSpoofDataModule(LightningDataModule):
         if not self.data_train and not self.data_val and not self.data_test:
             
             # define train dataloader
-            args = Args()
-            args.database_path = self.data_dir
-            track = args.track
-            prefix_2021 = 'ASVspoof2021.{}'.format(track)
-
-            d_label_trn,file_train = self.genSpoof_list( dir_meta =  os.path.join(args.protocols_path+'ASVspoof_LA_cm_protocols/ASVspoof2019.LA.cm.train.trn.txt'),is_train=True,is_eval=False)
-            d_label_dev,file_dev = self.genSpoof_list( dir_meta =  os.path.join(args.protocols_path+'ASVspoof_LA_cm_protocols/ASVspoof2019.LA.cm.dev.trl.txt'),is_train=False,is_eval=False)
-            file_eval = self.genSpoof_list( dir_meta =  os.path.join(args.protocols_path+'ASVspoof_{}_cm_protocols/{}.cm.eval.trl.txt'.format(track,prefix_2021)),is_train=False,is_eval=True)
             
-            self.data_train = Dataset_ASVspoof2019_train(args,list_IDs = file_train,labels = d_label_trn,base_dir = os.path.join(args.database_path+'ASVspoof2019_LA_train/'),algo=args.algo)
-            self.data_val = Dataset_ASVspoof2019_train(args,list_IDs = file_dev,labels = d_label_dev,base_dir = os.path.join(args.database_path+'ASVspoof2019_LA_dev/'),algo=args.algo)
-            self.data_test = Dataset_ASVspoof2021_eval(list_IDs = file_eval,base_dir = os.path.join(args.database_path+'ASVspoof2021_{}_eval/'.format(args.track)))
+            self.database_path = self.data_dir
+            track = 'DF'
+            
+            prefix_2021 = 'ASVspoof2021.{}'.format(track)
+            self.protocols_path = '/data/hungdx/Datasets/protocols/database/'
+            self.algo = self.args.get('algo', -1) if self.args is not None else -1
+
+            d_label_trn,file_train = self.genSpoof_list( dir_meta =  os.path.join(self.protocols_path+'ASVspoof_LA_cm_protocols/ASVspoof2019.LA.cm.train.trn.txt'),is_train=True,is_eval=False)
+            d_label_dev,file_dev = self.genSpoof_list( dir_meta =  os.path.join(self.protocols_path+'ASVspoof_LA_cm_protocols/ASVspoof2019.LA.cm.dev.trl.txt'),is_train=False,is_eval=False)
+            file_eval = self.genSpoof_list( dir_meta =  os.path.join(self.protocols_path+'ASVspoof_{}_cm_protocols/{}.cm.eval.trl.txt'.format(track,prefix_2021)),is_train=False,is_eval=True)
+            
+            self.data_train = Dataset_ASVspoof2019_train(self.args,list_IDs = file_train,labels = d_label_trn,base_dir = os.path.join(self.database_path+'ASVspoof2019_LA_train/'),algo=self.algo)
+            self.data_val = Dataset_ASVspoof2019_train(self.args,list_IDs = file_dev,labels = d_label_dev,base_dir = os.path.join(self.database_path+'ASVspoof2019_LA_dev/'),algo=self.algo)
+            self.data_test = Dataset_ASVspoof2021_eval(self.args, list_IDs = file_eval,base_dir = os.path.join(self.database_path+'ASVspoof2021_{}_eval/'.format(track)))
             
 
     def train_dataloader(self) -> DataLoader[Any]:

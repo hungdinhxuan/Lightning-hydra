@@ -1,0 +1,35 @@
+_target_: src.data.normal_datamodule.NormalDataModule
+data_dir: ${oc.env:CYBERCUP2_PATH}
+batch_size: 16 # Needs to be divisible by the number of devices (e.g., if in a distributed setup)
+num_workers: 4
+pin_memory: False
+args:
+  # The sampling rate of the audio files
+  portion: 0.2 # 20% of the data
+  nBands: 5
+  minF: 20
+  maxF: 8000
+  minBW: 100
+  maxBW: 1000
+  minCoeff: 10
+  maxCoeff: 100
+  minG: 0
+  maxG: 0
+  minBiasLinNonLin: 5
+  maxBiasLinNonLin: 20
+  N_f: 5
+  P: 10
+  g_sd: 2
+  SNRmin: 10
+  SNRmax: 40
+  
+  data:
+    augmentation_methods: [] 
+    trim_length: 100000 # 6.25s
+    wav_samp_rate: 16000
+    online_aug: true
+    aug_dir: ${oc.env:LARGE_CORPUS_FOR_ASVSPOOF5}/aug
+    noise_path: ${oc.env:NOISE_PATH}
+    rir_path: ${oc.env:RIR_PATH}
+    repeat_pad: false #  If true, repeat the audio to the trim_length
+    random_start: false # If true, randomly pick a start point for the audio

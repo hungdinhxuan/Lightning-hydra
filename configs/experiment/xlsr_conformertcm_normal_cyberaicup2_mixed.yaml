@@ -1,0 +1,69 @@
+# @package _global_
+
+# to execute this experiment run:
+# python train.py experiment=example
+
+defaults:
+  - override /data: cyberaicup_track2
+  - override /model: xlsr_conformertcm
+  - override /callbacks: default
+  - override /trainer: default
+
+# all parameters below will be merged with parameters from default configurations set above
+# this allows you to overwrite only specified parameters
+
+tags: ["cyberaicup_track2", "xlsr_conformertcm"]
+
+seed: 12345
+
+trainer:
+  min_epochs: 30
+  max_epochs: 100
+  gradient_clip_val: 0.0 # 0.0 means don't clip
+  accelerator: cuda
+  #check_val_every_n_epoch: 0.5 # 0.5 means every 0.5 epoch
+  #strategy: ddp_find_unused_parameters_false
+
+model:
+  optimizer:
+    lr: 0.00001
+  args:
+    loss_type: 4
+  net: null
+  compile: true
+
+  # scheduler:
+  #   _target_: torch.optim.lr_scheduler.CyclicLR
+  #   _partial_: true
+  #   cycle_momentum: false
+  #   base_lr: 0.000005
+  #   max_lr: 0.00001
+  #   mode: "exp_range"
+  #   gamma: 0.85
+  #   verbose: true
+  scheduler:
+    _target_: torch.optim.lr_scheduler.ReduceLROnPlateau
+    _partial_: true
+    mode: min
+    factor: 0.5
+    patience: 5
+    verbose: true
+
+data:
+  batch_size: 10
+  num_workers: 8
+  pin_memory: true
+  args:
+    portion: 1 # 100% of the data
+    data:
+      trim_length: 160000 # 10s
+      repeat_pad: false #  If true, repeat the audio to the trim_length
+      random_start: true # If true, randomly pick a start point for the audio
+      augmentation_methods: []
+
+logger:
+  wandb:
+    tags: ${tags}
+    group: "cyberaicup_track2"
+  aim:
+    experiment: "cyberaicup_track2"
