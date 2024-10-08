@@ -4,15 +4,15 @@
 # python train.py experiment=example
 
 defaults:
-  - override /data: asvspoof_reproduce
-  - override /model: xlsr_aasist
+  - override /data: asvspoof_multiview
+  - override /model: xlsr_aasist_multiview
   - override /callbacks: default
   - override /trainer: default
 
 # all parameters below will be merged with parameters from default configurations set above
 # this allows you to overwrite only specified parameters
 
-tags: ["asvspoof_reproduce", "xlsr_aasist"]
+tags: ["asvspoof_multiview", "xlsr_aasist_multiview"]
 
 seed: 1234
 
@@ -29,14 +29,19 @@ model:
   net: null
   scheduler: null
   compile: false
+  weighted_views:
+    '1': 1
+    '2': 0.5 # /2
+    '3': 0.25 # /4
+    '4': 0.125 # /8
 
 data:
-  batch_size: 14
-  num_workers: 4
+  batch_size: 8
+  num_workers: 8
 
 logger:
   wandb:
     tags: ${tags}
-    group: "asvspoof"
+    group: "asvspoof_multiview"
   aim:
-    experiment: "asvspoof"
+    experiment: "asvspoof_multiview"

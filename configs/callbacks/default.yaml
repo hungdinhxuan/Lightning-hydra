@@ -3,7 +3,7 @@ defaults:
   - early_stopping
 #  - model_summary
   - rich_progress_bar
-  - learning_rate_logger
+#  - learning_rate_logger
   - _self_
 
 learning_rate_logger:

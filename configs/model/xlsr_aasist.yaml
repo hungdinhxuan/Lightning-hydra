@@ -1,17 +1,12 @@
-_target_: src.models.asvspoof_aasistssl_reproduce_datamodule.AASISTSSLLitModule
+_target_: src.models.aasistssl_module.AASISTSSLLitModule
 
 optimizer:
   _target_: torch.optim.Adam
   _partial_: true
   lr: 0.000001
-  weight_decay: 0.00001
+  weight_decay: 0.0001
 
-scheduler:
-  _target_: torch.optim.lr_scheduler.ReduceLROnPlateau
-  _partial_: true
-  mode: min
-  factor: 0.1
-  patience: 10
+scheduler: null
 
 ssl_pretrained_path: /home/hungdx/code/xlsr2_300m.pt
 

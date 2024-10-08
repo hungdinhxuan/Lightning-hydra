@@ -1,0 +1,50 @@
+# @package _global_
+
+# to execute this experiment run:
+# python train.py experiment=example
+
+defaults:
+  - override /data: asvspoof_multiview
+  - override /model: xlsr_aasist_multiview
+  - override /callbacks: null
+  - override /trainer: default
+
+logger: null
+
+seed: 12345
+
+trainer:
+  max_epochs: 2
+  gradient_clip_val: 0.0
+  accelerator: gpu # debuggers don't like gpus 
+  detect_anomaly: true # raise exception if NaN or +/-inf is detected in any tensor
+  devices: 1 # debuggers don't like multiprocessing
+  limit_train_batches: 0.01
+  limit_val_batches: 0.01
+  limit_test_batches: 0.1
+
+model:
+  optimizer:
+    lr: 0.000001
+    weight_decay: 0.0001
+  scheduler: null
+  net: null
+  compile: false
+
+data:
+  batch_size: 8
+  pin_memory: False # disable gpu memory pin
+  num_workers: 8 # debuggers don't like multiprocessing
+
+# sets level of all command line loggers to 'DEBUG'
+# https://hydra.cc/docs/tutorials/basic/running_your_app/logging/
+# hydra:
+#   job_logging:
+#     root:
+#       level: DEBUG
+
+test: False
+
+extras:
+  ignore_warnings: False
+  enforce_tags: False
