@@ -17,7 +17,7 @@ net:
     pool_ratios: [0.5, 0.7, 0.5, 0.5]
     temperatures: [2.0, 2.0, 100.0, 100.0]
 
-ssl_pretrained_path: /home/hungdx/code/xlsr2_300m.pt
+ssl_pretrained_path: ${oc.env:XLSR_PRETRAINED_MODEL_PATH}
 cross_entropy_weight: [0.1, 0.9] # weight for cross entropy loss 0.1 for spoof and 0.9 for bonafide
 # compile model for faster training with pytorch 2.0
 compile: true

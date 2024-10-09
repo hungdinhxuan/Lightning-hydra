@@ -8,7 +8,7 @@ optimizer:
 
 scheduler: null
 
-ssl_pretrained_path: /home/hungdx/code/xlsr2_300m.pt
+ssl_pretrained_path: ${oc.env:XLSR_PRETRAINED_MODEL_PATH}
 
 # compile model for faster training with pytorch 2.0
 compile: false
