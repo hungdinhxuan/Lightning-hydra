@@ -66,8 +66,8 @@ class AASISTSSLLitModule(LightningModule):
         cross_entropy_weight: list[float] = [0.5, 0.5],
         score_save_path: str = None,
         #views: list[float] =  [1, 2, 3, 4],
-        weighted_views: Dict[str, float] = {'1': 1, '2': 1, '3': 1, '4': 1},
-        adaptive_weight: bool = False,
+        weighted_views: Dict[str, float] = {'1': 1.0, '2': 1.0, '3': 1.0, '4': 1.0},
+        adaptive_weights: bool = False,
     ) -> None:
         """Initialize a `MNISTLitModule`.
 
@@ -122,8 +122,16 @@ class AASISTSSLLitModule(LightningModule):
         self.running_loss = 0.0
 
         self.weighted_views = weighted_views
-        self.adaptive_weight = adaptive_weight
+        self.adaptive_weights = adaptive_weights
         print("We are in the AASISTSSLLitModule")
+
+        if self.adaptive_weights:
+            self.weighted_views = {}
+            for k, v in weighted_views.items():
+                param = torch.nn.Parameter(torch.tensor(float(v)), requires_grad=True)
+                self.register_parameter(f"adaptive_weight_{k}", param)
+                self.weighted_views[k] = param
+            
 
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -152,6 +160,10 @@ class AASISTSSLLitModule(LightningModule):
         
         for k, v in self.val_view_acc_best.items():
             self.val_view_acc_best[k].reset()
+
+        # Log current adaptive_weights
+        if self.adaptive_weights:
+            print("Adaptive weights are enabled")
 
     def model_step(
         self, batch: Tuple[torch.Tensor, torch.Tensor]
@@ -258,6 +270,7 @@ class AASISTSSLLitModule(LightningModule):
         self.log("train/loss", self.train_loss, on_step=False, on_epoch=True, prog_bar=True, sync_dist=True, batch_size=self.batch_size)
         self.log("train/acc", self.train_acc, on_step=False, on_epoch=True, prog_bar=True, sync_dist=True, batch_size=self.batch_size)
 
+        self.log_dict( {f"adaptive_weight_{k}": v for k, v in self.weighted_views.items()}, on_step=False, on_epoch=True, prog_bar=True, sync_dist=True)
         # Return loss for backpropagation
         return loss
 
@@ -270,16 +283,19 @@ class AASISTSSLLitModule(LightningModule):
             self.log(f"train/view_{k}_loss", self.train_loss_detail[k].compute(), prog_bar=True, sync_dist=True)
         
         # Check if adaptive weight is enabled
-        if self.adaptive_weight:
-            # Get the accuracy for each view
-            view_acc = {k: v.compute() for k, v in self.train_view_acc.items()}
-            # Adjust the weights based on the accuracy
-            # weighted_views is a dictionary of the views and their weights
-            # adjust_weights is a function that adjusts the weights based on the accuracy of the views and returns a list of normalized weights
-            self.weighted_views = {k: v for k, v in zip(view_acc.keys(), adjust_weights(list(view_acc.values())))}
+        # if self.adaptive_weights:
+        #     # Get the accuracy for each view
+        #     view_acc = {k: v.compute() for k, v in self.train_view_acc.items()}
+        #     # Adjust the weights based on the accuracy
+        #     # weighted_views is a dictionary of the views and their weights
+        #     # adjust_weights is a function that adjusts the weights based on the accuracy of the views and returns a list of normalized weights
+        #     self.weighted_views = {k: v for k, v in zip(view_acc.keys(), adjust_weights(list(view_acc.values())))}
 
-
-
+        # Log current adaptive_weights
+        if self.adaptive_weights:
+            print(self.weighted_views)
+            self.log_dict( {f"adaptive_weight_{k}": v for k, v in self.weighted_views.items()}, on_epoch=True, prog_bar=True, sync_dist=True)
+        
     def validation_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> None:
         """Perform a single validation step on a batch of data from the validation set.
 
@@ -397,6 +413,8 @@ class AASISTSSLLitModule(LightningModule):
             }
         return {"optimizer": optimizer}
 
+    def optimizer_zero_grad(self, epoch, batch_idx, optimizer):
+        optimizer.zero_grad(set_to_none=True)
 
 if __name__ == "__main__":
     _ = AASISTSSLLitModule(None, None, None, None)

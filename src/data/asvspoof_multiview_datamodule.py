@@ -136,6 +136,7 @@ class ASVSpoofDataModule(LightningDataModule):
         self.batch_size_per_device = batch_size
         self.data_dir = data_dir
         self.args = args
+        self.protocols_path = self.args.get('protocols_path', '/data/hungdx/Datasets/protocols/database/') if self.args is not None else '/data/hungdx/Datasets/protocols/database/'
 
     @property
     def num_classes(self) -> int:
@@ -175,7 +176,6 @@ class ASVSpoofDataModule(LightningDataModule):
             track = 'DF'
             
             prefix_2021 = 'ASVspoof2021.{}'.format(track)
-            self.protocols_path = '/data/hungdx/Datasets/protocols/database/'
             self.algo = self.args.get('algo', -1) if self.args is not None else -1
 
             d_label_trn,file_train = self.genSpoof_list( dir_meta =  os.path.join(self.protocols_path+'ASVspoof_LA_cm_protocols/ASVspoof2019.LA.cm.train.trn.txt'),is_train=True,is_eval=False)
@@ -199,7 +199,9 @@ class ASVSpoofDataModule(LightningDataModule):
             pin_memory=self.hparams.pin_memory,
             shuffle=True,
             collate_fn=lambda x: multi_view_collate_fn(x, self.args.views, self.args.sample_rate, self.args.padding_type, self.args.random_start),
-        )
+            drop_last=True,
+            persistent_workers=True
+        ) 
 
     def val_dataloader(self) -> DataLoader[Any]:
         """Create and return the validation dataloader.

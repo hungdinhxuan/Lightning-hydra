@@ -6,6 +6,7 @@ pin_memory: True
 
 args:
   # The sampling rate of the audio files
+  protocols_path: ${oc.env:ASVSPOOF_PATH_PROTOCOLS}
   sample_rate: 16000
   cut: 64000
   padding_type: zero

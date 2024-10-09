@@ -232,6 +232,7 @@ class ASVSpoofDataModule(LightningDataModule):
             num_workers=self.hparams.num_workers,
             pin_memory=self.hparams.pin_memory,
             shuffle=True,
+            drop_last=True,
         )
 
     def val_dataloader(self) -> DataLoader[Any]:

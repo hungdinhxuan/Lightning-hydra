@@ -17,7 +17,6 @@ tags: ["asvspoof_multiview", "xlsr_aasist_multiview"]
 seed: 1234
 
 trainer:
-  #min_epochs: 50
   max_epochs: 100
   gradient_clip_val: 0.0
   accelerator: cuda
@@ -29,6 +28,7 @@ model:
   net: null
   scheduler: null
   compile: false
+  adaptive_weights: true
 
 data:
   batch_size: 8
