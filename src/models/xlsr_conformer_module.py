@@ -16,15 +16,10 @@ from torch import Tensor
 import fairseq
 from src.models.components.wavlmbase_vib import Model as WavlmBaseVIB
 from src.utils.debug import NaNErrorMode
-from src.models.components.xlsr_vib import Model as XLSRVIB
+from src.models.components.xlsr_conformer import Model as XLSRConformer
 from src.metrics.eer import EERMetric
-from torchaudio.models.wav2vec2.utils import import_fairseq_model
-import torch.nn as nn
-from src.models.components.wrapper import W2V2_TA
-# from lightning_fabric import Fabric
-# from lightning_fabric.plugins import BitsandbytesPrecision
 
-class XLSRVIBLitModule(LightningModule):
+class XLSRConformerLitModule(LightningModule):
     """Example of a `LightningModule` for MNIST classification.
 
     A `LightningModule` implements 8 key methods:
@@ -80,7 +75,7 @@ class XLSRVIBLitModule(LightningModule):
         # also ensures init params will be stored in ckpt
         self.save_hyperparameters(logger=False)
 
-        self.net = XLSRVIB(args, cp_path, is_train)
+        self.net = XLSRConformer(args, cp_path, is_train)
 
         # metric objects for calculating and averaging accuracy across batches
         self.train_acc = BinaryAccuracy()
@@ -184,11 +179,11 @@ class XLSRVIBLitModule(LightningModule):
         # update and log metrics
         self.train_loss(self.running_loss) 
         self.train_acc(preds, targets)
-        self.log("train/loss", self.train_loss, on_step=False, on_epoch=True, prog_bar=True)
-        self.log("train/acc", self.train_acc, on_step=False, on_epoch=True, prog_bar=True)
+        self.log("train/loss", self.train_loss, on_step=False, on_epoch=True, prog_bar=True, sync_dist=True)
+        self.log("train/acc", self.train_acc, on_step=False, on_epoch=True, prog_bar=True, sync_dist=True)
         
         for loss_name, _loss in train_loss_detail.items():
-            self.log(f"train/{loss_name}", _loss, on_step=False, on_epoch=True, prog_bar=True)
+            self.log(f"train/{loss_name}", _loss, on_step=False, on_epoch=True, prog_bar=True, sync_dist=True)
 
         return loss
 
@@ -298,27 +293,6 @@ class XLSRVIBLitModule(LightningModule):
             }
         return {"optimizer": optimizer}
 
-    def to_torchscript(self, file_path = None, method = "script", example_inputs = None, **kwargs):
-        '''
-            Convert the model to torchscript
-            Wav2vec2 model is not supported by torchscript yet so we need to override this method
-        '''
-        self.net.ssl_model = W2V2_TA(import_fairseq_model(self.net.ssl_model.model))
-        self.net = self.dynamic_quantize(self.net)
-        return super().to_torchscript(file_path, method, example_inputs, **kwargs)
 
-    def dynamic_quantize(self, model):
-        '''
-            Quantize the model
-        '''
-        return torch.quantization.quantize_dynamic(model, {torch.nn.Linear}, dtype=torch.qint8)
-
-
-if __name__ == "__main__":
-    model = XLSRVIBLitModule(None, None, None, None, cp_path="/data/hungdx/asvspoof5/model/pretrained/xlsr2_300m.pt", args={
-        "contra_mode": "OC",
-        "loss_type": "CE",
-        "ce_loss_weight": 0,
-        "flag_fix_ssl": False
-    })
-    print(model.to_torchscript())
+# if __name__ == "__main__":
+#     _ = WAVLMVIBLLitModule(None, None, None, None)

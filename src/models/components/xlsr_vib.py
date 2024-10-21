@@ -11,10 +11,9 @@ import os
 import torch.nn.functional as F
 
 class SSLModel(nn.Module):
-    def __init__(self):
+    def __init__(self, cp_path):
         super(SSLModel, self).__init__()
-        
-        cp_path = '/data/hungdx/asvspoof5/model/pretrained/xlsr2_300m.pt'   # Change the pre-trained XLSR model path. 
+    
         model, cfg, task = fairseq.checkpoint_utils.load_model_ensemble_and_task([cp_path])
         self.model = model[0]
         
@@ -22,13 +21,6 @@ class SSLModel(nn.Module):
         return
 
     def extract_feat(self, input_data):
-        
-        # put the model to GPU if it not there
-        # if next(self.model.parameters()).device != input_data.device \
-        #    or next(self.model.parameters()).dtype != input_data.dtype:
-        #     self.model.to(input_data.device, dtype=input_data.dtype)
-        #     self.model.train()
-
         
         if True:
             # input should be in shape (batch, length)
@@ -168,17 +160,15 @@ class VIB(nn.Module):
 
 
 class Model(nn.Module):
-    def __init__(self, args, device, is_train = False):
+    def __init__(self, args, cp_path, is_train = False):
         super().__init__()
-        self.device = device
         self.is_train = is_train
-        self.flag_fix_ssl = args['flag_fix_ssl']
         self.contra_mode = args['contra_mode']
         self.loss_type = args['loss_type']
         ####
         # create network wav2vec 2.0
         ####
-        self.ssl_model = SSLModel()
+        self.ssl_model = SSLModel(cp_path)
         self.LL = nn.Linear(self.ssl_model.out_dim, 128)
         self.first_bn = nn.BatchNorm2d(num_features=1)
         self.first_bn1 = nn.BatchNorm2d(num_features=64)
@@ -195,14 +185,7 @@ class Model(nn.Module):
         # Post-processing
 
     def _forward(self, x):
-        # -------pre-trained Wav2vec model fine tunning ------------------------##
-        # if self.flag_fix_ssl:
-        #     with torch.no_grad():
-        #         x_ssl_feat = self.ssl_model.extract_feat(
-        #             x.squeeze(-1), is_train=False)
-        # else:
-        #     x_ssl_feat = self.ssl_model.extract_feat(
-        #         x.squeeze(-1), is_train=self.is_train)  # (bs,frame_number,feat_dim)
+
         x_ssl_feat = self.ssl_model.extract_feat(x.squeeze(-1))
 
         x = self.LL(x_ssl_feat)  # (bs,frame_number,feat_out_dim)

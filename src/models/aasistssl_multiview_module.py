@@ -282,15 +282,6 @@ class AASISTSSLLitModule(LightningModule):
         for k, v in self.train_loss_detail.items():
             self.log(f"train/view_{k}_loss", self.train_loss_detail[k].compute(), prog_bar=True, sync_dist=True)
         
-        # Check if adaptive weight is enabled
-        # if self.adaptive_weights:
-        #     # Get the accuracy for each view
-        #     view_acc = {k: v.compute() for k, v in self.train_view_acc.items()}
-        #     # Adjust the weights based on the accuracy
-        #     # weighted_views is a dictionary of the views and their weights
-        #     # adjust_weights is a function that adjusts the weights based on the accuracy of the views and returns a list of normalized weights
-        #     self.weighted_views = {k: v for k, v in zip(view_acc.keys(), adjust_weights(list(view_acc.values())))}
-
         # Log current adaptive_weights
         if self.adaptive_weights:
             print(self.weighted_views)
@@ -369,9 +360,12 @@ class AASISTSSLLitModule(LightningModule):
         fname_list = list(utt_id)
         score_list = batch_out.data.cpu().numpy().tolist()
             
+        # with open(self.score_save_path, 'a+') as fh:
+        #     for f, cm in zip(fname_list, score_list):
+        #         fh.write('{} {} {}\n'.format(f, cm[0], cm[1]))
         with open(self.score_save_path, 'a+') as fh:
             for f, cm in zip(fname_list, score_list):
-                fh.write('{} {} {}\n'.format(f, cm[0], cm[1]))
+                fh.write('{} {}\n'.format(f, cm[1]))
         
     def on_test_epoch_end(self) -> None:
         """Lightning hook that is called when a test epoch ends."""

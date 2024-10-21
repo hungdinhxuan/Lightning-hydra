@@ -56,6 +56,8 @@ def pad(x:np.ndarray, padding_type:str='zero', max_len=64000, random_start=False
         max_len: max length of the audio, default 64000
         random_start: if True, randomly choose the start point of the audio
         '''
+        # Ensure that max_len should be integer
+        max_len = int(max_len) 
         x_len = x.shape[0]
         padded_x = None
         if max_len == 0:

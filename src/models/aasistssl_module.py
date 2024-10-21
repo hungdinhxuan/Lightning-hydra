@@ -7,7 +7,21 @@ from torchmetrics.classification.accuracy import BinaryAccuracy
 
 import torch
 from src.models.components.xlsr_aasist import XlsrAasist
+from torchaudio.models.wav2vec2.utils import import_fairseq_model
+import torch.nn as nn
 
+class W2V2_TA(nn.Module):
+    def __init__(self, model: nn.Module):
+        super().__init__()
+        self.model = model
+
+    def extract_feat(self, x):
+        feat, _ = self.model(x)
+        return feat
+
+    def forward(self, x):
+        return self.extract_feat(x)
+    
 class AASISTSSLLitModule(LightningModule):
     """Example of a `LightningModule` for MNIST classification.
 
@@ -235,6 +249,15 @@ class AASISTSSLLitModule(LightningModule):
             }
         return {"optimizer": optimizer}
 
+    def to_torchscript(self, file_path = None, method = "script", example_inputs = None, **kwargs):
+        '''
+            Convert the model to torchscript
+            Wav2vec2 model is not supported by torchscript yet so we need to override this method
+        '''
+        self.net.ssl_model = W2V2_TA(import_fairseq_model(self.net.ssl_model.model))
+        return super().to_torchscript(file_path, method, example_inputs, **kwargs)
+
 
 if __name__ == "__main__":
-    _ = AASISTSSLLitModule(None, None, None, None)
+    model = AASISTSSLLitModule(None, None, None, None, ssl_pretrained_path="/data/hungdx/asvspoof5/model/pretrained/xlsr2_300m.pt")
+    print(model.to_torchscript())
