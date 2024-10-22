@@ -46,7 +46,6 @@ data:
   batch_size: 10
   num_workers: 8
   args:
-    portion: 1 # 100% of the data
     data:
       trim_length: 160000 # 10s
       repeat_pad: false #  If true, repeat the audio to the trim_length

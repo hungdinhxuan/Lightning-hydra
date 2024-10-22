@@ -1,12 +1,7 @@
 import torch
 import torch.nn as nn
 from torch.nn.modules.transformer import _get_clones
-from torch import Tensor
-
-try:
-    from model.conformer_tcm.conformer import ConformerBlock
-except:
-    from .conformer import ConformerBlock
+from src.models.components.conformer_tcm.conformer import ConformerBlock
 
 def sinusoidal_embedding(n_channels, dim):
     pe = torch.FloatTensor([[p / (10000 ** (2 * (i // 2) / dim)) for i in range(dim)]
@@ -41,8 +36,8 @@ class MyConformer(nn.Module):
         x = torch.stack([torch.vstack((self.class_token, x[i])) for i in range(len(x))])#[bs,1+tiempo,emb_size]
         list_attn_weight = []
         for layer in self.encoder_blocks:
-                x, attn_weight = layer(x) #[bs,1+tiempo,emb_size]
-                list_attn_weight.append(attn_weight)
+            x, attn_weight = layer(x) #[bs,1+tiempo,emb_size]
+            list_attn_weight.append(attn_weight)
         if self.pooling=='mean':
             embedding = x.mean(dim=1)
         elif self.pooling=='max':

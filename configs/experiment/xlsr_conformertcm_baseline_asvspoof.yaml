@@ -1,0 +1,45 @@
+# @package _global_
+
+# to execute this experiment run:
+# python train.py experiment=example
+
+defaults:
+  - override /data: asvspoof
+  - override /model: xlsr_conformertcm_baseline
+  - override /callbacks: default_loss_earlystop
+  - override /trainer: default
+
+# all parameters below will be merged with parameters from default configurations set above
+# this allows you to overwrite only specified parameters
+
+tags: ["asvspoof", "xlsr_conformertcm_baseline"]
+
+seed: 1234
+
+trainer:
+  max_epochs: 70
+  gradient_clip_val: 0.0
+  accelerator: cuda
+
+model:
+  optimizer:
+    lr: 0.000001
+    weight_decay: 0.0001
+  net: null
+  scheduler: null
+
+data:
+  batch_size: 20
+  num_workers: 8
+  pin_memory: true
+  args:
+    padding_type: repeat
+    random_start: True
+
+
+logger:
+  wandb:
+    tags: ${tags}
+    group: "asvspoof"
+  aim:
+    experiment: "asvspoof"

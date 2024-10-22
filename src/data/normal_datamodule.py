@@ -220,25 +220,9 @@ class NormalDataModule(LightningDataModule):
             d_label_trn, file_train = self.genList(dir_meta=os.path.join(
                     self.data_dir), is_train=True, is_eval=False, is_dev=False)
             
-            if 'portion' in self.args:
-                idx = range(len(file_train))
-                idx = np.random.choice(
-                    idx, int(len(file_train)*self.args['portion']), replace=False)
-                file_train = [file_train[i] for i in idx]
-                if len(d_label_trn) > 0:  # the case of train without label
-                    d_label_trn = {k: d_label_trn[k] for k in file_train}
             print('no. of training trials', len(file_train))
 
             d_label_dev, file_dev = self.genList(dir_meta=os.path.join(self.data_dir), is_train=False, is_eval=False, is_dev=True)
-            
-            if 'portion' in self.args:
-                idx = range(len(file_dev))
-                idx = np.random.choice(
-                    idx, int(len(file_dev)*self.args['portion']), replace=False)
-                file_dev = [file_dev[i] for i in idx]
-                if len(d_label_dev) > 0:  # the case of train without label
-                    d_label_dev = {k: d_label_dev[k] for k in file_dev}
-
             print('no. of validation trials', len(file_dev))
             file_eval = self.genList(dir_meta=os.path.join(self.data_dir), is_train=False, is_eval=True, is_dev=False)
             

@@ -9,3 +9,20 @@ args:
   cut: 64000
   padding_type: zero
   random_start: True
+  algo: 3
+  nBands: 5
+  minF: 20
+  maxF: 8000
+  minBW: 100
+  maxBW: 1000
+  minCoeff: 10
+  maxCoeff: 100
+  minG: 0
+  maxG: 0
+  minBiasLinNonLin: 5
+  maxBiasLinNonLin: 20
+  N_f: 5
+  P: 10
+  g_sd: 2
+  SNRmin: 10
+  SNRmax: 40

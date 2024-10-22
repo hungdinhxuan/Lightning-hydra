@@ -54,7 +54,7 @@ data:
   num_workers: 8
   pin_memory: true
   args:
-    portion: 1 # 100% of the data
+     # 100% of the data
     data:
       trim_length: 160000 # 10s
       repeat_pad: false #  If true, repeat the audio to the trim_length

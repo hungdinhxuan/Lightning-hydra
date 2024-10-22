@@ -1,0 +1,49 @@
+# @package _global_
+
+# to execute this experiment run:
+# python train.py experiment=example
+
+defaults:
+  - override /data: normal_largecorpus_for_asvspoof5
+  - override /model: xlsr_aasist_multiview
+  - override /callbacks: default_loss
+  - override /trainer: default
+
+# all parameters below will be merged with parameters from default configurations set above
+# this allows you to overwrite only specified parameters
+
+tags: ["normal_largecorpus_for_asvspoof5", "xlsr_aasist_multiview"]
+
+seed: 1234
+
+trainer:
+  max_epochs: 100
+  gradient_clip_val: 0.0
+  accelerator: cuda
+
+model:
+  optimizer:
+    lr: 0.000001
+    weight_decay: 0.0001
+  net: null
+  scheduler: null
+  compile: true
+
+data:
+  batch_size: 14
+  num_workers: 8
+  pin_memory: true
+  args:
+    data:
+      trim_length: 64000
+      augmentation_methods: ["RawBoostdf"]
+      repeat_pad: true #  If true, repeat the audio to the trim_length
+      random_start: false # If true, randomly pick a start point for the audio
+
+
+logger:
+  wandb:
+    tags: ${tags}
+    group: "normal_largecorpus_for_asvspoof5"
+  aim:
+    experiment: "normal_largecorpus_for_asvspoof5"

@@ -184,6 +184,8 @@ class ASVSpoofDataModule(LightningDataModule):
             prefix_2021 = 'ASVspoof2021.{}'.format(track)
             self.protocols_path = '/data/hungdx/Datasets/protocols/database/'
             self.algo = self.args.get('algo', -1) if self.args is not None else -1
+            if self.algo == -1:
+                print('No algorithm for augmentation is specified')
 
             d_label_trn,file_train = self.genSpoof_list( dir_meta =  os.path.join(self.protocols_path+'ASVspoof_LA_cm_protocols/ASVspoof2019.LA.cm.train.trn.txt'),is_train=True,is_eval=False)
             d_label_dev,file_dev = self.genSpoof_list( dir_meta =  os.path.join(self.protocols_path+'ASVspoof_LA_cm_protocols/ASVspoof2019.LA.cm.dev.trl.txt'),is_train=False,is_eval=False)
