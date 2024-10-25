@@ -1,0 +1,21 @@
+_target_: src.models.xlsr_conformertcm_reproduce_module.XLSRConformerTCMLitModule
+
+optimizer:
+  _target_: torch.optim.Adam
+  _partial_: true
+  lr: 0.000001
+  weight_decay: 0.0001
+
+scheduler: null
+
+args:
+  conformer:
+    emb_size: 144
+    heads: 4
+    kernel_size: 31
+    n_encoders: 4
+    
+ssl_pretrained_path: ${oc.env:XLSR_PRETRAINED_MODEL_PATH}
+cross_entropy_weight: [0.1, 0.9] # weight for cross entropy loss 0.1 for spoof and 0.9 for bonafide
+# compile model for faster training with pytorch 2.0
+compile: false

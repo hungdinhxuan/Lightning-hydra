@@ -34,6 +34,7 @@ from src.utils import (
     instantiate_loggers,
     log_hyperparameters,
     task_wrapper,
+    average_checkpoints
 )
 
 log = RankedLogger(__name__, rank_zero_only=True)
@@ -88,7 +89,23 @@ def train(cfg: DictConfig) -> Tuple[Dict[str, Any], Dict[str, Any]]:
 
     train_metrics = trainer.callback_metrics
 
-    if cfg.get("test"):
+    # Model averaging
+    if cfg.get("model_averaging"):
+        log.info("Performing model averaging...")
+        checkpoint_dir = cfg.get("ckpt_path")
+        averaged_ckpt_path = average_checkpoints(
+            checkpoint_dir=checkpoint_dir,
+            model=model,
+            #top_k=cfg.model_averaging.top_k
+        )
+        if averaged_ckpt_path:
+            log.info(f"Created averaged checkpoint: {averaged_ckpt_path}")            
+            # Optionally test with averaged model
+            if cfg.get("test"):
+                log.info("Testing with averaged model...")
+                trainer.test(model=model, datamodule=datamodule, ckpt_path=averaged_ckpt_path)
+    
+    elif cfg.get("test"):
         log.info("Starting testing!")
         ckpt_path = trainer.checkpoint_callback.best_model_path
         if ckpt_path == "":

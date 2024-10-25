@@ -5,20 +5,19 @@
 
 defaults:
   - override /data: asvspoof
-  - override /model: xlsr_conformertcm_baseline
-  - override /callbacks: default_loss_earlystop
+  - override /model: xlsr_conformertcm_reproduce
+  - override /callbacks: xlsr_conformertcm_reproduce
   - override /trainer: default
 
 # all parameters below will be merged with parameters from default configurations set above
 # this allows you to overwrite only specified parameters
 
-tags: ["asvspoof", "xlsr_conformertcm_baseline"]
+tags: ["asvspoof", "xlsr_conformertcm_reproduce"]
 
 seed: 1234
 
 trainer:
-  min_epochs: 50
-  max_epochs: 70
+  max_epochs: -1 # -1 for infinite until early stopping is triggered
   gradient_clip_val: 0.0
   accelerator: cuda
 
@@ -28,16 +27,16 @@ model:
     weight_decay: 0.0001
   net: null
   scheduler: null
-
+               
 data:
   batch_size: 20
   num_workers: 8
   pin_memory: true
   args:
     padding_type: repeat
-    random_start: True
-
-
+    random_start: False
+    cut: 66800 # 66800, aasist-ssl is 64600 
+      
 logger:
   wandb:
     tags: ${tags}

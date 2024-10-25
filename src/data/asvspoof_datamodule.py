@@ -30,6 +30,7 @@ class Dataset_ASVspoof2019_train(Dataset):
 
         # Sampling rate and cut-off
         print('args:',args)
+        print("Algo:",algo)
         self.fs = args.get('sampling_rate', 16000) if args is not None else 16000
         self.cut = args.get('cut', 64600) if args is not None else 64600
         self.padding_type = args.get('padding_type', 'zero') if args is not None else 'zero'
@@ -207,6 +208,7 @@ class ASVSpoofDataModule(LightningDataModule):
             num_workers=self.hparams.num_workers,
             pin_memory=self.hparams.pin_memory,
             shuffle=True,
+            drop_last=True
         )
 
     def val_dataloader(self) -> DataLoader[Any]:
