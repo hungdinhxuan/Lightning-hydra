@@ -4,7 +4,7 @@
 # python train.py experiment=example
 
 defaults:
-  - override /data: asvspoof
+  - override /data: asvspoof_conformertcm_reproduce
   - override /model: xlsr_conformertcm_reproduce
   - override /callbacks: xlsr_conformertcm_reproduce
   - override /trainer: default
@@ -12,7 +12,7 @@ defaults:
 # all parameters below will be merged with parameters from default configurations set above
 # this allows you to overwrite only specified parameters
 
-tags: ["asvspoof", "xlsr_conformertcm_reproduce"]
+tags: ["asvspoof_conformertcm_reproduce", "xlsr_conformertcm_reproduce"]
 
 seed: 1234
 
@@ -27,19 +27,10 @@ model:
     weight_decay: 0.0001
   net: null
   scheduler: null
-               
-data:
-  batch_size: 20
-  num_workers: 8
-  pin_memory: true
-  args:
-    padding_type: repeat
-    random_start: False
-    cut: 66800 # 66800, aasist-ssl is 64600 
-      
+
 logger:
   wandb:
     tags: ${tags}
-    group: "asvspoof"
+    group: "asvspoof_conformertcm_reproduce"
   aim:
-    experiment: "asvspoof"
+    experiment: "asvspoof_conformertcm_reproduce"

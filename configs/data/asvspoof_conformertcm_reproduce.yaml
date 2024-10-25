@@ -1,0 +1,5 @@
+_target_: src.data.asvspoof_conformertcm_reproduce_datamodule.ASVSpoofDataModule
+data_dir: ${oc.env:ASVSPOOF_PATH}
+batch_size: 20 # Needs to be divisible by the number of devices (e.g., if in a distributed setup)
+num_workers: 10
+pin_memory: True
