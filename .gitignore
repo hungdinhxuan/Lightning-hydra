@@ -155,3 +155,7 @@ configs/local/default.yaml
 
 # Neptune logging
 .neptune
+
+# Notebooks
+notebooks/**/*.txt
+notebooks/**/*.csv

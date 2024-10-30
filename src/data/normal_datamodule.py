@@ -334,8 +334,7 @@ class NormalDataModule(LightningDataModule):
                 utt, subset, label = line.strip().split()
                 if subset == 'eval':
                     file_list.append(utt)
-                file_list.append(utt)
-                d_meta[utt] = 1 if label == 'bonafide' else 0
+                    d_meta[utt] = 1 if label == 'bonafide' else 0
             # return d_meta, file_list
             return d_meta, file_list
 

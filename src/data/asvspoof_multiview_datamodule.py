@@ -48,13 +48,17 @@ class Dataset_ASVspoof2021_eval(Dataset):
         self.base_dir = base_dir
         
         # Sampling rate and cut-off
+        self.no_pad = args.get('no_pad', False) if args is not None else False
         self.fs = args.get('sampling_rate', 16000) if args is not None else 16000
-        self.cut = args.get('cut', 64600) if args is not None else 64600
-        self.padding_type = args.get('padding_type', 'zero') if args is not None else 'zero'
-        self.random_start = args.get('random_start', False) if args is not None else False
-        print('padding_type:',self.padding_type)
-        print('cut:',self.cut)
-        print('random_start:',self.random_start)
+        if self.no_pad:
+            print('No padding')
+        else:
+            self.cut = args.get('cut', 64600) if args is not None else 64600
+            self.padding_type = args.get('padding_type', 'zero') if args is not None else 'zero'
+            self.random_start = args.get('random_start', False) if args is not None else False
+            print('padding_type:',self.padding_type)
+            print('cut:',self.cut)
+            print('random_start:',self.random_start)
 
     def __len__(self):
         return len(self.list_IDs)
@@ -62,10 +66,41 @@ class Dataset_ASVspoof2021_eval(Dataset):
     def __getitem__(self, index):
         utt_id = self.list_IDs[index]
         X, fs = librosa.load(self.base_dir+utt_id+'.flac', sr=self.fs)
-        X_pad = pad(X,self.padding_type, self.cut, self.random_start)
-        x_inp = Tensor(X_pad)
+        if not self.no_pad:
+            X_pad = pad(X,self.padding_type, self.cut, self.random_start)
+        x_inp = Tensor(X_pad) if not self.no_pad else Tensor(X)
         return x_inp,utt_id  
 
+class Dataset_Normal_eval(Dataset):
+    def __init__(self, args, list_IDs, base_dir):       
+        self.list_IDs = list_IDs
+        self.base_dir = base_dir
+        
+        # Sampling rate and cut-off
+        self.no_pad = args.get('no_pad', False) if args is not None else False
+        self.fs = args.get('sampling_rate', 16000) if args is not None else 16000
+        if self.no_pad:
+            print('No padding')
+        else:
+            self.cut = args.get('cut', 64600) if args is not None else 64600
+            self.padding_type = args.get('padding_type', 'zero') if args is not None else 'zero'
+            self.random_start = args.get('random_start', False) if args is not None else False
+            print('padding_type:',self.padding_type)
+            print('cut:',self.cut)
+            print('random_start:',self.random_start)
+
+    def __len__(self):
+        return len(self.list_IDs)
+
+    def __getitem__(self, index):
+        utt_id = self.list_IDs[index]
+        X, fs = librosa.load(os.path.join(
+            self.base_dir, utt_id 
+        ), sr=self.fs)
+        if not self.no_pad:
+            X_pad = pad(X,self.padding_type, self.cut, self.random_start)
+        x_inp = Tensor(X_pad) if not self.no_pad else Tensor(X)
+        return x_inp,utt_id  
 
 class ASVSpoofDataModule(LightningDataModule):
     """`LightningDataModule` for the ASVSpoof dataset.
@@ -181,14 +216,21 @@ class ASVSpoofDataModule(LightningDataModule):
             prefix_2021 = 'ASVspoof2021.{}'.format(track)
             self.algo = self.args.get('algo', -1) if self.args is not None else -1
 
-            d_label_trn,file_train = self.genSpoof_list( dir_meta =  os.path.join(self.protocols_path+'ASVspoof_LA_cm_protocols/ASVspoof2019.LA.cm.train.trn.txt'),is_train=True,is_eval=False)
-            d_label_dev,file_dev = self.genSpoof_list( dir_meta =  os.path.join(self.protocols_path+'ASVspoof_LA_cm_protocols/ASVspoof2019.LA.cm.dev.trl.txt'),is_train=False,is_eval=False)
-            file_eval = self.genSpoof_list( dir_meta =  os.path.join(self.protocols_path+'ASVspoof_{}_cm_protocols/{}.cm.eval.trl.txt'.format(track,prefix_2021)),is_train=False,is_eval=True)
-            
-            self.data_train = Dataset_ASVspoof2019_train(self.args,list_IDs = file_train,labels = d_label_trn,base_dir = os.path.join(self.database_path+'ASVspoof2019_LA_train/'),algo=self.algo)
-            self.data_val = Dataset_ASVspoof2019_train(self.args,list_IDs = file_dev,labels = d_label_dev,base_dir = os.path.join(self.database_path+'ASVspoof2019_LA_dev/'),algo=self.algo)
-            self.data_test = Dataset_ASVspoof2021_eval(self.args, list_IDs = file_eval,base_dir = os.path.join(self.database_path+'ASVspoof2021_{}_eval/'.format(track)))
-            
+            if not self.args.get('eval', False):
+                d_label_trn,file_train = self.genSpoof_list( dir_meta =  os.path.join(self.protocols_path+'ASVspoof_LA_cm_protocols/ASVspoof2019.LA.cm.train.trn.txt'),is_train=True,is_eval=False)
+                d_label_dev,file_dev = self.genSpoof_list( dir_meta =  os.path.join(self.protocols_path+'ASVspoof_LA_cm_protocols/ASVspoof2019.LA.cm.dev.trl.txt'),is_train=False,is_eval=False)
+                
+                self.data_train = Dataset_ASVspoof2019_train(self.args,list_IDs = file_train,labels = d_label_trn,base_dir = os.path.join(self.database_path+'ASVspoof2019_LA_train/'),algo=self.algo)
+                self.data_val = Dataset_ASVspoof2019_train(self.args,list_IDs = file_dev,labels = d_label_dev,base_dir = os.path.join(self.database_path+'ASVspoof2019_LA_dev/'),algo=self.algo)
+
+            if self.args.get('eval_set', 'DF21') == 'DF21':
+                print('Using ASVspoof2021 evaluation set')
+                file_eval = self.genSpoof_list( dir_meta =  os.path.join(self.protocols_path+'ASVspoof_{}_cm_protocols/{}.cm.eval.trl.txt'.format(track,prefix_2021)),is_train=False,is_eval=True)
+                self.data_test = Dataset_ASVspoof2021_eval(self.args, list_IDs = file_eval,base_dir = os.path.join(self.database_path+'ASVspoof2021_{}_eval/'.format(track)))
+            else: # Using in-the-wild evaluation set
+                print('Using in-the-wild evaluation set')
+                file_eval = self.genInTheWild_list( dir_meta =  self.protocols_path)
+                self.data_test = Dataset_Normal_eval(self.args,list_IDs = file_eval,base_dir = self.database_path)
 
     def train_dataloader(self) -> DataLoader[Any]:
         """Create and return the train dataloader.
@@ -256,7 +298,19 @@ class ASVSpoofDataModule(LightningDataModule):
         :param state_dict: The datamodule state returned by `self.state_dict()`.
         """
         pass
-    
+
+    def genInTheWild_list(self, dir_meta):
+        """
+        This function is from the following source:
+        """
+        file_list=[]
+        with open(dir_meta, 'r') as f:
+            l_meta = f.readlines()
+        for line in l_meta:
+            key,label = line.strip().split()
+            file_list.append(key)
+        return file_list
+
     def genSpoof_list(self, dir_meta, is_train=False, is_eval=False):
         """
         This function is from the following source: https://github.com/TakHemlata/SSL_Anti-spoofing/blob/main/data_utils_SSL.py#L17
