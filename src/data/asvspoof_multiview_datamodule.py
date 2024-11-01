@@ -11,7 +11,7 @@ from scipy import signal
 import copy
 from src.data.components.RawBoost import process_Rawboost_feature
 from src.data.components.dataio import load_audio, pad
-from src.data.components.collate_fn import multi_view_collate_fn
+from src.data.components.collate_fn import multi_view_collate_fn, variable_multi_view_collate_fn
 '''
    Hemlata Tak, Madhu Kamble, Jose Patino, Massimiliano Todisco, Nicholas Evans.
    RawBoost: A Raw Data Boosting and Augmentation Method applied to Automatic Speaker Verification Anti-Spoofing.
@@ -174,6 +174,29 @@ class ASVSpoofDataModule(LightningDataModule):
         self.batch_size_per_device = batch_size
         self.data_dir = data_dir
         self.args = args
+        self.is_variable_multi_view = args.get('is_variable_multi_view', False) if args is not None else False
+        if self.is_variable_multi_view:
+            print('Using variable multi-view collate function')
+            self.top_k = self.args.get('top_k', 4)
+            self.min_duration = self.args.get('min_duration', 16000)
+            self.max_duration = self.args.get('max_duration', 64000)
+            self.collate_fn = lambda x: variable_multi_view_collate_fn(
+                x,
+                self.top_k,
+                self.min_duration,
+                self.max_duration,
+                self.args.sample_rate,
+                self.args.padding_type,
+                self.args.random_start
+            )
+        else:
+            self.collate_fn = lambda x: multi_view_collate_fn(
+                x,
+                self.args.views,
+                self.args.sample_rate,
+                self.args.padding_type,
+                self.args.random_start
+            )
         self.protocols_path = self.args.get('protocols_path', '/data/hungdx/Datasets/protocols/database/') if self.args is not None else '/data/hungdx/Datasets/protocols/database/'
 
     @property
@@ -243,10 +266,10 @@ class ASVSpoofDataModule(LightningDataModule):
             num_workers=self.hparams.num_workers,
             pin_memory=self.hparams.pin_memory,
             shuffle=True,
-            collate_fn=lambda x: multi_view_collate_fn(x, self.args.views, self.args.sample_rate, self.args.padding_type, self.args.random_start),
+            collate_fn=self.collate_fn,
             drop_last=True,
             persistent_workers=True
-        ) 
+        )
 
     def val_dataloader(self) -> DataLoader[Any]:
         """Create and return the validation dataloader.
@@ -259,7 +282,7 @@ class ASVSpoofDataModule(LightningDataModule):
             num_workers=self.hparams.num_workers,
             pin_memory=self.hparams.pin_memory,
             shuffle=False,
-            collate_fn=lambda x: multi_view_collate_fn(x, self.args.views, self.args.sample_rate, self.args.padding_type, self.args.random_start),
+            collate_fn=self.collate_fn,
         )
 
     def test_dataloader(self) -> DataLoader[Any]:
