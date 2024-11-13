@@ -474,7 +474,7 @@ class XlsrAasist(nn.Module):
         
         self.out_layer = nn.Linear(5 * gat_dims[1], 2)
 
-    def forward(self, x):
+    def forward(self, x, last_emb=False):
         #-------pre-trained Wav2vec model fine tunning ------------------------##
         x_ssl_feat = self.ssl_model.extract_feat(x.squeeze(-1))
         x = self.LL(x_ssl_feat) #(bs,frame_number,feat_out_dim)
@@ -563,6 +563,8 @@ class XlsrAasist(nn.Module):
             [T_max, T_avg, S_max, S_avg, master.squeeze(1)], dim=1)
         
         last_hidden = self.drop(last_hidden)
+        if last_emb:
+            return last_hidden
         output = self.out_layer(last_hidden)
         
         return output

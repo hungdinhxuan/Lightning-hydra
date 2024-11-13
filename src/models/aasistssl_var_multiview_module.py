@@ -4,10 +4,10 @@ import torch
 from lightning import LightningModule
 from torchmetrics import MaxMetric, MeanMetric
 from torchmetrics.classification.accuracy import BinaryAccuracy
-
+import os
 import torch
 from src.models.components.xlsr_aasist import XlsrAasist
-
+import numpy as np
 
 
 class AASISTSSLLitModule(LightningModule):
@@ -66,6 +66,7 @@ class AASISTSSLLitModule(LightningModule):
         # also ensures init params will be stored in ckpt
         self.save_hyperparameters(logger=False)
         self.score_save_path = score_save_path
+        
 
         self.net = XlsrAasist(ssl_pretrained_path)
 
@@ -109,10 +110,6 @@ class AASISTSSLLitModule(LightningModule):
         self.val_loss.reset()
         self.val_acc.reset()
         self.val_acc_best.reset()
-
-        
-
-
 
     def model_step(
         self, batch: Tuple[torch.Tensor, torch.Tensor]
@@ -161,8 +158,6 @@ class AASISTSSLLitModule(LightningModule):
             # Collect predictions and labels
             all_preds.append(preds)
             all_labels.append(y)
-
-
 
         # Concatenate all predictions and labels
         all_preds = torch.cat(all_preds)
@@ -227,11 +222,11 @@ class AASISTSSLLitModule(LightningModule):
             labels.
         :param batch_idx: The index of the current batch.
         """
+        
         if self.score_save_path is not None:
             self._export_score_file(batch)
         else:
             raise ValueError("score_save_path is not provided")
-
     
     def _export_score_file(self, batch: Tuple[torch.Tensor, torch.Tensor]) -> None:
         """Get the score file for the batch of data.

@@ -4,8 +4,10 @@ import torch
 from lightning import LightningModule
 from torchmetrics import MaxMetric, MeanMetric
 from torchmetrics.classification.accuracy import BinaryAccuracy
-
+import os
+import sys
 import torch
+import numpy as np
 from src.models.components.xlsr_aasist import XlsrAasist
 
 # Example: Adjust weights based on accuracy
@@ -68,6 +70,8 @@ class AASISTSSLLitModule(LightningModule):
         #views: list[float] =  [1, 2, 3, 4],
         weighted_views: Dict[str, float] = {'1': 1.0, '2': 1.0, '3': 1.0, '4': 1.0},
         adaptive_weights: bool = False,
+        last_emb: bool = False,
+        emb_save_path: str = None,
     ) -> None:
         """Initialize a `MNISTLitModule`.
 
@@ -81,6 +85,12 @@ class AASISTSSLLitModule(LightningModule):
         # also ensures init params will be stored in ckpt
         self.save_hyperparameters(logger=False)
         self.score_save_path = score_save_path
+        self.last_emb = last_emb
+        self.emb_save_path = emb_save_path
+
+        if self.emb_save_path is not None:
+            if not os.path.exists(self.emb_save_path):
+                os.makedirs(self.emb_save_path)
 
         self.net = XlsrAasist(ssl_pretrained_path)
 
@@ -342,10 +352,14 @@ class AASISTSSLLitModule(LightningModule):
             labels.
         :param batch_idx: The index of the current batch.
         """
-        if self.score_save_path is not None:
-            self._export_score_file(batch)
+        if self.last_emb:
+            self._export_embedding_file(batch)
+            #print("Embedding file saved")
         else:
-            raise ValueError("score_save_path is not provided")
+            if self.score_save_path is not None:
+                self._export_score_file(batch)
+            else:
+                raise ValueError("score_save_path is not provided")
 
     
     def _export_score_file(self, batch: Tuple[torch.Tensor, torch.Tensor]) -> None:
@@ -366,7 +380,19 @@ class AASISTSSLLitModule(LightningModule):
         with open(self.score_save_path, 'a+') as fh:
             for f, cm in zip(fname_list, score_list):
                 fh.write('{} {}\n'.format(f, cm[1]))
-        
+    def _export_embedding_file(self, batch: Tuple[torch.Tensor, torch.Tensor]) -> None:
+        """ Get the embedding file for the batch of data.
+        :param batch: A batch of data (a tuple) containing the input tensor of images and target
+            labels.
+        """
+        batch_x, utt_id = batch
+        batch_emb = self.net(batch_x, last_emb=True)
+        fname_list = list(utt_id)
+
+        for f, emb in zip(fname_list,batch_emb):
+            f = f.split('/')[-1].split('.')[0] # utt id only
+            save_path_utt = os.path.join(self.emb_save_path, f)
+            np.save(save_path_utt, emb.data.cpu().numpy())
     def on_test_epoch_end(self) -> None:
         """Lightning hook that is called when a test epoch ends."""
         pass
