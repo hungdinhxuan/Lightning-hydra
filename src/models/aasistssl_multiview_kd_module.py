@@ -76,6 +76,7 @@ class AASISTSSLLitModule(LightningModule):
         adaptive_weights: bool = False,
         last_emb: bool = False,
         emb_save_path: str = None,
+        teacher_ckpt_path: str = None,
     ) -> None:
         """Initialize a `MNISTLitModule`.
 
@@ -97,6 +98,11 @@ class AASISTSSLLitModule(LightningModule):
                 os.makedirs(self.emb_save_path)
 
         self.net = XlsrAasist(ssl_pretrained_path)
+        self.teacher = XlsrAasist(ssl_pretrained_path)
+        # Load teacher checkpoint
+        if teacher_ckpt_path is not None:
+            self.teacher.load_state_dict(torch.load(teacher_ckpt_path))
+            self.teacher.eval()
 
         self.save_hyperparameters(ignore=['net'])
 
@@ -154,6 +160,14 @@ class AASISTSSLLitModule(LightningModule):
         :return: A tensor of logits.
         """
         return self.net(x)
+
+    def on_save_checkpoint(self, checkpoint):
+        # Only save the generator state dict
+        checkpoint['net_state_dict'] = self.net.state_dict()
+
+    def on_load_checkpoint(self, checkpoint):
+        # Only load the generator state dict
+        self.generator.load_state_dict(checkpoint['net_state_dict'])
 
     def on_train_start(self) -> None:
         """Lightning hook that is called when training begins."""

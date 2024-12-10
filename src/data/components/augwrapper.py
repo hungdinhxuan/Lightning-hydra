@@ -16,7 +16,7 @@ SUPPORTED_AUGMENTATION = [
     'background_noise_5_15', 'pitch_1', 'volume_10', 'reverb_1', 'speed_01', 'telephone_g722', 'gaussian_1', 'gaussian_2', 'gaussian_2_5', 'gaussian_3',
     'RawBoostdf', 'RawBoost12', 'copy_paste_80', 'copy_paste_r', 'time_masking', 'masking', 'time_swap',
     'freq_swap', 'swapping', 'frequency_masking', 'linear_filter', 'mp32flac', 'ogg2flac', 'nonspeechtrim',
-    'bandpass_0_4000', 'griffinlim_downsample', 'lowpass_hifigan_asvspoof5', 'lowpass_hifigan', 'librosa_downsample']
+    'bandpass_0_4000', 'griffinlim_downsample', 'lowpass_hifigan_asvspoof5', 'lowpass_hifigan', 'librosa_downsample', 'none']
 
 
 def audio_transform(filepath: str, aug_type: BaseAugmentor, config: dict, online: bool = False):
@@ -65,6 +65,14 @@ def background_noise_5_15(x, args, sr=16000, audio_path=None):
                 filepath=audio_path, aug_type=BackgroundNoiseAugmentor, config=config, online=False)
             waveform, _ = librosa.load(aug_audio_path, sr=sr, mono=True)
             return waveform
+
+
+def none(x, args, sr=16000, audio_path=None):
+    """
+    No augmentation
+    """
+    waveform, _ = librosa.load(audio_path, sr=sr, mono=True)
+    return waveform
 
 
 def pitch_1(x, args, sr=16000, audio_path=None):
@@ -744,7 +752,9 @@ def mp32flac(x, args, sr=16000, audio_path=None):
         waveform, _ = librosa.load(aug_path, sr=sr, mono=True)
         return waveform
 
-## Speex codec
+# Speex codec
+
+
 def speex2flac_high_band_varied_bitrate(x, args, sr=16000, audio_path=None):
     """
     Augment the audio with speex codec
@@ -753,7 +763,8 @@ def speex2flac_high_band_varied_bitrate(x, args, sr=16000, audio_path=None):
     # print('speex2flac: audio_path:', audio_path)
     aug_dir = args.aug_dir
     utt_id = os.path.basename(audio_path).split('.')[0]
-    aug_folder_path = os.path.join(aug_dir, 'speex2flac_high_band_varied_bitrate')
+    aug_folder_path = os.path.join(
+        aug_dir, 'speex2flac_high_band_varied_bitrate')
 
     os.makedirs(aug_folder_path, exist_ok=True)
 
@@ -776,6 +787,7 @@ def speex2flac_high_band_varied_bitrate(x, args, sr=16000, audio_path=None):
         waveform, _ = librosa.load(aug_path, sr=sr, mono=True)
         return waveform
 
+
 def speex2flac_low_band_varied_bitrate(x, args, sr=16000, audio_path=None):
     """
     Augment the audio with speex codec
@@ -784,7 +796,8 @@ def speex2flac_low_band_varied_bitrate(x, args, sr=16000, audio_path=None):
     # print('speex2flac: audio_path:', audio_path)
     aug_dir = args.aug_dir
     utt_id = os.path.basename(audio_path).split('.')[0]
-    aug_folder_path = os.path.join(aug_dir, 'speex2flac_low_band_varied_bitrate')
+    aug_folder_path = os.path.join(
+        aug_dir, 'speex2flac_low_band_varied_bitrate')
     downsample_sr = 8000
     upsample_sr = 16000
 
@@ -805,16 +818,16 @@ def speex2flac_low_band_varied_bitrate(x, args, sr=16000, audio_path=None):
             f'ffmpeg -loglevel quiet -i {audio_path} -ar {downsample_sr} -acodec libspeex -b:a {bitrate}k {spx_aug_path} -y')
         os.system(
             f'ffmpeg -loglevel quiet -i {spx_aug_path} -ar {upsample_sr}  {aug_path} -y')
-            
+
         # remove the speex file
         os.system(f'rm {spx_aug_path}')
         waveform, _ = librosa.load(aug_path, sr=sr, mono=True)
         return waveform
 
 
-### END Speex codec
+# END Speex codec
 
-### OPUS codec
+# OPUS codec
 def opus2flac_high_band_varied_bitrate(x, args, sr=16000, audio_path=None):
     """
     Augment the audio with opus codec
@@ -823,7 +836,8 @@ def opus2flac_high_band_varied_bitrate(x, args, sr=16000, audio_path=None):
     # print('opus2flac: audio_path:', audio_path)
     aug_dir = args.aug_dir
     utt_id = os.path.basename(audio_path).split('.')[0]
-    aug_folder_path = os.path.join(aug_dir, 'opus2flac_high_band_varied_bitrate')
+    aug_folder_path = os.path.join(
+        aug_dir, 'opus2flac_high_band_varied_bitrate')
     upsample_sr = 16000
     os.makedirs(aug_folder_path, exist_ok=True)
 
@@ -846,6 +860,7 @@ def opus2flac_high_band_varied_bitrate(x, args, sr=16000, audio_path=None):
         waveform, _ = librosa.load(aug_path, sr=sr, mono=True)
         return waveform
 
+
 def opus2flac_low_band_varied_bitrate(x, args, sr=16000, audio_path=None):
     """
     Augment the audio with opus codec
@@ -854,7 +869,8 @@ def opus2flac_low_band_varied_bitrate(x, args, sr=16000, audio_path=None):
     # print('opus2flac: audio_path:', audio_path)
     aug_dir = args.aug_dir
     utt_id = os.path.basename(audio_path).split('.')[0]
-    aug_folder_path = os.path.join(aug_dir, 'opus2flac_low_band_varied_bitrate')
+    aug_folder_path = os.path.join(
+        aug_dir, 'opus2flac_low_band_varied_bitrate')
     downsample_sr = 8000
     upsample_sr = 16000
 
@@ -875,12 +891,13 @@ def opus2flac_low_band_varied_bitrate(x, args, sr=16000, audio_path=None):
             f'ffmpeg -loglevel quiet -i {audio_path} -ar {downsample_sr} -acodec libopus -b:a {bitrate}k {opus_aug_path} -y')
         os.system(
             f'ffmpeg -loglevel quiet -i {opus_aug_path} -ar {upsample_sr} -ac 1 -sample_fmt s16 -c:a flac {aug_path}  -y')
-            
+
         # remove the opus file
         os.system(f'rm {opus_aug_path}')
         waveform, _ = librosa.load(aug_path, sr=sr, mono=True)
         return waveform
-### END OPUS codec
+# END OPUS codec
+
 
 def ogg2flac(x, args, sr=16000, audio_path=None):
     """
