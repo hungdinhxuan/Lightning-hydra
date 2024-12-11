@@ -43,12 +43,13 @@ class Dataset_for(Dataset_base):
         augmethod_index = random.choice(range(len(self.augmentation_methods))) if len(
             self.augmentation_methods) > 0 else -1
         if augmethod_index >= 0:
+            # print("Augmenting with", self.augmentation_methods[augmethod_index])
             X = globals()[self.augmentation_methods[augmethod_index]](X, self.args, self.sample_rate,
                                                                       audio_path=filepath)
 
         x_inp = Tensor(X)
         target = self.labels[utt_id]
-        return idx, x_inp, target
+        return x_inp, target
 
 
 class Dataset_for_dev(Dataset_base):
@@ -66,7 +67,7 @@ class Dataset_for_dev(Dataset_base):
     def __getitem__(self, index):
         utt_id = self.list_IDs[index]
         filepath = os.path.join(self.base_dir, utt_id)
-        X, fs = librosa.load(self.base_dir + "/" + utt_id, sr=16000)
+        X, fs = librosa.load(filepath, sr=16000)
         augmethod_index = random.choice(range(len(self.augmentation_methods))) if len(
             self.augmentation_methods) > 0 else -1
         if augmethod_index >= 0:
@@ -74,7 +75,7 @@ class Dataset_for_dev(Dataset_base):
                                                                       audio_path=filepath)
         x_inp = Tensor(X)
         target = self.labels[utt_id]
-        return index, x_inp, target
+        return x_inp, target
 
 
 class Dataset_for_eval(Dataset_base):
@@ -160,10 +161,6 @@ class NormalDataModule(LightningDataModule):
         num_workers: int = 0,
         pin_memory: bool = False,
         args: Optional[Dict[str, Any]] = None,
-        # list_IDs: list = [], labels: list = [], base_dir: str = '', algo: int = 5, vocoders: list = [],
-        # augmentation_methods: list = [], eval_augment: Optional[str] = None, num_additional_real: int = 2, num_additional_spoof: int = 2,
-        # trim_length: int = 64000, wav_samp_rate: int = 16000, noise_path: Optional[str] = None, rir_path: Optional[str] = None,
-        # aug_dir: Optional[str] = None, online_aug: bool = False, repeat_pad: bool = True, is_train: bool = True, enable_chunking: bool = False
     ) -> None:
         """Initialize a `ASVSpoofDataModule`.
 
@@ -199,7 +196,7 @@ class NormalDataModule(LightningDataModule):
                 self.top_k,
                 self.min_duration,
                 self.max_duration,
-                self.args.sample_rate,
+                self.args.data.wav_samp_rate,
                 self.args.padding_type,
                 self.args.random_start
             )
@@ -207,7 +204,7 @@ class NormalDataModule(LightningDataModule):
             self.collate_fn = lambda x: multi_view_collate_fn(
                 x,
                 self.args.views,
-                self.args.sample_rate,
+                self.args.data.wav_samp_rate,
                 self.args.padding_type,
                 self.args.random_start
             )
@@ -333,7 +330,7 @@ class NormalDataModule(LightningDataModule):
         """
         pass
 
-    def genList(self, dir_meta, is_train=False, is_eval=False, is_dev=False):
+    def genList(self, is_train=False, is_eval=False, is_dev=False):
         """
             This function generates the list of files and their corresponding labels
             Specifically for the standard CNSL dataset
