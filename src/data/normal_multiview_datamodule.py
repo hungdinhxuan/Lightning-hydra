@@ -68,11 +68,11 @@ class Dataset_for_dev(Dataset_base):
         utt_id = self.list_IDs[index]
         filepath = os.path.join(self.base_dir, utt_id)
         X, fs = librosa.load(filepath, sr=16000)
-        augmethod_index = random.choice(range(len(self.augmentation_methods))) if len(
-            self.augmentation_methods) > 0 else -1
-        if augmethod_index >= 0:
-            X = globals()[self.augmentation_methods[augmethod_index]](X, self.args, self.sample_rate,
-                                                                      audio_path=filepath)
+        # augmethod_index = random.choice(range(len(self.augmentation_methods))) if len(
+        #     self.augmentation_methods) > 0 else -1
+        # if augmethod_index >= 0:
+        #     X = globals()[self.augmentation_methods[augmethod_index]](X, self.args, self.sample_rate,
+        #                                                               audio_path=filepath)
         x_inp = Tensor(X)
         target = self.labels[utt_id]
         return x_inp, target
