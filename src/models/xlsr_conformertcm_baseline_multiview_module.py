@@ -10,6 +10,7 @@ from typing import Union
 import torch
 from src.models.components.xlsr_conformertcm_baseline import Model as XLSRConformerTCM
 
+
 class XLSRConformerTCMLitModule(LightningModule):
     """Example of a `LightningModule` for MNIST classification.
 
@@ -53,8 +54,10 @@ class XLSRConformerTCMLitModule(LightningModule):
         ssl_pretrained_path: str = None,
         score_save_path: str = None,
         cross_entropy_weight: list[float] = [0.1, 0.9],
-        weighted_views: Dict[str, float] = {'1': 1.0, '2': 1.0, '3': 1.0, '4': 1.0},
+        weighted_views: Dict[str, float] = {
+            '1': 1.0, '2': 1.0, '3': 1.0, '4': 1.0},
         adaptive_weights: bool = False,
+        spec_eval: bool = False,
     ) -> None:
         """Initialize a `MNISTLitModule`.
 
@@ -67,6 +70,7 @@ class XLSRConformerTCMLitModule(LightningModule):
         # this line allows to access init params with 'self.hparams' attribute
         # also ensures init params will be stored in ckpt
         self.save_hyperparameters(logger=False)
+        self.spec_eval = spec_eval
 
         self.net = XLSRConformerTCM(args['conformer'], ssl_pretrained_path)
         # loss function
@@ -86,7 +90,6 @@ class XLSRConformerTCMLitModule(LightningModule):
             view: BinaryAccuracy() for view in weighted_views
         }
         self.test_view_acc = {}
-
 
         # for averaging loss across batches
         self.train_loss = MeanMetric()
@@ -111,10 +114,10 @@ class XLSRConformerTCMLitModule(LightningModule):
         if self.adaptive_weights:
             self.weighted_views = {}
             for k, v in weighted_views.items():
-                param = torch.nn.Parameter(torch.tensor(float(v)), requires_grad=True)
+                param = torch.nn.Parameter(
+                    torch.tensor(float(v)), requires_grad=True)
                 self.register_parameter(f"adaptive_weight_{k}", param)
                 self.weighted_views[k] = param
-
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Perform a forward pass through the model `self.net`.
@@ -132,14 +135,14 @@ class XLSRConformerTCMLitModule(LightningModule):
         self.val_acc.reset()
         self.val_acc_best.reset()
 
-        # Reset all details for loss and accuracy        
+        # Reset all details for loss and accuracy
 
         for k, v in self.val_loss_detail.items():
             self.val_loss_detail[k].reset()
-        
+
         for k, v in self.val_view_acc.items():
             self.val_view_acc[k].reset()
-        
+
         for k, v in self.val_view_acc_best.items():
             self.val_view_acc_best[k].reset()
 
@@ -182,20 +185,23 @@ class XLSRConformerTCMLitModule(LightningModule):
                  x: shape (batch_size, view * sample_rate)
                  y: shape (batch_size, 1)
             '''
-            self.batch_size = view * x.size(0) # Update batch size for each view
+            self.batch_size = view * \
+                x.size(0)  # Update batch size for each view
 
-            view = str(view) # Convert view to string for indexing
+            view = str(view)  # Convert view to string for indexing
 
             # Ensure the input tensor is of type float
             x = x.float()
 
             logits = self.forward(x)
-            loss = self.criterion(logits, y) * self.weighted_views[str(view)] # Weighted loss
+            loss = self.criterion(
+                logits, y) * self.weighted_views[str(view)]  # Weighted loss
             train_loss += loss
             preds = torch.argmax(logits, dim=1)
 
             # Update view accuracy metric to view_acc
-            view_acc[view] = view_acc.get(view, []) # Initialize view accuracy metric
+            # Initialize view accuracy metric
+            view_acc[view] = view_acc.get(view, [])
 
             # Append predictions and target to view_acc
             view_acc[view].append([preds.cpu(), y.cpu()])
@@ -207,7 +213,7 @@ class XLSRConformerTCMLitModule(LightningModule):
             # Intialize loss_detail dictionary
             loss_detail[view] = loss_detail.get(view, 0) + loss.item()
 
-        #self.running_loss += train_loss.item()
+        # self.running_loss += train_loss.item()
 
         # Concatenate all predictions and labels
         all_preds = torch.cat(all_preds)
@@ -232,43 +238,52 @@ class XLSRConformerTCMLitModule(LightningModule):
         # Update train_view_acc and log metrics
         for k, v in view_acc.items():
             # Initialize train_view_acc dictionary
-            self.train_view_acc[k] = self.train_view_acc.get(k, BinaryAccuracy())
+            self.train_view_acc[k] = self.train_view_acc.get(
+                k, BinaryAccuracy())
             _preds, _targets = v[0]
-            self.train_view_acc[k](_preds, _targets) # v[0] is preds, v[1] is targets
-            #self.log(f"train/view_{k}_acc", self.train_view_acc[k].compute(), on_step=False, on_epoch=True, prog_bar=True, sync_dist=True)
+            # v[0] is preds, v[1] is targets
+            self.train_view_acc[k](_preds, _targets)
+            # self.log(f"train/view_{k}_acc", self.train_view_acc[k].compute(), on_step=False, on_epoch=True, prog_bar=True, sync_dist=True)
 
         # Update train_loss_detail and log metrics
         for k, v in loss_detail.items():
             # Initialize train_loss_detail dictionary
-            self.train_loss_detail[k] = self.train_loss_detail.get(k, MeanMetric())
+            self.train_loss_detail[k] = self.train_loss_detail.get(
+                k, MeanMetric())
             self.train_loss_detail[k](v)
 
-            #self.train_loss_detail[k] = self.train_loss_detail.get(k, 0) + v
-            #self.log(f"train/view_{k}_loss", self.train_loss_detail[k].compute(), on_step=False, on_epoch=True, prog_bar=True, sync_dist=True)
+            # self.train_loss_detail[k] = self.train_loss_detail.get(k, 0) + v
+            # self.log(f"train/view_{k}_loss", self.train_loss_detail[k].compute(), on_step=False, on_epoch=True, prog_bar=True, sync_dist=True)
 
         # Update and log train loss and accuracy
         self.train_loss(loss)
         self.train_acc(preds, targets)
-        self.log("train/loss", self.train_loss, on_step=False, on_epoch=True, prog_bar=True, sync_dist=True, batch_size=self.batch_size)
-        self.log("train/acc", self.train_acc, on_step=False, on_epoch=True, prog_bar=True, sync_dist=True, batch_size=self.batch_size)
+        self.log("train/loss", self.train_loss, on_step=False, on_epoch=True,
+                 prog_bar=True, sync_dist=True, batch_size=self.batch_size)
+        self.log("train/acc", self.train_acc, on_step=False, on_epoch=True,
+                 prog_bar=True, sync_dist=True, batch_size=self.batch_size)
 
-        self.log_dict( {f"adaptive_weight_{k}": v for k, v in self.weighted_views.items()}, on_step=False, on_epoch=True, prog_bar=True, sync_dist=True)
+        self.log_dict({f"adaptive_weight_{k}": v for k, v in self.weighted_views.items(
+        )}, on_step=False, on_epoch=True, prog_bar=True, sync_dist=True)
         # Return loss for backpropagation
         return loss
 
     def on_train_epoch_end(self) -> None:
         "Lightning hook that is called when a training epoch ends."
         for k, v in self.train_view_acc.items():
-            self.log(f"train/view_{k}_acc", self.train_view_acc[k].compute(), prog_bar=True, sync_dist=True)
-        
+            self.log(
+                f"train/view_{k}_acc", self.train_view_acc[k].compute(), prog_bar=True, sync_dist=True)
+
         for k, v in self.train_loss_detail.items():
-            self.log(f"train/view_{k}_loss", self.train_loss_detail[k].compute(), prog_bar=True, sync_dist=True)
-        
+            self.log(
+                f"train/view_{k}_loss", self.train_loss_detail[k].compute(), prog_bar=True, sync_dist=True)
+
         # Log current adaptive_weights
         if self.adaptive_weights:
             print(self.weighted_views)
-            self.log_dict( {f"adaptive_weight_{k}": v for k, v in self.weighted_views.items()}, on_epoch=True, prog_bar=True, sync_dist=True)
-        
+            self.log_dict({f"adaptive_weight_{k}": v for k, v in self.weighted_views.items(
+            )}, on_epoch=True, prog_bar=True, sync_dist=True)
+
     def validation_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> None:
         """Perform a single validation step on a batch of data from the validation set.
 
@@ -283,21 +298,24 @@ class XLSRConformerTCMLitModule(LightningModule):
             # Initialize val_view_acc dictionary
             self.val_view_acc[k] = self.val_view_acc.get(k, BinaryAccuracy())
             _preds, _targets = v[0]
-            self.val_view_acc[k](_preds, _targets) # v[0] is preds, v[1] is targets
-            #self.log(f"val/view_{k}_acc", self.val_view_acc[k].compute(), on_step=False, on_epoch=True, prog_bar=True, sync_dist=True)
+            # v[0] is preds, v[1] is targets
+            self.val_view_acc[k](_preds, _targets)
+            # self.log(f"val/view_{k}_acc", self.val_view_acc[k].compute(), on_step=False, on_epoch=True, prog_bar=True, sync_dist=True)
 
         # Update val_loss_detail and log metrics
         for k, v in loss_detail.items():
             # Initialize val_loss_detail dictionary
             self.val_loss_detail[k] = self.val_loss_detail.get(k, MeanMetric())
             self.val_loss_detail[k](v)
-            #self.log(f"val/view_{k}_loss", self.val_loss_detail[k].compute(), on_step=False, on_epoch=True, prog_bar=True, sync_dist=True)
-        
+            # self.log(f"val/view_{k}_loss", self.val_loss_detail[k].compute(), on_step=False, on_epoch=True, prog_bar=True, sync_dist=True)
+
         # Update and log val loss and accuracy
         self.val_loss(loss)
         self.val_acc(preds, targets)
-        self.log("val/loss", self.val_loss, on_step=False, on_epoch=True, prog_bar=True, sync_dist=True, batch_size=self.batch_size)
-        self.log("val/acc", self.val_acc, on_step=False, on_epoch=True, prog_bar=True, sync_dist=True, batch_size=self.batch_size)
+        self.log("val/loss", self.val_loss, on_step=False, on_epoch=True,
+                 prog_bar=True, sync_dist=True, batch_size=self.batch_size)
+        self.log("val/acc", self.val_acc, on_step=False, on_epoch=True,
+                 prog_bar=True, sync_dist=True, batch_size=self.batch_size)
 
     def on_validation_epoch_end(self) -> None:
         "Lightning hook that is called when a validation epoch ends."
@@ -305,17 +323,21 @@ class XLSRConformerTCMLitModule(LightningModule):
         self.val_acc_best(acc)  # update best so far val acc
 
         for k, v in self.val_loss_detail.items():
-            self.log(f"val/view_{k}_loss", self.val_loss_detail[k].compute(), prog_bar=True, sync_dist=True)
+            self.log(
+                f"val/view_{k}_loss", self.val_loss_detail[k].compute(), prog_bar=True, sync_dist=True)
 
         for k, v in self.val_view_acc.items():
             acc = v.compute()
             self.val_view_acc_best[k](acc)
-            self.log(f"val/view_{k}_acc", self.val_view_acc[k].compute(), prog_bar=True, sync_dist=True)
-            self.log(f"val/view_{k}_acc_best", self.val_view_acc_best[k].compute(), prog_bar=True, sync_dist=True)
+            self.log(
+                f"val/view_{k}_acc", self.val_view_acc[k].compute(), prog_bar=True, sync_dist=True)
+            self.log(
+                f"val/view_{k}_acc_best", self.val_view_acc_best[k].compute(), prog_bar=True, sync_dist=True)
 
         # log `val_acc_best` as a value through `.compute()` method, instead of as a metric object
         # otherwise metric would be reset by lightning after each epoch
-        self.log("val/acc_best", self.val_acc_best.compute(), sync_dist=True, prog_bar=True, batch_size=self.batch_size)
+        self.log("val/acc_best", self.val_acc_best.compute(),
+                 sync_dist=True, prog_bar=True, batch_size=self.batch_size)
 
     def test_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> None:
         """Perform a single test step on a batch of data from the test set.
@@ -329,7 +351,6 @@ class XLSRConformerTCMLitModule(LightningModule):
         else:
             raise ValueError("score_save_path is not provided")
 
-    
     def _export_score_file(self, batch: Tuple[torch.Tensor, torch.Tensor]) -> None:
         """Get the score file for the batch of data.
 
@@ -341,14 +362,12 @@ class XLSRConformerTCMLitModule(LightningModule):
 
         fname_list = list(utt_id)
         score_list = batch_out.data.cpu().numpy().tolist()
-            
-        # with open(self.score_save_path, 'a+') as fh:
-        #     for f, cm in zip(fname_list, score_list):
-        #         fh.write('{} {} {}\n'.format(f, cm[0], cm[1]))
+
         with open(self.score_save_path, 'a+') as fh:
             for f, cm in zip(fname_list, score_list):
-                fh.write('{} {}\n'.format(f, cm[1]))
-        
+                fh.write('{} {} {}\n'.format(f, cm[0], cm[1])) if self.spec_eval else fh.write(
+                    '{} {}\n'.format(f, cm[1]))
+
     def on_test_epoch_end(self) -> None:
         """Lightning hook that is called when a test epoch ends."""
         pass
@@ -375,7 +394,8 @@ class XLSRConformerTCMLitModule(LightningModule):
 
         :return: A dict containing the configured optimizers and learning-rate schedulers to be used for training.
         """
-        optimizer = self.hparams.optimizer(params=self.trainer.model.parameters())
+        optimizer = self.hparams.optimizer(
+            params=self.trainer.model.parameters())
         if self.hparams.scheduler is not None:
             scheduler = self.hparams.scheduler(optimizer=optimizer)
             return {

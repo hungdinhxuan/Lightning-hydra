@@ -33,6 +33,7 @@ def multi_view_collate_fn(batch, views=[1, 2, 3, 4], sample_rate=16000, padding_
                          max_len=view_length, random_start=random_start)
             # Check if x_view is Tensor or numpy array and convert to Tensor if necessary
             if not torch.is_tensor(x_view):
+
                 x_view = torch.from_numpy(x_view)
             view_batches[view].append((x_view, label))
 

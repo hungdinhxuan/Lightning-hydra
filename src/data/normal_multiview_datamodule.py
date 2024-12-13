@@ -96,6 +96,8 @@ class Dataset_for_eval(Dataset_base):
 
     def __getitem__(self, idx):
         utt_id = self.list_IDs[idx]
+        # print("utt_id:", utt_id)
+        # print("self.base_dir:", self.base_dir)
         filepath = os.path.join(self.base_dir, utt_id)
         X, _ = librosa.load(filepath, sr=16000)
         # apply augmentation at inference time
@@ -251,7 +253,7 @@ class NormalDataModule(LightningDataModule):
             d_label_dev, file_dev = self.genList(
                 is_train=False, is_eval=False, is_dev=True)
             print('no. of validation trials', len(file_dev))
-            file_eval = self.genList(
+            d_meta, file_eval = self.genList(
                 is_train=False, is_eval=True, is_dev=False)
 
             self.data_train = Dataset_for(self.args, list_IDs=file_train, labels=d_label_trn,
