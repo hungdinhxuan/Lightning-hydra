@@ -29,6 +29,7 @@ args:
     augmentation_methods:
       ["RawBoost12", "pitch_1", "volume_10", "speed_01", "none"] # "none" is the original data
     wav_samp_rate: 16000
+    trim_length: 64000
     online_aug: true
     aug_dir: ${oc.env:LARGE_CORPUS_FOR_CNSL}/aug
     noise_path: ${oc.env:NOISE_PATH}

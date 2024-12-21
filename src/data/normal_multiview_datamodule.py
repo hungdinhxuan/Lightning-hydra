@@ -89,10 +89,10 @@ class Dataset_for_eval(Dataset_base):
                                                trim_length, wav_samp_rate, noise_path, rir_path,
                                                aug_dir, online_aug, repeat_pad, is_train, random_start)
         self.enable_chunking = enable_chunking
-        if repeat_pad:
-            self.padding_type = "repeat"
-        else:
-            self.padding_type = "zero"
+        self.padding_type = "repeat" if repeat_pad else "zero"
+
+        print("trim_length:", trim_length)
+        print("padding_type:", self.padding_type)
 
     def __getitem__(self, idx):
         utt_id = self.list_IDs[idx]
@@ -263,7 +263,7 @@ class NormalDataModule(LightningDataModule):
                                             base_dir=self.data_dir+'/',  is_train=False, **self.args['data'])
 
             self.data_test = Dataset_for_eval(self.args, list_IDs=file_eval, labels=None,
-                                              base_dir=self.data_dir+'/',  **self.args['data'])
+                                              base_dir=self.data_dir+'/',  random_start=self.args.random_start, trim_length=self.args.trim_length, repeat_pad=True if self.args.padding_type == 'repeat' else False)
 
     def train_dataloader(self) -> DataLoader[Any]:
         """Create and return the train dataloader.
@@ -367,9 +367,12 @@ class NormalDataModule(LightningDataModule):
                 l_meta = f.readlines()
             for line in l_meta:
                 utt, subset, label = line.strip().split()
-                if subset == 'eval':
-                    file_list.append(utt)
-                    d_meta[utt] = 1 if label == 'bonafide' else 0
+                # if subset == 'eval':
+                #     file_list.append(utt)
+                #     d_meta[utt] = 1 if label == 'bonafide' else 0
+
+                file_list.append(utt)
+                d_meta[utt] = 1 if label == 'bonafide' else 0
             # return d_meta, file_list
             return d_meta, file_list
 

@@ -14,7 +14,7 @@ import random
 
 SUPPORTED_AUGMENTATION = [
     'background_noise_5_15', 'pitch_1', 'volume_10', 'reverb_1', 'speed_01', 'telephone_g722', 'gaussian_1', 'gaussian_2', 'gaussian_2_5', 'gaussian_3',
-    'RawBoostdf', 'RawBoost12', 'copy_paste_80', 'copy_paste_r', 'time_masking', 'masking', 'time_swap',
+    'RawBoostdf', 'RawBoost12', 'RawBoostFull', 'copy_paste_80', 'copy_paste_r', 'time_masking', 'masking', 'time_swap',
     'freq_swap', 'swapping', 'frequency_masking', 'linear_filter', 'mp32flac', 'ogg2flac', 'nonspeechtrim',
     'bandpass_0_4000', 'griffinlim_downsample', 'lowpass_hifigan_asvspoof5', 'lowpass_hifigan', 'librosa_downsample', 'none']
 
@@ -1042,6 +1042,24 @@ def RawBoost12(x, args, sr=16000, audio_path=None):
     aug_audio_path = os.path.join(aug_dir, 'RawBoost12', utt_id + '.wav')
     if args.online_aug:
         return process_Rawboost_feature(x, sr, args, algo=5)
+    else:
+        # check if the augmented file exists
+        if (os.path.exists(aug_audio_path)):
+            waveform, _ = librosa.load(aug_audio_path, sr=sr, mono=True)
+            return waveform
+        else:
+            waveform = process_Rawboost_feature(x, sr, args, algo=5)
+            # save the augmented file,waveform in np array
+            sf.write(aug_audio_path, waveform, sr, subtype='PCM_16')
+            return waveform
+
+
+def RawBoostFull(x, args, sr=16000, audio_path=None):
+    aug_dir = args.aug_dir
+    utt_id = os.path.basename(audio_path).split('.')[0]
+    aug_audio_path = os.path.join(aug_dir, 'RawBoostFull', utt_id + '.wav')
+    if args.online_aug:
+        return process_Rawboost_feature(x, sr, args, algo=4)
     else:
         # check if the augmented file exists
         if (os.path.exists(aug_audio_path)):
