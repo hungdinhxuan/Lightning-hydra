@@ -14,7 +14,7 @@ from src.core_scripts.data_io import wav_augmentation as nii_wav_aug
 from src.core_scripts.data_io import wav_tools as nii_wav_tools
 from src.data.components.dataio import load_audio, pad
 from src.data.components.baseloader import Dataset_base
-from src.data.components.collate_fn import multi_view_collate_fn, variable_multi_view_collate_fn
+from src.data.components.collate_fn import multi_view_collate_fn, variable_multi_view_collate_fn, ChunkingCollator
 # augwrapper
 from src.data.components.augwrapper import SUPPORTED_AUGMENTATION
 
@@ -163,6 +163,7 @@ class NormalDataModule(LightningDataModule):
         num_workers: int = 0,
         pin_memory: bool = False,
         args: Optional[Dict[str, Any]] = None,
+        chunking_eval: bool = False,
     ) -> None:
         """Initialize a `ASVSpoofDataModule`.
 
@@ -210,6 +211,18 @@ class NormalDataModule(LightningDataModule):
                 self.args.padding_type,
                 self.args.random_start
             )
+
+        if chunking_eval:
+            collator_params: Dict[str, Any] = {
+                "chunk_size": self.args.get('chunk_size', 16000),  # 1 second
+                # 0.5 second
+                "overlap_size": self.args.get('chunk_size', 8000),
+                "enable_chunking": True
+            }
+            self.eval_collator = ChunkingCollator(
+                **collator_params)
+        else:
+            self.eval_collator = None
 
     @property
     def num_classes(self) -> int:
@@ -306,6 +319,7 @@ class NormalDataModule(LightningDataModule):
             num_workers=self.hparams.num_workers,
             pin_memory=self.hparams.pin_memory,
             shuffle=False,
+            collate_fn=self.eval_collator,
         )
 
     def teardown(self, stage: Optional[str] = None) -> None:
