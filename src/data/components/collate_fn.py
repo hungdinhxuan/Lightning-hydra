@@ -4,7 +4,12 @@ import numpy as np
 from torch import Tensor
 
 
-def multi_view_collate_fn(batch, views=[1, 2, 3, 4], sample_rate=16000, padding_type='zero', random_start=True):
+def multi_view_collate_fn(batch, views=[1, 2, 3, 4], sample_rate=16000, padding_type='repeat', random_start=False, view_padding_configs={
+    '1': {'padding_type': 'repeat', 'random_start': False},
+    '2': {'padding_type': 'repeat', 'random_start': False},
+    '3': {'padding_type': 'repeat', 'random_start': False},
+    '4': {'padding_type': 'repeat', 'random_start': False}
+}):
     '''
     Collate function to pad each sample in a batch to multiple views
     :param batch: list of tuples (x, label)
@@ -24,14 +29,17 @@ def multi_view_collate_fn(batch, views=[1, 2, 3, 4], sample_rate=16000, padding_
     }
     '''
     view_batches = {view: [] for view in views}
+    # Warning: padding_type and random_start are not used in this function
+    # print("Warning: padding_type and random_start are not used in this function. Please use view_padding_configs instead")
+    # print("view_padding_configs", view_padding_configs)
 
     # Process each sample in the batch
     for x, label in batch:
         # Pad each sample for each view
         for view in views:
             view_length = view * sample_rate
-            x_view = pad(x, padding_type=padding_type,
-                         max_len=view_length, random_start=random_start)
+            x_view = pad(x, padding_type=view_padding_configs[str(view)]['padding_type'],
+                         max_len=view_length, random_start=view_padding_configs[str(view)]['random_start'])
             # Check if x_view is Tensor or numpy array and convert to Tensor if necessary
             if not torch.is_tensor(x_view):
 

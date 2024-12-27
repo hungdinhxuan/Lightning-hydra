@@ -208,7 +208,8 @@ class ASVSpoofDataModule(LightningDataModule):
                 self.args.views,
                 self.args.sample_rate,
                 self.args.padding_type,
-                self.args.random_start
+                self.args.random_start,
+                self.args.view_padding_configs
             )
         self.protocols_path = self.args.get(
             'protocols_path', '/data/hungdx/Datasets/protocols/database/') if self.args is not None else '/data/hungdx/Datasets/protocols/database/'
@@ -217,7 +218,7 @@ class ASVSpoofDataModule(LightningDataModule):
             collator_params: Dict[str, Any] = {
                 "chunk_size": self.args.get('chunk_size', 16000),  # 1 second
                 # 0.5 second
-                "overlap_size": self.args.get('chunk_size', 8000),
+                "overlap_size": self.args.get('overlap_size', 8000),
                 "enable_chunking": True
             }
             self.eval_collator = ChunkingCollator(

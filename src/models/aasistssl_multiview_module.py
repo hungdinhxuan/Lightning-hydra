@@ -76,6 +76,7 @@ class AASISTSSLLitModule(LightningModule):
         adaptive_weights: bool = False,
         last_emb: bool = False,
         emb_save_path: str = None,
+        spec_eval: bool = False,
     ) -> None:
         """Initialize a `MNISTLitModule`.
 
@@ -88,6 +89,7 @@ class AASISTSSLLitModule(LightningModule):
         # this line allows to access init params with 'self.hparams' attribute
         # also ensures init params will be stored in ckpt
         self.save_hyperparameters(logger=False)
+        self.spec_eval = spec_eval
         self.score_save_path = score_save_path
         self.last_emb = last_emb
         self.emb_save_path = emb_save_path
@@ -395,12 +397,10 @@ class AASISTSSLLitModule(LightningModule):
         fname_list = list(utt_id)
         score_list = batch_out.data.cpu().numpy().tolist()
 
-        # with open(self.score_save_path, 'a+') as fh:
-        #     for f, cm in zip(fname_list, score_list):
-        #         fh.write('{} {} {}\n'.format(f, cm[0], cm[1]))
         with open(self.score_save_path, 'a+') as fh:
             for f, cm in zip(fname_list, score_list):
-                fh.write('{} {}\n'.format(f, cm[1]))
+                fh.write('{} {} {}\n'.format(f, cm[0], cm[1])) if self.spec_eval else fh.write(
+                    '{} {}\n'.format(f, cm[1]))
 
     def _export_embedding_file(self, batch: Tuple[torch.Tensor, torch.Tensor]) -> None:
         """ Get the embedding file for the batch of data.

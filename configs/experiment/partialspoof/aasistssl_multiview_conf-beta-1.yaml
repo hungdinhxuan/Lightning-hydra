@@ -35,11 +35,23 @@ data:
   pin_memory: true
   args:
     padding_type: repeat
-    random_start: False
+    random_start: True
     chunk_size: 16000 # 1 sec
     overlap_size: 8000 # 0.5 sec
-
-
+    view_padding_configs:
+      '1':
+        padding_type: repeat
+        random_start: True
+      '2':
+        padding_type: repeat
+        random_start: False
+      '3':
+        padding_type: repeat
+        random_start: False
+      '4':
+        padding_type: repeat
+        random_start: False
+    
 logger:
   wandb:
     tags: ${tags}
