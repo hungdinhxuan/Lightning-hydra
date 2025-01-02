@@ -209,7 +209,8 @@ class NormalDataModule(LightningDataModule):
                 self.args.views,
                 self.args.data.wav_samp_rate,
                 self.args.padding_type,
-                self.args.random_start
+                self.args.random_start,
+                self.args.view_padding_configs
             )
 
         if chunking_eval:

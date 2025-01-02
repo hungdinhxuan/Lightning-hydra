@@ -6,7 +6,7 @@
 defaults:
   - override /data: asvspoof_multiview
   - override /model: xlsr_aasist_multiview
-  - override /callbacks: default_loss_earlystop
+  - override /callbacks: default_loss_earlystop_lts
   - override /trainer: default
 
 # all parameters below will be merged with parameters from default configurations set above

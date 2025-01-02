@@ -4,7 +4,7 @@
 # python train.py experiment=example
 
 defaults:
-  - override /data: asvspoof_multiview
+  - override /data: normal_largecorpus_multiview_cnsl
   - override /model: xlsr_aasist_multiview
   - override /callbacks: default_loss_earlystop
   - override /trainer: default
@@ -12,7 +12,7 @@ defaults:
 # all parameters below will be merged with parameters from default configurations set above
 # this allows you to overwrite only specified parameters
 
-tags: ["asvspoof_multiview", "xlsr_aasist_multiview"]
+tags: ["normal_largecorpus_multiview_cnsl", "xlsr_aasist_multiview"]
 
 seed: 1234
 
@@ -30,18 +30,18 @@ model:
   compile: true
 
 data:
+  data_dir: ${oc.env:MY_EXTENDED_ASVSPOOF_PATH}
   batch_size: 14
   num_workers: 8
   pin_memory: true
   args:
-    padding_type: repeat
-    random_start: True
+    protocol_path: ${oc.env:MY_EXTENDED_ASVSPOOF_PROTOCOLS}
     chunk_size: 16000 # 1 sec
     overlap_size: 8000 # 0.5 sec
     view_padding_configs:
       '1':
         padding_type: repeat
-        random_start: True
+        random_start: False
       '2':
         padding_type: repeat
         random_start: False
@@ -52,9 +52,13 @@ data:
         padding_type: repeat
         random_start: False
     
+    data:
+      augmentation_methods: ["RawBoostdf"]
+      random_start: False
+    
 logger:
   wandb:
     tags: ${tags}
-    group: "asvspoof_multiview"
+    group: "normal_largecorpus_multiview_cnsl"
   aim:
-    experiment: "asvspoof_multiview"
+    experiment: "normal_largecorpus_multiview_cnsl"

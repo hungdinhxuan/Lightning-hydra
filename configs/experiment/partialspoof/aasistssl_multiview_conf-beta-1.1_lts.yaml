@@ -6,7 +6,7 @@
 defaults:
   - override /data: asvspoof_multiview
   - override /model: xlsr_aasist_multiview
-  - override /callbacks: default_loss_earlystop
+  - override /callbacks: default_loss_earlystop_lts
   - override /trainer: default
 
 # all parameters below will be merged with parameters from default configurations set above
@@ -44,13 +44,13 @@ data:
         random_start: True
       '2':
         padding_type: repeat
-        random_start: False
+        random_start: True
       '3':
         padding_type: repeat
-        random_start: False
+        random_start: True
       '4':
         padding_type: repeat
-        random_start: False
+        random_start: True
     
 logger:
   wandb:
