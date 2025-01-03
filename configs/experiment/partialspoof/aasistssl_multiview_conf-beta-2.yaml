@@ -6,7 +6,7 @@
 defaults:
   - override /data: normal_largecorpus_multiview_cnsl
   - override /model: xlsr_aasist_multiview
-  - override /callbacks: default_loss_earlystop
+  - override /callbacks: default_loss_earlystop_lts
   - override /trainer: default
 
 # all parameters below will be merged with parameters from default configurations set above
@@ -34,10 +34,14 @@ data:
   batch_size: 14
   num_workers: 8
   pin_memory: true
+  
   args:
     protocol_path: ${oc.env:MY_EXTENDED_ASVSPOOF_PROTOCOLS}
     chunk_size: 16000 # 1 sec
     overlap_size: 8000 # 0.5 sec
+    random_start: False
+    trim_length: 64600
+    padding_type: repeat
     view_padding_configs:
       '1':
         padding_type: repeat
@@ -51,10 +55,11 @@ data:
       '4':
         padding_type: repeat
         random_start: False
-    
-    data:
+    data:    
       augmentation_methods: ["RawBoostdf"]
-      random_start: False
+      aug_dir: ${oc.env:MY_EXTENDED_ASVSPOOF_PATH}/aug
+      repeat_pad: True
+      online_aug: True
     
 logger:
   wandb:

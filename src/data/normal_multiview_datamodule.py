@@ -27,13 +27,17 @@ class Dataset_for(Dataset_base):
     def __init__(self, args, list_IDs, labels, base_dir, algo=5, vocoders=[],
                  augmentation_methods=[], eval_augment=None, num_additional_real=2, num_additional_spoof=2,
                  trim_length=66800, wav_samp_rate=16000, noise_path=None, rir_path=None,
-                 aug_dir=None, online_aug=False, repeat_pad=True, is_train=True, random_start=False):
+                 aug_dir=None, online_aug=True, repeat_pad=True, is_train=True, random_start=False):
         super(Dataset_for, self).__init__(args, list_IDs, labels, base_dir, algo, vocoders,
                                           augmentation_methods, eval_augment, num_additional_real, num_additional_spoof,
                                           trim_length, wav_samp_rate, noise_path, rir_path,
                                           aug_dir, online_aug, repeat_pad, is_train, random_start)
+        self.args.online_aug = online_aug
 
     def __getitem__(self, idx):
+
+        # print("Online augmentation: ", self.args.online_aug ) 
+       
         utt_id = self.list_IDs[idx]
         filepath = os.path.join(self.base_dir, utt_id)
         X = load_audio(filepath, self.sample_rate)
@@ -42,6 +46,7 @@ class Dataset_for(Dataset_base):
         # randomly choose an augmentation method
         augmethod_index = random.choice(range(len(self.augmentation_methods))) if len(
             self.augmentation_methods) > 0 else -1
+
         if augmethod_index >= 0:
             # print("Augmenting with", self.augmentation_methods[augmethod_index])
             X = globals()[self.augmentation_methods[augmethod_index]](X, self.args, self.sample_rate,
@@ -56,7 +61,7 @@ class Dataset_for_dev(Dataset_base):
     def __init__(self, args, list_IDs, labels, base_dir, algo=5, vocoders=[],
                  augmentation_methods=[], eval_augment=None, num_additional_real=2, num_additional_spoof=2,
                  trim_length=66800, wav_samp_rate=16000, noise_path=None, rir_path=None,
-                 aug_dir=None, online_aug=False, repeat_pad=False, is_train=True,
+                 aug_dir=None, online_aug=True, repeat_pad=False, is_train=True,
                  random_start=False
                  ):
         super(Dataset_for_dev, self).__init__(args, list_IDs, labels, base_dir, algo, vocoders,
@@ -68,11 +73,6 @@ class Dataset_for_dev(Dataset_base):
         utt_id = self.list_IDs[index]
         filepath = os.path.join(self.base_dir, utt_id)
         X, fs = librosa.load(filepath, sr=16000)
-        # augmethod_index = random.choice(range(len(self.augmentation_methods))) if len(
-        #     self.augmentation_methods) > 0 else -1
-        # if augmethod_index >= 0:
-        #     X = globals()[self.augmentation_methods[augmethod_index]](X, self.args, self.sample_rate,
-        #                                                               audio_path=filepath)
         x_inp = Tensor(X)
         target = self.labels[utt_id]
         return x_inp, target
@@ -82,7 +82,7 @@ class Dataset_for_eval(Dataset_base):
     def __init__(self, args, list_IDs, labels, base_dir, algo=5, vocoders=[],
                  augmentation_methods=[], eval_augment=None, num_additional_real=2, num_additional_spoof=2,
                  trim_length=66800, wav_samp_rate=16000, noise_path=None, rir_path=None,
-                 aug_dir=None, online_aug=False, repeat_pad=True, is_train=True, enable_chunking=False, random_start=False
+                 aug_dir=None, online_aug=True, repeat_pad=True, is_train=True, enable_chunking=False, random_start=False
                  ):
         super(Dataset_for_eval, self).__init__(args, list_IDs, labels, base_dir, algo, vocoders,
                                                augmentation_methods, eval_augment, num_additional_real, num_additional_spoof,
@@ -277,7 +277,7 @@ class NormalDataModule(LightningDataModule):
                                             base_dir=self.data_dir+'/',  is_train=False, **self.args['data'])
 
             self.data_test = Dataset_for_eval(self.args, list_IDs=file_eval, labels=None,
-                                              base_dir=self.data_dir+'/',  random_start=self.args.random_start, trim_length=self.args.trim_length, repeat_pad=True if self.args.padding_type == 'repeat' else False)
+                                              base_dir=self.data_dir+'/',  random_start=self.args.data.random_start, trim_length=self.args.data.trim_length, repeat_pad=True if self.args.padding_type == 'repeat' else False)
 
     def train_dataloader(self) -> DataLoader[Any]:
         """Create and return the train dataloader.

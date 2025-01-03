@@ -1075,11 +1075,12 @@ def RawBoostFull(x, args, sr=16000, audio_path=None):
 def RawBoostdf(x, args, sr=16000, audio_path=None):
     aug_dir = args.aug_dir
     utt_id = os.path.basename(audio_path).split('.')[0]
-    aug_audio_path = os.path.join(aug_dir, 'RawBoostdf', utt_id + '.wav')
+
     if args.online_aug:
         return process_Rawboost_feature(x, sr, args, algo=3)
     else:
         # check if the augmented file exists
+        aug_audio_path = os.path.join(aug_dir, 'RawBoostdf', utt_id + '.wav')
         if (os.path.exists(aug_audio_path)):
             waveform, _ = librosa.load(aug_audio_path, sr=sr, mono=True)
             return waveform

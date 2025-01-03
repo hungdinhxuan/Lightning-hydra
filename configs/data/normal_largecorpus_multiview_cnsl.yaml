@@ -24,6 +24,20 @@ args:
   g_sd: 2
   SNRmin: 10
   SNRmax: 40
+
+  view_padding_configs:
+    '1':
+      padding_type: repeat
+      random_start: False
+    '2':
+      padding_type: repeat
+      random_start: False
+    '3':
+      padding_type: repeat
+      random_start: False
+    '4':
+      padding_type: repeat
+      random_start: False
   
   data:
     augmentation_methods:
