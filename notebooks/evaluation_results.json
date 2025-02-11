@@ -1,0 +1,590 @@
+[
+    {
+        "file": "conf-5",
+        "subset": "eval",
+        "duration_group": "2~3s",
+        "eer": 4.1787928840870645,
+        "threshold": -2.35864782333374
+    },
+    {
+        "file": "conf-3",
+        "subset": "eval",
+        "duration_group": "1~2s",
+        "eer": 5.68723285234803,
+        "threshold": -3.2189831733703613
+    },
+    {
+        "file": "conf-5",
+        "subset": "hidden",
+        "duration_group": "1~2s",
+        "eer": 15.288038290894724,
+        "threshold": -2.0467722415924072
+    },
+    {
+        "file": "conf-4",
+        "subset": "hidden",
+        "duration_group": "3~4s",
+        "eer": 29.641832936725855,
+        "threshold": -1.885049819946289
+    },
+    {
+        "file": "conf-2",
+        "subset": "eval",
+        "duration_group": "4~5s",
+        "eer": 1.6545147418384094,
+        "threshold": -2.695189952850342
+    },
+    {
+        "file": "baseline",
+        "subset": "hidden",
+        "duration_group": "3~4s",
+        "eer": 18.52614558545366,
+        "threshold": -3.598849058151245
+    },
+    {
+        "file": "conf-1",
+        "subset": "eval",
+        "duration_group": "3~4s",
+        "eer": 1.3389835029124788,
+        "threshold": -2.859375
+    },
+    {
+        "file": "conf-3",
+        "subset": "hidden",
+        "duration_group": "1~2s",
+        "eer": 10.157887174784536,
+        "threshold": -3.2296650409698486
+    },
+    {
+        "file": "conf-5",
+        "subset": "hidden",
+        "duration_group": "3~4s",
+        "eer": 7.410458234181464,
+        "threshold": -2.680798292160034
+    },
+    {
+        "file": "conf-5",
+        "subset": "eval",
+        "duration_group": "4~5s",
+        "eer": 3.0545932428795872,
+        "threshold": -2.649442672729492
+    },
+    {
+        "file": "baseline",
+        "subset": "eval",
+        "duration_group": "<1s",
+        "eer": 19.995414947271893,
+        "threshold": -3.133859157562256
+    },
+    {
+        "file": "conf-1",
+        "subset": "hidden",
+        "duration_group": "3~4s",
+        "eer": 7.410458234181464,
+        "threshold": -2.9609375
+    },
+    {
+        "file": "conf-2",
+        "subset": "hidden",
+        "duration_group": ">5s",
+        "eer": null,
+        "threshold": null
+    },
+    {
+        "file": "conf-4",
+        "subset": "hidden",
+        "duration_group": "4~5s",
+        "eer": null,
+        "threshold": null
+    },
+    {
+        "file": "conf-3",
+        "subset": "hidden",
+        "duration_group": "4~5s",
+        "eer": null,
+        "threshold": null
+    },
+    {
+        "file": "conf-3",
+        "subset": "eval",
+        "duration_group": "<1s",
+        "eer": 15.560904783738346,
+        "threshold": -3.0347795486450195
+    },
+    {
+        "file": "conf-6",
+        "subset": "eval",
+        "duration_group": "<1s",
+        "eer": 15.04508635182638,
+        "threshold": -1.7163077592849731
+    },
+    {
+        "file": "conf-1",
+        "subset": "eval",
+        "duration_group": "4~5s",
+        "eer": 0.6241749064052954,
+        "threshold": -2.810546875
+    },
+    {
+        "file": "conf-3",
+        "subset": "hidden",
+        "duration_group": ">5s",
+        "eer": null,
+        "threshold": null
+    },
+    {
+        "file": "conf-2",
+        "subset": "eval",
+        "duration_group": "2~3s",
+        "eer": 3.1340946630652984,
+        "threshold": -2.7402329444885254
+    },
+    {
+        "file": "conf-2",
+        "subset": "hidden",
+        "duration_group": "4~5s",
+        "eer": null,
+        "threshold": null
+    },
+    {
+        "file": "conf-5",
+        "subset": "hidden",
+        "duration_group": "<1s",
+        "eer": 16.29694872274532,
+        "threshold": -1.3181273937225342
+    },
+    {
+        "file": "conf-3",
+        "subset": "hidden",
+        "duration_group": "2~3s",
+        "eer": 5.930825237572248,
+        "threshold": -3.305396795272827
+    },
+    {
+        "file": "baseline",
+        "subset": "eval",
+        "duration_group": ">5s",
+        "eer": 0.8522264210026147,
+        "threshold": -3.5174150466918945
+    },
+    {
+        "file": "conf-4",
+        "subset": "hidden",
+        "duration_group": "2~3s",
+        "eer": 27.287971275066468,
+        "threshold": -1.813344955444336
+    },
+    {
+        "file": "conf-1",
+        "subset": "hidden",
+        "duration_group": "2~3s",
+        "eer": 6.7548542763004455,
+        "threshold": -2.92578125
+    },
+    {
+        "file": "baseline",
+        "subset": "eval",
+        "duration_group": "1~2s",
+        "eer": 6.964990936275253,
+        "threshold": -3.2819719314575195
+    },
+    {
+        "file": "baseline",
+        "subset": "hidden",
+        "duration_group": "1~2s",
+        "eer": 11.274584233824989,
+        "threshold": -3.1959869861602783
+    },
+    {
+        "file": "baseline",
+        "subset": "eval",
+        "duration_group": "2~3s",
+        "eer": 2.2468529162219557,
+        "threshold": -3.379988193511963
+    },
+    {
+        "file": "conf-6",
+        "subset": "eval",
+        "duration_group": "3~4s",
+        "eer": 2.1085250363196106,
+        "threshold": -2.521103382110596
+    },
+    {
+        "file": "conf-2",
+        "subset": "hidden",
+        "duration_group": "2~3s",
+        "eer": 10.56306000686956,
+        "threshold": -2.761502742767334
+    },
+    {
+        "file": "baseline",
+        "subset": "eval",
+        "duration_group": "4~5s",
+        "eer": 1.1379758162692235,
+        "threshold": -3.528902769088745
+    },
+    {
+        "file": "conf-5",
+        "subset": "eval",
+        "duration_group": "3~4s",
+        "eer": 2.6322753754453454,
+        "threshold": -2.559138536453247
+    },
+    {
+        "file": "baseline",
+        "subset": "hidden",
+        "duration_group": "2~3s",
+        "eer": 8.515496792085589,
+        "threshold": -3.464468240737915
+    },
+    {
+        "file": "conf-4",
+        "subset": "eval",
+        "duration_group": ">5s",
+        "eer": 32.66711126974195,
+        "threshold": -1.9264357089996336
+    },
+    {
+        "file": "conf-1",
+        "subset": "eval",
+        "duration_group": ">5s",
+        "eer": 0.6690092248119358,
+        "threshold": -2.744140625
+    },
+    {
+        "file": "conf-4",
+        "subset": "hidden",
+        "duration_group": "1~2s",
+        "eer": 28.827208158708295,
+        "threshold": -1.70128333568573
+    },
+    {
+        "file": "conf-2",
+        "subset": "eval",
+        "duration_group": ">5s",
+        "eer": 1.5817506123006662,
+        "threshold": -2.6433613300323486
+    },
+    {
+        "file": "conf-1",
+        "subset": "hidden",
+        "duration_group": "4~5s",
+        "eer": null,
+        "threshold": null
+    },
+    {
+        "file": "conf-2",
+        "subset": "eval",
+        "duration_group": "1~2s",
+        "eer": 10.075971020669664,
+        "threshold": -2.7497005462646484
+    },
+    {
+        "file": "conf-3",
+        "subset": "hidden",
+        "duration_group": "3~4s",
+        "eer": 7.410458234181464,
+        "threshold": -3.4473578929901123
+    },
+    {
+        "file": "baseline",
+        "subset": "hidden",
+        "duration_group": "4~5s",
+        "eer": null,
+        "threshold": null
+    },
+    {
+        "file": "conf-5",
+        "subset": "hidden",
+        "duration_group": ">5s",
+        "eer": null,
+        "threshold": null
+    },
+    {
+        "file": "conf-1",
+        "subset": "hidden",
+        "duration_group": "1~2s",
+        "eer": 9.449293683231053,
+        "threshold": -2.84375
+    },
+    {
+        "file": "conf-2",
+        "subset": "eval",
+        "duration_group": "3~4s",
+        "eer": 2.587853532587954,
+        "threshold": -2.7297139167785645
+    },
+    {
+        "file": "conf-2",
+        "subset": "hidden",
+        "duration_group": "1~2s",
+        "eer": 12.82017920429086,
+        "threshold": -2.71116042137146
+    },
+    {
+        "file": "conf-3",
+        "subset": "eval",
+        "duration_group": "2~3s",
+        "eer": 1.5977040569093839,
+        "threshold": -3.197973728179932
+    },
+    {
+        "file": "conf-4",
+        "subset": "hidden",
+        "duration_group": ">5s",
+        "eer": null,
+        "threshold": null
+    },
+    {
+        "file": "baseline",
+        "subset": "hidden",
+        "duration_group": ">5s",
+        "eer": null,
+        "threshold": null
+    },
+    {
+        "file": "conf-1",
+        "subset": "hidden",
+        "duration_group": ">5s",
+        "eer": null,
+        "threshold": null
+    },
+    {
+        "file": "conf-4",
+        "subset": "eval",
+        "duration_group": "2~3s",
+        "eer": 25.250144843655477,
+        "threshold": -1.839455366134644
+    },
+    {
+        "file": "conf-3",
+        "subset": "eval",
+        "duration_group": "3~4s",
+        "eer": 0.8894846532061583,
+        "threshold": -3.283627510070801
+    },
+    {
+        "file": "conf-4",
+        "subset": "eval",
+        "duration_group": "3~4s",
+        "eer": 27.53671498747802,
+        "threshold": -1.9017505645751955
+    },
+    {
+        "file": "conf-5",
+        "subset": "hidden",
+        "duration_group": "4~5s",
+        "eer": null,
+        "threshold": null
+    },
+    {
+        "file": "conf-6",
+        "subset": "eval",
+        "duration_group": "2~3s",
+        "eer": 3.6910531642655418,
+        "threshold": -2.256141901016236
+    },
+    {
+        "file": "conf-2",
+        "subset": "hidden",
+        "duration_group": "3~4s",
+        "eer": 18.56733174690341,
+        "threshold": -2.773301362991333
+    },
+    {
+        "file": "conf-1",
+        "subset": "eval",
+        "duration_group": "1~2s",
+        "eer": 5.454586435968575,
+        "threshold": -2.861328125
+    },
+    {
+        "file": "conf-6",
+        "subset": "eval",
+        "duration_group": "1~2s",
+        "eer": 7.94111891579547,
+        "threshold": -1.981193780899048
+    },
+    {
+        "file": "conf-2",
+        "subset": "eval",
+        "duration_group": "<1s",
+        "eer": 19.995414947271893,
+        "threshold": -2.6364901065826416
+    },
+    {
+        "file": "conf-1",
+        "subset": "hidden",
+        "duration_group": "<1s",
+        "eer": 15.960876930431711,
+        "threshold": -2.517578125
+    },
+    {
+        "file": "conf-5",
+        "subset": "hidden",
+        "duration_group": "2~3s",
+        "eer": 10.382071511260564,
+        "threshold": -2.5689210891723637
+    },
+    {
+        "file": "conf-2",
+        "subset": "hidden",
+        "duration_group": "<1s",
+        "eer": 18.976429506765605,
+        "threshold": -2.5047903060913086
+    },
+    {
+        "file": "conf-4",
+        "subset": "hidden",
+        "duration_group": "<1s",
+        "eer": 38.409485356779115,
+        "threshold": -1.4376299381256104
+    },
+    {
+        "file": "conf-1",
+        "subset": "eval",
+        "duration_group": "2~3s",
+        "eer": 1.866977902976908,
+        "threshold": -2.833984375
+    },
+    {
+        "file": "baseline",
+        "subset": "hidden",
+        "duration_group": "<1s",
+        "eer": 14.224787470640809,
+        "threshold": -2.81988263130188
+    },
+    {
+        "file": "conf-1",
+        "subset": "eval",
+        "duration_group": "<1s",
+        "eer": 22.092312394925873,
+        "threshold": -2.708984375
+    },
+    {
+        "file": "baseline",
+        "subset": "eval",
+        "duration_group": "3~4s",
+        "eer": 1.747023347313258,
+        "threshold": -3.5115973949432373
+    },
+    {
+        "file": "conf-5",
+        "subset": "eval",
+        "duration_group": "1~2s",
+        "eer": 7.360849285352283,
+        "threshold": -2.0615620613098145
+    },
+    {
+        "file": "conf-6",
+        "subset": "hidden",
+        "duration_group": "4~5s",
+        "eer": null,
+        "threshold": null
+    },
+    {
+        "file": "conf-6",
+        "subset": "eval",
+        "duration_group": ">5s",
+        "eer": 1.5666999417096765,
+        "threshold": -2.817627429962158
+    },
+    {
+        "file": "conf-4",
+        "subset": "eval",
+        "duration_group": "4~5s",
+        "eer": 34.39809155400235,
+        "threshold": -1.9292738437652588
+    },
+    {
+        "file": "conf-4",
+        "subset": "eval",
+        "duration_group": "<1s",
+        "eer": 31.11034693565643,
+        "threshold": -1.57387113571167
+    },
+    {
+        "file": "conf-6",
+        "subset": "hidden",
+        "duration_group": ">5s",
+        "eer": null,
+        "threshold": null
+    },
+    {
+        "file": "conf-3",
+        "subset": "hidden",
+        "duration_group": "<1s",
+        "eer": 13.005601629564968,
+        "threshold": -2.806267738342285
+    },
+    {
+        "file": "conf-5",
+        "subset": "eval",
+        "duration_group": "<1s",
+        "eer": 22.034999235824543,
+        "threshold": -1.9090064764022827
+    },
+    {
+        "file": "conf-6",
+        "subset": "hidden",
+        "duration_group": "1~2s",
+        "eer": 11.290179991778826,
+        "threshold": -1.8665406703948972
+    },
+    {
+        "file": "conf-6",
+        "subset": "eval",
+        "duration_group": "4~5s",
+        "eer": 1.3951500727717132,
+        "threshold": -2.7079169750213623
+    },
+    {
+        "file": "conf-3",
+        "subset": "eval",
+        "duration_group": "4~5s",
+        "eer": 0.33057438648305093,
+        "threshold": -3.2821364402771
+    },
+    {
+        "file": "conf-4",
+        "subset": "eval",
+        "duration_group": "1~2s",
+        "eer": 25.22734956744108,
+        "threshold": -1.7434765100479126
+    },
+    {
+        "file": "conf-6",
+        "subset": "hidden",
+        "duration_group": "<1s",
+        "eer": 14.164510195173662,
+        "threshold": -1.3343313932418823
+    },
+    {
+        "file": "conf-3",
+        "subset": "eval",
+        "duration_group": ">5s",
+        "eer": 0.42527706213514127,
+        "threshold": -3.315157175064087
+    },
+    {
+        "file": "conf-5",
+        "subset": "eval",
+        "duration_group": ">5s",
+        "eer": 7.7255358653126525,
+        "threshold": -2.6555826663970947
+    },
+    {
+        "file": "conf-6",
+        "subset": "hidden",
+        "duration_group": "3~4s",
+        "eer": 3.705229117090732,
+        "threshold": -2.644566059112549
+    },
+    {
+        "file": "conf-6",
+        "subset": "hidden",
+        "duration_group": "2~3s",
+        "eer": 8.30948953240354,
+        "threshold": -2.4384191036224365
+    }
+]

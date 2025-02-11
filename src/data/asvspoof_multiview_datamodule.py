@@ -58,7 +58,7 @@ class Dataset_ASVspoof2021_eval(Dataset):
         else:
             self.cut = args.get('cut', 64600) if args is not None else 64600
             self.padding_type = args.get(
-                'padding_type', 'zero') if args is not None else 'zero'
+                'padding_type', 'repeat') if args is not None else 'zero'
             self.random_start = args.get(
                 'random_start', False) if args is not None else False
             print('padding_type:', self.padding_type)

@@ -2,14 +2,10 @@ import torch
 from src.data.components.dataio import pad
 import numpy as np
 from torch import Tensor
+from typing import List, Dict, Tuple, Union
 
 
-def multi_view_collate_fn(batch, views=[1, 2, 3, 4], sample_rate=16000, padding_type='repeat', random_start=False, view_padding_configs={
-    '1': {'padding_type': 'repeat', 'random_start': False},
-    '2': {'padding_type': 'repeat', 'random_start': False},
-    '3': {'padding_type': 'repeat', 'random_start': False},
-    '4': {'padding_type': 'repeat', 'random_start': False}
-}):
+def multi_view_collate_fn(batch, views=[1, 2, 3, 4], sample_rate=16000, padding_type='repeat', random_start=False, view_padding_configs: Dict[str, Dict[str, bool]] = None):
     '''
     Collate function to pad each sample in a batch to multiple views
     :param batch: list of tuples (x, label)
@@ -28,10 +24,19 @@ def multi_view_collate_fn(batch, views=[1, 2, 3, 4], sample_rate=16000, padding_
         2: (tensor([[1, 2, 3, 0], [1, 2, 3, 4]]), tensor([0, 1]))
     }
     '''
+    # Set default configurations if none provided
+    if view_padding_configs is None:
+        view_padding_configs = {
+            str(i): {'padding_type': 'repeat', 'random_start': False}
+            for i in range(1, 5)
+        }
+
+    # Extract views from config and convert to integers
+    views = [int(view) for view in view_padding_configs]
+
     view_batches = {view: [] for view in views}
     # Warning: padding_type and random_start are not used in this function
     # print("Warning: padding_type and random_start are not used in this function. Please use view_padding_configs instead")
-    # print("view_padding_configs", view_padding_configs)
 
     # Process each sample in the batch
     for x, label in batch:

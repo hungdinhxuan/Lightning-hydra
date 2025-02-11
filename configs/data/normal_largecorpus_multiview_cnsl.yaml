@@ -39,14 +39,13 @@ args:
       padding_type: repeat
       random_start: False
   
-  data:
-    augmentation_methods:
-      ["RawBoost12", "pitch_1", "volume_10", "speed_01", "none"] # "none" is the original data
-    wav_samp_rate: 16000
-    trim_length: 64000
-    online_aug: true
-    aug_dir: ${oc.env:LARGE_CORPUS_FOR_CNSL}/aug
-    noise_path: ${oc.env:NOISE_PATH}
-    rir_path: ${oc.env:RIR_PATH}
-    repeat_pad: True #  If true, repeat the audio to the trim_length
-    random_start: True # If true, randomly pick a start point for the audio
+  augmentation_methods:
+    ["RawBoost12", "pitch_1", "volume_10", "speed_01", "none"] # "none" is the original data
+  wav_samp_rate: 16000
+  trim_length: 64000
+  online_aug: true
+  aug_dir: aug
+  noise_path: ${oc.env:NOISE_PATH}
+  rir_path: ${oc.env:RIR_PATH}
+  repeat_pad: True #  If true, repeat the audio to the trim_length
+  random_start: True # If true, randomly pick a start point for the audio

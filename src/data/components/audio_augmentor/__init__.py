@@ -1,3 +1,4 @@
+import logging.config
 from .background_noise import BackgroundNoiseAugmentor
 from .pitch import PitchAugmentor
 from .reverb import ReverbAugmentor
@@ -15,12 +16,13 @@ from .freq_swap import FrequencySwapAugmentor
 from .swapping import SwappingAugmentor
 from .linear_filter import LinearFilterAugmentor
 from .bandpass import BandpassAugmentor
-
+from .time_stretch import TimeStretchAugmentor
+from .highpass_filter import HighPassFilterAugmentor
 
 # from . import utils
 
 from .__version__ import (
-    
+
     __author__,
     __author_email__,
     __description__,
@@ -30,9 +32,10 @@ from .__version__ import (
     __version__,
 )
 
-SUPPORTED_AUGMENTORS = ['background_noise', 'pitch', 'speed', 'volume', 'reverb', 'telephone', 'gaussian_noise', 'time_masking', 'freq_masking', 'masking', 'time_swap', 'freq_swap', 'swapping', 'linear_filter', 'bandpass']
+SUPPORTED_AUGMENTORS = ['background_noise', 'pitch', 'speed', 'volume', 'reverb', 'telephone', 'gaussian_noise',
+                        'time_masking', 'freq_masking', 'masking', 'time_swap', 'freq_swap', 'swapping', 'linear_filter', 'bandpass',
+                        'time_stretch', 'highpass_filter']
 
-import logging.config
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,

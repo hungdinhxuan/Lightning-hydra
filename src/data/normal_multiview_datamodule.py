@@ -27,17 +27,15 @@ class Dataset_for(Dataset_base):
     def __init__(self, args, list_IDs, labels, base_dir, algo=5, vocoders=[],
                  augmentation_methods=[], eval_augment=None, num_additional_real=2, num_additional_spoof=2,
                  trim_length=66800, wav_samp_rate=16000, noise_path=None, rir_path=None,
-                 aug_dir=None, online_aug=True, repeat_pad=True, is_train=True, random_start=False):
+                 aug_dir=None, online_aug=True, repeat_pad=True, is_train=True, random_start=False,
+                 **kwargs):
         super(Dataset_for, self).__init__(args, list_IDs, labels, base_dir, algo, vocoders,
                                           augmentation_methods, eval_augment, num_additional_real, num_additional_spoof,
                                           trim_length, wav_samp_rate, noise_path, rir_path,
                                           aug_dir, online_aug, repeat_pad, is_train, random_start)
-        self.args.online_aug = online_aug
+        # self.args.online_aug = online_aug
 
     def __getitem__(self, idx):
-
-        # print("Online augmentation: ", self.args.online_aug ) 
-       
         utt_id = self.list_IDs[idx]
         filepath = os.path.join(self.base_dir, utt_id)
         X = load_audio(filepath, self.sample_rate)
@@ -62,7 +60,7 @@ class Dataset_for_dev(Dataset_base):
                  augmentation_methods=[], eval_augment=None, num_additional_real=2, num_additional_spoof=2,
                  trim_length=66800, wav_samp_rate=16000, noise_path=None, rir_path=None,
                  aug_dir=None, online_aug=True, repeat_pad=False, is_train=True,
-                 random_start=False
+                 random_start=False, **kwargs
                  ):
         super(Dataset_for_dev, self).__init__(args, list_IDs, labels, base_dir, algo, vocoders,
                                               augmentation_methods, eval_augment, num_additional_real, num_additional_spoof,
@@ -82,7 +80,7 @@ class Dataset_for_eval(Dataset_base):
     def __init__(self, args, list_IDs, labels, base_dir, algo=5, vocoders=[],
                  augmentation_methods=[], eval_augment=None, num_additional_real=2, num_additional_spoof=2,
                  trim_length=66800, wav_samp_rate=16000, noise_path=None, rir_path=None,
-                 aug_dir=None, online_aug=True, repeat_pad=True, is_train=True, enable_chunking=False, random_start=False
+                 aug_dir=None, online_aug=True, repeat_pad=True, is_train=True, enable_chunking=False, random_start=False, **kwargs
                  ):
         super(Dataset_for_eval, self).__init__(args, list_IDs, labels, base_dir, algo, vocoders,
                                                augmentation_methods, eval_augment, num_additional_real, num_additional_spoof,
@@ -90,7 +88,7 @@ class Dataset_for_eval(Dataset_base):
                                                aug_dir, online_aug, repeat_pad, is_train, random_start)
         self.enable_chunking = enable_chunking
         self.padding_type = "repeat" if repeat_pad else "zero"
-
+        print("Chunking enabled:", self.enable_chunking)
         print("trim_length:", trim_length)
         print("padding_type:", self.padding_type)
 
@@ -199,7 +197,7 @@ class NormalDataModule(LightningDataModule):
                 self.top_k,
                 self.min_duration,
                 self.max_duration,
-                self.args.data.wav_samp_rate,
+                self.args.wav_samp_rate,
                 self.args.padding_type,
                 self.args.random_start
             )
@@ -207,17 +205,18 @@ class NormalDataModule(LightningDataModule):
             self.collate_fn = lambda x: multi_view_collate_fn(
                 x,
                 self.args.views,
-                self.args.data.wav_samp_rate,
+                self.args.wav_samp_rate,
                 self.args.padding_type,
                 self.args.random_start,
                 self.args.view_padding_configs
             )
-
+        self.chunking_eval = False
         if chunking_eval:
+            self.chunking_eval = True
             collator_params: Dict[str, Any] = {
                 "chunk_size": self.args.get('chunk_size', 16000),  # 1 second
                 # 0.5 second
-                "overlap_size": self.args.get('chunk_size', 8000),
+                "overlap_size": self.args.get('overlap_size', 8000),
                 "enable_chunking": True
             }
             self.eval_collator = ChunkingCollator(
@@ -271,13 +270,14 @@ class NormalDataModule(LightningDataModule):
                 is_train=False, is_eval=True, is_dev=False)
 
             self.data_train = Dataset_for(self.args, list_IDs=file_train, labels=d_label_trn,
-                                          base_dir=self.data_dir+'/',  **self.args['data'])
+                                          base_dir=self.data_dir+'/',  **self.args)
 
             self.data_val = Dataset_for_dev(self.args, list_IDs=file_dev, labels=d_label_dev,
-                                            base_dir=self.data_dir+'/',  is_train=False, **self.args['data'])
+                                            base_dir=self.data_dir+'/',  is_train=False, **self.args)
 
             self.data_test = Dataset_for_eval(self.args, list_IDs=file_eval, labels=None,
-                                              base_dir=self.data_dir+'/',  random_start=self.args.data.random_start, trim_length=self.args.data.trim_length, repeat_pad=True if self.args.padding_type == 'repeat' else False)
+                                              base_dir=self.data_dir+'/',  random_start=self.args.random_start, trim_length=self.args.trim_length, repeat_pad=True if self.args.padding_type == 'repeat' else False,
+                                              enable_chunking=self.chunking_eval)
 
     def train_dataloader(self) -> DataLoader[Any]:
         """Create and return the train dataloader.
