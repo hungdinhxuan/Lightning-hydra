@@ -1,0 +1,39 @@
+_target_: src.data.scl_datamodule.SclNormalDataModule
+data_dir: ${oc.env:LARGE_CORPUS_FOR_CNSL}
+batch_size: 2 # Because of scl datamodule will be re-organized mini-batch size
+num_workers: 4
+pin_memory: True
+args:
+  # The sampling rate of the audio files
+   # 20% of the data
+  views: [1, 2, 3, 4]
+  
+  nBands: 5
+  minF: 20
+  maxF: 8000
+  minBW: 100
+  maxBW: 1000
+  minCoeff: 10
+  maxCoeff: 100
+  minG: 0
+  maxG: 0
+  minBiasLinNonLin: 5
+  maxBiasLinNonLin: 20
+  N_f: 5
+  P: 10
+  g_sd: 2
+  SNRmin: 10
+  SNRmax: 40  
+  
+  augmentation_methods:
+    ["RawBoost12", "background_noise_5_15", "reverb_1", "telephone_g722"]
+  num_additional_real: 2
+  num_additional_spoof: 3
+  trim_length: 100000 # 6.25s
+  wav_samp_rate: 16000
+  online_aug: true
+  aug_dir: aug
+  noise_path: ${oc.env:NOISE_PATH}
+  rir_path: ${oc.env:RIR_PATH}
+  repeat_pad: false #  If true, repeat the audio to the trim_length
+  random_start: false # If true, randomly pick a start point for the audio

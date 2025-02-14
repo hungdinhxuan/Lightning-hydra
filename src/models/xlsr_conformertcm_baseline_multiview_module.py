@@ -82,6 +82,8 @@ class XLSRConformerTCMLitModule(LightningModule):
         self.val_acc = BinaryAccuracy()
         self.test_acc = BinaryAccuracy()
         self.score_save_path = score_save_path
+        
+        print("weighted_views: ", weighted_views)
 
         self.train_view_acc = {
             view: BinaryAccuracy() for view in weighted_views
@@ -169,7 +171,6 @@ class XLSRConformerTCMLitModule(LightningModule):
         all_labels = []
         loss_detail = {}
         view_acc = {}
-
         for view, (x, y) in batch.items():
             '''
             In the case of multi-view, the batch is a dictionary with the view as the key and the value
@@ -185,8 +186,7 @@ class XLSRConformerTCMLitModule(LightningModule):
                  x: shape (batch_size, view * sample_rate)
                  y: shape (batch_size, 1)
             '''
-            self.batch_size = view * \
-                x.size(0)  # Update batch size for each view
+            self.batch_size = x.size(0) * len(self.weighted_views.keys())  # Update batch size 
 
             view = str(view)  # Convert view to string for indexing
 
@@ -194,6 +194,7 @@ class XLSRConformerTCMLitModule(LightningModule):
             x = x.float()
 
             logits = self.forward(x)
+            # print size of logits and size of y
             loss = self.criterion(
                 logits, y) * self.weighted_views[str(view)]  # Weighted loss
             train_loss += loss

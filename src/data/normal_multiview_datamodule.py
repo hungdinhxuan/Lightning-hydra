@@ -91,6 +91,9 @@ class Dataset_for_eval(Dataset_base):
         print("Chunking enabled:", self.enable_chunking)
         print("trim_length:", trim_length)
         print("padding_type:", self.padding_type)
+        self.no_pad = args.get('no_pad', False) if args is not None else False
+        if self.no_pad:
+            print('No padding')
 
     def __getitem__(self, idx):
         utt_id = self.list_IDs[idx]
@@ -103,9 +106,11 @@ class Dataset_for_eval(Dataset_base):
             # print("eval_augment:", self.eval_augment)
             X = globals()[self.eval_augment](
                 X, self.args, self.sample_rate, audio_path=filepath)
-        if not self.enable_chunking:
+        if not self.enable_chunking and not self.no_pad:
             X = pad(X, padding_type=self.padding_type,
                     max_len=self.trim_length, random_start=self.random_start)
+        if self.no_pad and len(X) > 160000: # 10 seconds is the maximum
+            X = X[:160000]
         x_inp = Tensor(X)
         return x_inp, utt_id
 
@@ -382,12 +387,12 @@ class NormalDataModule(LightningDataModule):
                 l_meta = f.readlines()
             for line in l_meta:
                 utt, subset, label = line.strip().split()
-                # if subset == 'eval':
-                #     file_list.append(utt)
-                #     d_meta[utt] = 1 if label == 'bonafide' else 0
+                if subset == 'eval' or subset == 'test':
+                    file_list.append(utt)
+                    d_meta[utt] = 1 if label == 'bonafide' else 0
 
-                file_list.append(utt)
-                d_meta[utt] = 1 if label == 'bonafide' else 0
+                # file_list.append(utt)
+                # d_meta[utt] = 1 if label == 'bonafide' else 0
             # return d_meta, file_list
             return d_meta, file_list
 

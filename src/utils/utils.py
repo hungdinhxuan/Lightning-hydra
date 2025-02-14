@@ -3,11 +3,11 @@ from importlib.util import find_spec
 from typing import Any, Callable, Dict, Optional, Tuple
 import torch
 from omegaconf import DictConfig
-
 from src.utils import pylogger, rich_utils
 from pytorch_lightning import LightningModule
 import os
 import glob
+from tqdm import tqdm
 
 log = pylogger.RankedLogger(__name__, rank_zero_only=True)
 
@@ -121,52 +121,116 @@ def get_metric_value(metric_dict: Dict[str, Any], metric_name: Optional[str]) ->
 
     return metric_value
 
+# def average_checkpoints(checkpoint_dir: str, model: LightningModule, top_k: int = 5) -> str:
+#     """Average the last top_k checkpoints.
+
+#     Args:
+#         checkpoint_dir: Directory containing checkpoints
+#         model: Lightning model
+#         top_k: Number of checkpoints to average
+
+#     Returns:
+#         Path to the averaged checkpoint
+#     """
+#     # Get all checkpoint files that match the pattern
+#     averaged_ckpt_path = os.path.join(checkpoint_dir, f"averaged_top{top_k}.ckpt")
+#     if os.path.exists(averaged_ckpt_path):
+#         log.warning(f"Averaged checkpoint already exists: {averaged_ckpt_path}")
+#         return averaged_ckpt_path
+
+#     checkpoint_pattern = os.path.join(checkpoint_dir, "epoch_*.ckpt")
+#     checkpoint_files = sorted(glob.glob(checkpoint_pattern))
+
+#     if len(checkpoint_files) == 0:
+#         log.warning(f"No checkpoints found in {checkpoint_dir}")
+#         return None
+
+#     # Take the last top_k checkpoints
+#     checkpoint_files = checkpoint_files[-top_k:]
+#     log.info(f"Averaging {len(checkpoint_files)} checkpoints: {checkpoint_files}")
+
+#     # Determine device
+#     device = next(model.parameters()).device
+
+#     # Load first checkpoint completely to get metadata
+#     first_checkpoint = torch.load(checkpoint_files[0], map_location=device)
+#     state_dict = first_checkpoint['state_dict']
+#     averaged_state = {key: state_dict[key].clone() for key in state_dict}
+
+#     # Add other checkpoints
+#     for ckpt_path in checkpoint_files[1:]:
+#         state_dict = torch.load(ckpt_path, map_location=device)['state_dict']
+#         for key in averaged_state:
+#             averaged_state[key] += state_dict[key]
+
+#     # Average the sum
+#     for key in averaged_state:
+#         averaged_state[key] = averaged_state[key] / len(checkpoint_files)
+
+#     # Create checkpoint with all necessary metadata using dictionary unpacking
+#     checkpoint = {
+#         **first_checkpoint,  # Keep all original metadata
+#         "state_dict": averaged_state,  # Override with averaged weights
+#         "epoch": first_checkpoint.get("epoch", 0),  # Ensure these keys exist
+#         "global_step": first_checkpoint.get("global_step", 0),
+#     }
+
+
+#     # Save averaged checkpoint
+
+#     torch.save(checkpoint, averaged_ckpt_path)
+
+#     return averaged_ckpt_path
 def average_checkpoints(checkpoint_dir: str, model: LightningModule, top_k: int = 5) -> str:
     """Average the last top_k checkpoints.
-    
+
     Args:
         checkpoint_dir: Directory containing checkpoints
         model: Lightning model
         top_k: Number of checkpoints to average
-        
+
     Returns:
         Path to the averaged checkpoint
     """
     # Get all checkpoint files that match the pattern
-    averaged_ckpt_path = os.path.join(checkpoint_dir, f"averaged_top{top_k}.ckpt")
+    averaged_ckpt_path = os.path.join(
+        checkpoint_dir, f"averaged_top{top_k}.ckpt")
     if os.path.exists(averaged_ckpt_path):
-        log.warning(f"Averaged checkpoint already exists: {averaged_ckpt_path}")
+        log.warning(
+            f"Averaged checkpoint already exists: {averaged_ckpt_path}")
         return averaged_ckpt_path
 
     checkpoint_pattern = os.path.join(checkpoint_dir, "epoch_*.ckpt")
     checkpoint_files = sorted(glob.glob(checkpoint_pattern))
-    
+
     if len(checkpoint_files) == 0:
         log.warning(f"No checkpoints found in {checkpoint_dir}")
         return None
-        
+
     # Take the last top_k checkpoints
     checkpoint_files = checkpoint_files[-top_k:]
-    log.info(f"Averaging {len(checkpoint_files)} checkpoints: {checkpoint_files}")
-    
+    log.info(
+        f"Averaging {len(checkpoint_files)} checkpoints: {checkpoint_files}")
+
     # Determine device
     device = next(model.parameters()).device
-    
+
     # Load first checkpoint completely to get metadata
     first_checkpoint = torch.load(checkpoint_files[0], map_location=device)
     state_dict = first_checkpoint['state_dict']
     averaged_state = {key: state_dict[key].clone() for key in state_dict}
-    
-    # Add other checkpoints
-    for ckpt_path in checkpoint_files[1:]:
+
+    # Add other checkpoints with progress bar
+    for ckpt_path in tqdm(checkpoint_files[1:], desc="Averaging checkpoints", leave=True):
         state_dict = torch.load(ckpt_path, map_location=device)['state_dict']
         for key in averaged_state:
             averaged_state[key] += state_dict[key]
-            
-    # Average the sum
-    for key in averaged_state:
+
+    # Average the sum with progress bar
+    log.info("Computing final averages")
+    for key in tqdm(averaged_state.keys(), desc="Computing averages", leave=True):
         averaged_state[key] = averaged_state[key] / len(checkpoint_files)
-    
+
     # Create checkpoint with all necessary metadata using dictionary unpacking
     checkpoint = {
         **first_checkpoint,  # Keep all original metadata
@@ -174,10 +238,8 @@ def average_checkpoints(checkpoint_dir: str, model: LightningModule, top_k: int 
         "epoch": first_checkpoint.get("epoch", 0),  # Ensure these keys exist
         "global_step": first_checkpoint.get("global_step", 0),
     }
-    
-    
+
     # Save averaged checkpoint
-    
     torch.save(checkpoint, averaged_ckpt_path)
-    
+
     return averaged_ckpt_path

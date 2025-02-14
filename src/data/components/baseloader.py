@@ -30,17 +30,17 @@ class Dataset_base(Dataset):
             # using default augmentation method RawBoostWrapper12
             # self.augmentation_methods = ["RawBoost12"]
             print("No augmentation method provided")
-        # self.eval_augment = eval_augment
-        # self.num_additional_real = num_additional_real
-        # self.num_additional_spoof = num_additional_spoof
-        # self.trim_length = trim_length
+        self.eval_augment = eval_augment
+        self.num_additional_real = num_additional_real
+        self.num_additional_spoof = num_additional_spoof
+        self.trim_length = trim_length
         self.sample_rate = wav_samp_rate
         # self.args.q = noise_path
         # self.args.rir_path = rir_path
         # self.args.aug_dir = aug_dir
         # self.args.online_aug = online_aug
-        # self.repeat_pad = repeat_pad
-        # self.random_start = random_start
+        self.repeat_pad = repeat_pad
+        self.random_start = random_start
         # self.is_train = is_train
 
     def __len__(self):

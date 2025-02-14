@@ -8,7 +8,7 @@ import os
 import sys
 import torch
 import numpy as np
-from src.models.components.xlsr_aasist import XlsrAasist
+from src.models.components.xlsr_aasist_layerwise import XlsrAasist
 
 # Example: Adjust weights based on accuracy
 
@@ -77,6 +77,8 @@ class AASISTSSLLitModule(LightningModule):
         last_emb: bool = False,
         emb_save_path: str = None,
         spec_eval: bool = False,
+        n_layers: int = 24,
+        ssl_freeze: bool = False,
     ) -> None:
         """Initialize a `MNISTLitModule`.
 
@@ -98,7 +100,10 @@ class AASISTSSLLitModule(LightningModule):
             if not os.path.exists(self.emb_save_path):
                 os.makedirs(self.emb_save_path)
 
-        self.net = XlsrAasist(ssl_pretrained_path)
+        self.net = XlsrAasist(ssl_pretrained_path, n_layers)
+        
+        if ssl_freeze:
+            self.net.ssl_model.freeze_model()
 
         self.save_hyperparameters(ignore=['net'])
 

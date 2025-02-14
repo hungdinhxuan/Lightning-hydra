@@ -14,150 +14,156 @@ from src.core_scripts.data_io import wav_augmentation as nii_wav_aug
 from src.core_scripts.data_io import wav_tools as nii_wav_tools
 from src.data.components.dataio import load_audio, pad
 from src.data.components.baseloader import Dataset_base
-
+from src.data.components.collate_fn import multi_view_collate_fn, multi_view_collate_fn_for_scl, variable_multi_view_collate_fn, ChunkingCollator
 # augwrapper
 from src.data.components.augwrapper import SUPPORTED_AUGMENTATION
-
+import torch
 # dynamic import of augmentation methods
 for aug in SUPPORTED_AUGMENTATION:
     exec(f"from src.data.components.augwrapper import {aug}")
 
 class Dataset_for(Dataset_base):
     def __init__(self, args, list_IDs, labels, base_dir, algo=5, vocoders=[],
-                    augmentation_methods=[], eval_augment=None, num_additional_real=2, num_additional_spoof=2,
-                    trim_length=64000, wav_samp_rate=16000, noise_path=None, rir_path=None,
-                    aug_dir=None, online_aug=False, repeat_pad=True, is_train=True, random_start=False):
-        
-        super(Dataset_for, self).__init__(args, list_IDs, labels, base_dir, algo, vocoders, 
-                 augmentation_methods, eval_augment, num_additional_real, num_additional_spoof, 
-                 trim_length, wav_samp_rate, noise_path, rir_path, 
-                 aug_dir, online_aug, repeat_pad, is_train, random_start)
-        # read spoof_train and spoof_dev list from scp
-        if self.is_train:
-            self.spoof_list = []
-            with open(os.path.join(base_dir, 'scp/spoof_train.lst'), 'r') as f:
-                self.spoof_list = f.readlines()
-            self.spoof_list = [i.strip() for i in self.spoof_list]
-        else:
-            self.spoof_list = []
-            with open(os.path.join(base_dir, 'scp/spoof_dev.lst'), 'r') as f:
-                self.spoof_list = f.readlines()
-            self.spoof_list = [i.strip() for i in self.spoof_list]
+                 augmentation_methods=[], eval_augment=None, num_additional_real=1, num_additional_spoof=2,
+                 trim_length=64000, wav_samp_rate=16000, noise_path=None, rir_path=None,
+                 aug_dir=None, online_aug=False, repeat_pad=True, is_train=True, random_start=False, **kwargs):
+
+        super(Dataset_for, self).__init__(args, list_IDs, labels, base_dir, algo, vocoders,
+                                          augmentation_methods, eval_augment, num_additional_real, num_additional_spoof,
+                                          trim_length, wav_samp_rate, noise_path, rir_path,
+                                          aug_dir, online_aug, repeat_pad, is_train, random_start)
+
+        # Read spoof_train list
+        self.spoof_list = []
+        with open(os.path.join(base_dir, 'scp/spoof_train.lst'), 'r') as f:
+            self.spoof_list = [line.strip() for line in f.readlines()]
 
     def __len__(self):
         return len(self.list_IDs)
 
     def __getitem__(self, idx):
-        # Anchor real audio sample
+        # Load anchor real audio sample
         real_audio_file = os.path.join(self.base_dir, self.list_IDs[idx])
-        real_audio = load_audio(real_audio_file)
+        real_audio = load_audio(real_audio_file)  # Shape: (T,)
 
         # Augmented real samples as positive data
-        augmented_audios = []
-        for augment in self.augmentation_methods:
-            augmented_audio = globals()[augment](real_audio, self.args, self.sample_rate, audio_path = real_audio_file)
-            # print("aug audio shape",augmented_audio.shape)
-            augmented_audios.append(np.expand_dims(augmented_audio, axis=1))
-
+        augmented_audios = [
+            globals()[augment](real_audio, self.args,
+                               self.sample_rate, audio_path=real_audio_file)
+            for augment in self.augmentation_methods
+        ]
 
         # Additional real audio samples as positive data
         idxs = list(range(len(self.list_IDs)))
-        idxs.remove(idx)  # remove the current audio index
-        additional_idxs = np.random.choice(idxs, self.num_additional_real, replace=False)
-        additional_audios = [np.expand_dims(load_audio(os.path.join(self.base_dir, self.list_IDs[i])),axis=1) for i in additional_idxs]
-        
-        # augment the additional real samples
-        augmented_additional_audios = []
-        for i in range(self.num_additional_real):
-            augmethod_index = random.choice(range(len(self.augmentation_methods)))
-            tmp = np.expand_dims(globals()[self.augmentation_methods[augmethod_index]](np.squeeze(additional_audios[i],axis=1), self.args, self.sample_rate, 
-                                                                                       audio_path = os.path.join(self.base_dir, self.list_IDs[additional_idxs[i]])),axis=1)
-            augmented_additional_audios.append(tmp)
-            
-        
-        # Additional spoof audio samples as negative data
-        additional_spoof_idxs = np.random.choice(self.spoof_list, self.num_additional_spoof, replace=False)
-        additional_spoofs = [np.expand_dims(load_audio(os.path.join(self.base_dir, i)),axis=1) for i in additional_spoof_idxs]
-        
-        # augment the additional spoof samples
-        augmented_additional_spoofs = []
-        for i in range(self.num_additional_spoof):
-            augmethod_index = random.choice(range(len(self.augmentation_methods)))
-            tmp = np.expand_dims(globals()[self.augmentation_methods[augmethod_index]](np.squeeze(additional_spoofs[i],axis=1), self.args, self.sample_rate, audio_path = os.path.join(self.base_dir, additional_spoof_idxs[i])),axis=1)
-            augmented_additional_spoofs.append(tmp)
-        
-        # merge all the data
-        batch_data = [np.expand_dims(real_audio, axis=1)] + augmented_audios + additional_audios + augmented_additional_audios + additional_spoofs + augmented_additional_spoofs
-        batch_data = nii_wav_aug.batch_pad_for_multiview(
-                batch_data, self.sample_rate, self.trim_length, random_trim_nosil=True, repeat_pad=self.repeat_pad)
-        batch_data = np.concatenate(batch_data, axis=1)
-        # print("batch_data.shape", batch_data.shape)
-        
-        # return will be anchor ID, batch data and label
-        batch_data = Tensor(batch_data)
-        # label is 1 for anchor and positive, 0 for vocoded
-        label = [1] * (len(augmented_audios) +len(additional_audios) + len(augmented_additional_audios) + 1) + [0] * (len(additional_spoofs) + len(augmented_additional_spoofs))
-        # print("label", label)
-        #print("label", len(label))
-        return self.list_IDs[idx], batch_data, Tensor(label)			
+        idxs.remove(idx)  # Remove the current index
+        additional_idxs = np.random.choice(
+            idxs, self.num_additional_real, replace=False)
+        additional_audios = [load_audio(os.path.join(
+            self.base_dir, self.list_IDs[i])) for i in additional_idxs]
 
-# def collate_fn(batch):
-#   return {
-#       'pixel_values': torch.stack([x['pixel_values'] for x in batch]),
-#       'labels': torch.tensor([x['labels'] for x in batch])
-# } 
+        # Augment additional real samples
+        augmented_additional_audios = [
+            globals()[random.choice(self.augmentation_methods)](
+                additional_audios[i], self.args, self.sample_rate,
+                audio_path=os.path.join(
+                    self.base_dir, self.list_IDs[additional_idxs[i]])
+            )
+            for i in range(self.num_additional_real)
+        ]
+
+        # Additional spoof audio samples as negative data
+        additional_spoof_idxs = np.random.choice(
+            self.spoof_list, self.num_additional_spoof, replace=False)
+        additional_spoofs = [load_audio(os.path.join(
+            self.base_dir, i)) for i in additional_spoof_idxs]
+
+        # Augment additional spoof samples
+        augmented_additional_spoofs = [
+            globals()[random.choice(self.augmentation_methods)](
+                additional_spoofs[i], self.args, self.sample_rate,
+                audio_path=os.path.join(
+                    self.base_dir, additional_spoof_idxs[i])
+            )
+            for i in range(self.num_additional_spoof)
+        ]
+
+        # Merge all the data (Variable-length sequences)
+        batch_data = [real_audio] + augmented_audios + additional_audios + \
+            augmented_additional_audios + additional_spoofs + augmented_additional_spoofs
+
+        # Labels: 1 for anchor and positive samples, 0 for spoofed samples
+        label = [1] * (len(augmented_audios) + len(additional_audios) + len(augmented_additional_audios) + 1) + \
+                [0] * (len(additional_spoofs) +
+                       len(augmented_additional_spoofs))
+        # print("label", label)
+        # import sys
+        # sys.exit()
+        return batch_data, torch.tensor(label, dtype=torch.long)
+
 
 class Dataset_for_dev(Dataset_base):
     def __init__(self, args, list_IDs, labels, base_dir, algo=5, vocoders=[],
-                    augmentation_methods=[], eval_augment=None, num_additional_real=2, num_additional_spoof=2,
-                    trim_length=64000, wav_samp_rate=16000, noise_path=None, rir_path=None,
-                    aug_dir=None, online_aug=False, repeat_pad=False, is_train=True,
-                    random_start=False
-                    ):
-        super(Dataset_for_dev, self).__init__(args, list_IDs, labels, base_dir, algo, vocoders, 
-                 augmentation_methods, eval_augment, num_additional_real, num_additional_spoof, 
-                 trim_length, wav_samp_rate, noise_path, rir_path, 
-                 aug_dir, online_aug, repeat_pad, is_train, random_start)
+                 augmentation_methods=[], eval_augment=None, num_additional_real=1, num_additional_spoof=1,
+                 trim_length=64000, wav_samp_rate=16000, noise_path=None, rir_path=None,
+                 aug_dir=None, online_aug=False, repeat_pad=False, is_train=True,
+                 random_start=False, **kwargs
+                 ):
+        super(Dataset_for_dev, self).__init__(args, list_IDs, labels, base_dir, algo, vocoders,
+                                              augmentation_methods, eval_augment, num_additional_real, num_additional_spoof,
+                                              trim_length, wav_samp_rate, noise_path, rir_path,
+                                              aug_dir, online_aug, repeat_pad, is_train, random_start)
 
         if repeat_pad:
             self.padding_type = "repeat"
         else:
             self.padding_type = "zero"
-    
+
     def __getitem__(self, index):
         utt_id = self.list_IDs[index]
         X, fs = librosa.load(self.base_dir + "/" + utt_id, sr=16000)
-        X_pad = pad(X,self.padding_type,self.trim_length, random_start=self.random_start)
-        x_inp = Tensor(X_pad)
+        # X_pad = pad(X, self.padding_type, self.trim_length,
+        #             random_start=self.random_start)
+        # x_inp = Tensor(X_pad)
+
+        x_inp = Tensor(X)
         target = self.labels[utt_id]
-        return index, x_inp, target
+        return x_inp, target
 
 class Dataset_for_eval(Dataset_base):
     def __init__(self, args, list_IDs, labels, base_dir, algo=5, vocoders=[],
-                    augmentation_methods=[], eval_augment=None, num_additional_real=2, num_additional_spoof=2,
-                    trim_length=64000, wav_samp_rate=16000, noise_path=None, rir_path=None,
-                    aug_dir=None, online_aug=False, repeat_pad=True, is_train=True, enable_chunking=False, random_start=False
-                    ):
-        super(Dataset_for_eval, self).__init__(args, list_IDs, labels, base_dir, algo, vocoders, 
-                 augmentation_methods, eval_augment, num_additional_real, num_additional_spoof, 
-                 trim_length, wav_samp_rate, noise_path, rir_path, 
-                 aug_dir, online_aug, repeat_pad, is_train, random_start)
+                 augmentation_methods=[], eval_augment=None, num_additional_real=2, num_additional_spoof=2,
+                 trim_length=66800, wav_samp_rate=16000, noise_path=None, rir_path=None,
+                 aug_dir=None, online_aug=True, repeat_pad=True, is_train=True, enable_chunking=False, random_start=False, **kwargs
+                 ):
+        super(Dataset_for_eval, self).__init__(args, list_IDs, labels, base_dir, algo, vocoders,
+                                               augmentation_methods, eval_augment, num_additional_real, num_additional_spoof,
+                                               trim_length, wav_samp_rate, noise_path, rir_path,
+                                               aug_dir, online_aug, repeat_pad, is_train, random_start)
         self.enable_chunking = enable_chunking
-        if repeat_pad:
-            self.padding_type = "repeat"
-        else:
-            self.padding_type = "zero"
-    
+        self.padding_type = "repeat" if repeat_pad else "zero"
+        print("Chunking enabled:", self.enable_chunking)
+        print("trim_length:", trim_length)
+        print("padding_type:", self.padding_type)
+        self.no_pad = args.get('no_pad', False) if args is not None else False
+        if self.no_pad:
+            print('No padding')
+
     def __getitem__(self, idx):
         utt_id = self.list_IDs[idx]
+        # print("utt_id:", utt_id)
+        # print("self.base_dir:", self.base_dir)
         filepath = os.path.join(self.base_dir, utt_id)
         X, _ = librosa.load(filepath, sr=16000)
         # apply augmentation at inference time
         if self.eval_augment is not None:
             # print("eval_augment:", self.eval_augment)
-            X = globals()[self.eval_augment](X, self.args, self.sample_rate, audio_path = filepath)
-        if not self.enable_chunking:
-            X= pad(X,padding_type=self.padding_type,max_len=self.trim_length, random_start=self.random_start)
+            X = globals()[self.eval_augment](
+                X, self.args, self.sample_rate, audio_path=filepath)
+        if not self.enable_chunking and not self.no_pad:
+            X = pad(X, padding_type=self.padding_type,
+                    max_len=self.trim_length, random_start=self.random_start)
+        if self.no_pad and len(X) > 160000: # 10 seconds is the maximum
+            X = X[:160000]
         x_inp = Tensor(X)
         return x_inp, utt_id
 
@@ -217,6 +223,7 @@ class SclNormalDataModule(LightningDataModule):
         # augmentation_methods: list = [], eval_augment: Optional[str] = None, num_additional_real: int = 2, num_additional_spoof: int = 2,
         # trim_length: int = 64000, wav_samp_rate: int = 16000, noise_path: Optional[str] = None, rir_path: Optional[str] = None,
         # aug_dir: Optional[str] = None, online_aug: bool = False, repeat_pad: bool = True, is_train: bool = True, enable_chunking: bool = False
+        chunking_eval: bool = False,
     ) -> None:
         """Initialize a `ASVSpoofDataModule`.
 
@@ -226,6 +233,7 @@ class SclNormalDataModule(LightningDataModule):
         :param pin_memory: Whether to pin memory. Defaults to `False`.
         """
         super().__init__()
+        print("Initialized SclNormalDataModule")
 
         # this line allows to access init params with 'self.hparams' attribute
         # also ensures init params will be stored in ckpt
@@ -240,6 +248,55 @@ class SclNormalDataModule(LightningDataModule):
         self.data_dir = data_dir
 
         self.args = args
+        self.protocol_path = args.get(
+            'protocol_path', os.path.join(self.data_dir, 'protocol.txt'))
+        self.is_variable_multi_view = args.get(
+            'is_variable_multi_view', False) if args is not None else False
+        if self.is_variable_multi_view:
+            print('Using variable multi-view collate function')
+            self.top_k = self.args.get('top_k', 4)
+            self.min_duration = self.args.get('min_duration', 16000)
+            self.max_duration = self.args.get('max_duration', 64000)
+            self.collate_fn = lambda x: variable_multi_view_collate_fn(
+                x,
+                self.top_k,
+                self.min_duration,
+                self.max_duration,
+                self.args.wav_samp_rate,
+                self.args.padding_type,
+                self.args.random_start
+            )
+        else:
+            print("Using multiview defaults")
+            self.collate_fn = lambda x: multi_view_collate_fn_for_scl(
+                x,
+                self.args.views,
+                self.args.wav_samp_rate,
+                self.args.padding_type,
+                self.args.random_start,
+                self.args.view_padding_configs
+            )
+            self.collate_fn_dev = lambda x: multi_view_collate_fn(
+                x,
+                self.args.views,
+                self.args.wav_samp_rate,
+                self.args.padding_type,
+                self.args.random_start,
+                self.args.view_padding_configs
+            )
+        self.chunking_eval = False
+        if chunking_eval:
+            self.chunking_eval = True
+            collator_params: Dict[str, Any] = {
+                "chunk_size": self.args.get('chunk_size', 16000),  # 1 second
+                # 0.5 second
+                "overlap_size": self.args.get('overlap_size', 8000),
+                "enable_chunking": True
+            }
+            self.eval_collator = ChunkingCollator(
+                **collator_params)
+        else:
+            self.eval_collator = None
 
     @property
     def num_classes(self) -> int:
@@ -249,7 +306,7 @@ class SclNormalDataModule(LightningDataModule):
         """
         return 2
 
-    def prepare_data(self) -> None:        
+    def prepare_data(self) -> None:
         pass
 
     def setup(self, stage: Optional[str] = None) -> None:
@@ -272,43 +329,31 @@ class SclNormalDataModule(LightningDataModule):
 
         # load and split datasets only if not loaded already
         if not self.data_train and not self.data_val and not self.data_test:
-            
+
             # define train dataloader
 
-            d_label_trn, file_train = self.genList(dir_meta=os.path.join(
+            if not self.args.get('eval', False):
+                d_label_trn, file_train = self.genList(dir_meta=os.path.join(
                     self.data_dir), is_train=True, is_eval=False, is_dev=False)
-            
-            if 'portion' in self.args:
-                idx = range(len(file_train))
-                idx = np.random.choice(
-                    idx, int(len(file_train)*self.args['portion']), replace=False)
-                file_train = [file_train[i] for i in idx]
-                if len(d_label_trn) > 0:  # the case of train without label
-                    d_label_trn = {k: d_label_trn[k] for k in file_train}
-            print('no. of training trials', len(file_train))
 
-            d_label_dev, file_dev = self.genList(dir_meta=os.path.join(self.data_dir), is_train=False, is_eval=False, is_dev=True)
-            
-            if 'portion' in self.args:
-                idx = range(len(file_dev))
-                idx = np.random.choice(
-                    idx, int(len(file_dev)*self.args['portion']), replace=False)
-                file_dev = [file_dev[i] for i in idx]
-                if len(d_label_dev) > 0:  # the case of train without label
-                    d_label_dev = {k: d_label_dev[k] for k in file_dev}
+                print('no. of training trials', len(file_train))
 
-            print('no. of validation trials', len(file_dev))
-            file_eval = self.genList(dir_meta=os.path.join(self.data_dir), is_train=False, is_eval=True, is_dev=False)
-            
-            self.data_train = Dataset_for(self.args, list_IDs=file_train, labels=d_label_trn,
-                            base_dir=self.data_dir+'/',  **self.args['data'])
+                d_label_dev, file_dev = self.genList2(is_train=False, is_eval=False, is_dev=True)
 
-            self.data_val = Dataset_for_dev(self.args, list_IDs=file_dev, labels=d_label_dev,
-                                  base_dir=self.data_dir+'/',  is_train=False, **self.args['data'])
+                print('no. of validation trials', len(file_dev))
+                
+                self.data_train = Dataset_for(self.args, list_IDs=file_train, labels=d_label_trn,
+                                          base_dir=self.data_dir+'/',  **self.args)
 
-            self.data_test = Dataset_for_eval(self.args, list_IDs=file_eval, labels=None,
-                                    base_dir=self.data_dir+'/',  **self.args['data'])
-            
+                self.data_val = Dataset_for_dev(self.args, list_IDs=file_dev, labels=d_label_dev,
+                                            base_dir=self.data_dir+'/',  is_train=False, **self.args)
+            else:
+                d_meta, file_eval = self.genList2(
+                    is_train=False, is_eval=True, is_dev=False)
+
+                self.data_test = Dataset_for_eval(self.args, list_IDs=file_eval, labels=None,
+                                                base_dir=self.data_dir+'/',  random_start=self.args.random_start, trim_length=self.args.trim_length, repeat_pad=True if self.args.padding_type == 'repeat' else False,
+                                                enable_chunking=self.chunking_eval)
 
     def train_dataloader(self) -> DataLoader[Any]:
         """Create and return the train dataloader.
@@ -321,6 +366,7 @@ class SclNormalDataModule(LightningDataModule):
             num_workers=self.hparams.num_workers,
             pin_memory=self.hparams.pin_memory,
             shuffle=True,
+            collate_fn=self.collate_fn,
             drop_last=True
         )
 
@@ -334,6 +380,7 @@ class SclNormalDataModule(LightningDataModule):
             batch_size=self.batch_size_eval,
             num_workers=self.hparams.num_workers,
             pin_memory=self.hparams.pin_memory,
+            collate_fn=self.collate_fn_dev,
             shuffle=False,
         )
 
@@ -347,6 +394,7 @@ class SclNormalDataModule(LightningDataModule):
             batch_size=self.batch_size_eval,
             num_workers=self.hparams.num_workers,
             pin_memory=self.hparams.pin_memory,
+            collate_fn=self.eval_collator,
             shuffle=False,
         )
 
@@ -373,42 +421,85 @@ class SclNormalDataModule(LightningDataModule):
         :param state_dict: The datamodule state returned by `self.state_dict()`.
         """
         pass
-    
+
     def genList(self, dir_meta, is_train=False, is_eval=False, is_dev=False):
         # bonafide: 1, spoof: 0
         d_meta = {}
-        file_list=[]
-        
+        file_list = []
+
         if is_train:
             metafile = os.path.join(dir_meta, 'scp/bonafide_train.lst')
         elif is_dev:
             metafile = os.path.join(dir_meta, 'scp/bonafide_dev.lst')
         elif is_eval:
             metafile = os.path.join(dir_meta, 'scp/eval.lst')
-            
+
         with open(metafile, 'r') as f:
             l_meta = f.readlines()
-        
+
         if (is_train):
             for line in l_meta:
                 utt = line.strip().split()
                 file_list.append(utt[0])
                 d_meta[utt[0]] = 1
-            return d_meta,file_list
-        
+            return d_meta, file_list
+
         if (is_dev):
             for line in l_meta:
                 utt = line.strip().split()
                 file_list.append(utt[0])
                 d_meta[utt[0]] = 1
-            return d_meta,file_list
-        
-        elif(is_eval):
+            return d_meta, file_list
+
+        elif (is_eval):
             for line in l_meta:
                 utt = line.strip().split()
                 file_list.append(utt[0])
 
-            return d_meta,file_list
+            return d_meta, file_list
 
+    def genList2(self, is_train=False, is_eval=False, is_dev=False):
+        """
+            This function generates the list of files and their corresponding labels
+            Specifically for the standard CNSL dataset
+        """
+        # bonafide: 1, spoof: 0
+        d_meta = {}
+        file_list = []
+
+        if (is_train):
+            with open(self.protocol_path, 'r') as f:
+                l_meta = f.readlines()
+            for line in l_meta:
+                utt, subset, label = line.strip().split()
+                if subset == 'train':
+                    file_list.append(utt)
+                    d_meta[utt] = 1 if label == 'bonafide' else 0
+
+            return d_meta, file_list
+        if (is_dev):
+            with open(self.protocol_path, 'r') as f:
+                l_meta = f.readlines()
+            for line in l_meta:
+                utt, subset, label = line.strip().split()
+                if subset == 'dev':
+                    file_list.append(utt)
+                    d_meta[utt] = 1 if label == 'bonafide' else 0
+            return d_meta, file_list
+
+        if (is_eval):
+            # no eval self.protocol_path yet
+            with open(self.protocol_path, 'r') as f:
+                l_meta = f.readlines()
+            for line in l_meta:
+                utt, subset, label = line.strip().split()
+                if subset == 'eval' or subset == 'test':
+                    file_list.append(utt)
+                    d_meta[utt] = 1 if label == 'bonafide' else 0
+
+                # file_list.append(utt)
+                # d_meta[utt] = 1 if label == 'bonafide' else 0
+            # return d_meta, file_list
+            return d_meta, file_list
 if __name__ == "__main__":
     _ = SclNormalDataModule()
