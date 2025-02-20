@@ -26,6 +26,9 @@ class SSLModel(nn.Module):
         self.model = model[0]
         self.out_dim = 1024
         self.n_layers = n_layers
+        
+        # Get the first n layers
+        self.model.encoder.layers = self.model.encoder.layers[:self.n_layers]
 
     def extract_feat(self, input_data):
         input_data = input_data.squeeze(1)
