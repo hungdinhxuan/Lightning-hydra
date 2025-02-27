@@ -387,12 +387,12 @@ class NormalDataModule(LightningDataModule):
                 l_meta = f.readlines()
             for line in l_meta:
                 utt, subset, label = line.strip().split()
-                if subset == 'eval' or subset == 'test':
-                    file_list.append(utt)
-                    d_meta[utt] = 1 if label == 'bonafide' else 0
+                # if subset == 'eval' or subset == 'test':
+                #     file_list.append(utt)
+                #     d_meta[utt] = 1 if label == 'bonafide' else 0
 
-                # file_list.append(utt)
-                # d_meta[utt] = 1 if label == 'bonafide' else 0
+                file_list.append(utt)
+                d_meta[utt] = 1 if label == 'bonafide' else 0
             # return d_meta, file_list
             return d_meta, file_list
 

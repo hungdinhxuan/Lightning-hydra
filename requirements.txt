@@ -30,3 +30,4 @@ librosa==0.10.2.post1
 
 audiomentations
 einops
+tensorboardX

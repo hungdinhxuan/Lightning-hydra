@@ -4,14 +4,17 @@ import torch
 from lightning import LightningModule
 from torchmetrics import MaxMetric, MeanMetric
 from torchmetrics.classification.accuracy import BinaryAccuracy
-import os
+
 from typing import Union
-import numpy as np
+
 import torch
 from src.models.components.xlsr_conformertcm_baseline import Model as XLSRConformerTCM
+from src.utils import load_ln_model_weights
+from peft import LoraConfig, TaskType
+import peft
+from peft import PeftModel
 
-
-class XLSRConformerTCMLitModule(LightningModule):
+class XLSRConformerTCMLoraLitModule(LightningModule):
     """Example of a `LightningModule` for MNIST classification.
 
     A `LightningModule` implements 8 key methods:
@@ -58,9 +61,9 @@ class XLSRConformerTCMLitModule(LightningModule):
             '1': 1.0, '2': 1.0, '3': 1.0, '4': 1.0},
         adaptive_weights: bool = False,
         spec_eval: bool = False,
+        base_line_ft_path: str = None,
         use_lora: bool = False,
-        last_emb: bool = False,
-        emb_save_path: str = None,
+        lora_adapter_path: str = None,
     ) -> None:
         """Initialize a `MNISTLitModule`.
 
@@ -76,14 +79,31 @@ class XLSRConformerTCMLitModule(LightningModule):
         #self.lora_path = lora_path
         self.save_hyperparameters(logger=False)
         self.spec_eval = spec_eval
-        self.last_emb = last_emb
-        self.emb_save_path = emb_save_path
-
-        if self.emb_save_path is not None:
-            if not os.path.exists(self.emb_save_path):
-                os.makedirs(self.emb_save_path)
 
         self.net = XLSRConformerTCM(args['conformer'], ssl_pretrained_path)
+        
+        if base_line_ft_path is not None:
+            ckpt = torch.load(base_line_ft_path, weights_only=False)
+            #args = ckpt['hyper_parameters']['args']['conformer']
+            self.net = load_ln_model_weights(self.net, ckpt['state_dict'])
+            print("Loaded baseline model from: ", base_line_ft_path)
+        
+        if self.use_lora:
+            print("LoRA is enabled")
+            lora_config = peft.LoraConfig(
+                r=args['lora']['r'],
+                target_modules=list(args['lora']['target_modules']),
+                modules_to_save=args['lora']['modules_to_save'],
+                lora_dropout=args['lora']['lora_dropout'], # Default 0.0
+                lora_alpha=args['lora']['lora_alpha'], # Default 8
+            )
+            self.net = peft.get_peft_model(self.net, lora_config)
+            self.net.print_trainable_parameters()
+        
+        if lora_adapter_path is not None:
+            self.load_lora_adapter(lora_adapter_path)
+            
+        
         # loss function
         cross_entropy_weight = torch.tensor(cross_entropy_weight)
         self.criterion = torch.nn.CrossEntropyLoss(cross_entropy_weight)
@@ -138,8 +158,6 @@ class XLSRConformerTCMLitModule(LightningModule):
         :param x: A tensor of images.
         :return: A tensor of logits.
         """
-        # if self.use_lora:
-        #     x.requires_grad = True
         return self.net(x)
 
     def on_train_start(self) -> None:
@@ -360,14 +378,11 @@ class XLSRConformerTCMLitModule(LightningModule):
             labels.
         :param batch_idx: The index of the current batch.
         """
-        if self.last_emb:
-            self._export_embedding_file(batch)
-            # print("Embedding file saved")
+        if self.score_save_path is not None:
+            self._export_score_file(batch)
         else:
-            if self.score_save_path is not None:
-                self._export_score_file(batch)
-            else:
-                raise ValueError("score_save_path is not provided")
+            raise ValueError("score_save_path is not provided")
+
     def _export_score_file(self, batch: Tuple[torch.Tensor, torch.Tensor]) -> None:
         """Get the score file for the batch of data.
 
@@ -385,26 +400,6 @@ class XLSRConformerTCMLitModule(LightningModule):
                 fh.write('{} {} {}\n'.format(f, cm[0], cm[1])) if self.spec_eval else fh.write(
                     '{} {}\n'.format(f, cm[1]))
 
-    def _export_embedding_file(self, batch: Tuple[torch.Tensor, torch.Tensor]) -> None:
-        """ Get the embedding file for the batch of data.
-        :param batch: A batch of data (a tuple) containing the input tensor of images and target
-            labels.
-        """
-        batch_x, utt_id = batch
-        batch_emb = self.net(batch_x, last_emb=True)
-        # batch_out = self.net(batch_x)
-        # import sys
-        # print("batch_emb: ", batch_emb)
-        # print("batch_out: ", batch_out)
-        # sys.exit()
-        
-        fname_list = list(utt_id)
-
-        for f, emb in zip(fname_list, batch_emb):
-            f = f.split('/')[-1].split('.')[0]  # utt id only
-            save_path_utt = os.path.join(self.emb_save_path, f)
-            np.save(save_path_utt, emb.data.cpu().numpy())
-            
     def on_test_epoch_end(self) -> None:
         """Lightning hook that is called when a test epoch ends."""
         pass
@@ -431,8 +426,8 @@ class XLSRConformerTCMLitModule(LightningModule):
 
         :return: A dict containing the configured optimizers and learning-rate schedulers to be used for training.
         """
-        if self.use_lora:
-            return self.configure_lora_optimizers()
+        # if self.use_lora:
+        #     return self.configure_lora_optimizers()
         optimizer = self.hparams.optimizer(
             params=self.trainer.model.parameters())
         if self.hparams.scheduler is not None:
@@ -448,51 +443,22 @@ class XLSRConformerTCMLitModule(LightningModule):
             }
         return {"optimizer": optimizer}
     
-    def configure_lora_optimizers(self) -> Dict[str, Any]:
-        """
-        Configure optimizers for LoRA training.
-        Only includes trainable parameters (LoRA parameters) in the optimizer.
-        """
-        # Get trainable parameters (LoRA parameters)
-        trainable_params = [p for p in self.parameters() if p.requires_grad]
+    
+    def load_lora_adapter(self, checkpoint_path: str, adapter_name: str = "default"):
+        """Specialized method for loading LoRA adapters"""
+        if hasattr(self.net, 'load_adapter'):
+            self.net.load_adapter(checkpoint_path, adapter_name=adapter_name)
+            self.net.set_adapter(adapter_name)
+        else:
+            self.net = PeftModel.from_pretrained(self.net, checkpoint_path)
         
-        # Create parameter groups with and without weight decay
-        no_decay = ["bias", "LayerNorm.weight"]
-        optimizer_grouped_parameters = [
-            {
-                "params": [p for n, p in self.named_parameters() 
-                          if p.requires_grad and not any(nd in n for nd in no_decay)],
-                "weight_decay": self.weight_decay,
-            },
-            {
-                "params": [p for n, p in self.named_parameters() 
-                          if p.requires_grad and any(nd in n for nd in no_decay)],
-                "weight_decay": 0.0,
-            },
-        ]
-        
-        # Initialize optimizer with LoRA parameters
-        optimizer = torch.optim.AdamW(
-            optimizer_grouped_parameters,
-            lr=self.learning_rate,
-            **self.optimizer_kwargs
-        )
-        
-        # Configure learning rate scheduler if specified
-        if self.scheduler_kwargs:
-            scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
-                optimizer,
-                **self.scheduler_kwargs
-            )
-            return {
-                "optimizer": optimizer,
-                "lr_scheduler": {
-                    "scheduler": scheduler,
-                    "monitor": "val_loss",  # Change this based on your validation metric
-                },
-            }
-        
-        return {"optimizer": optimizer}
+        print(f"Loaded LoRA adapter from {checkpoint_path}")
+    
+    # def on_load_checkpoint(self, checkpoint: dict) -> None:
+    #     """Hook for automatic adapter loading during resumption"""
+    #     if 'lora_adapter_path' in checkpoint:
+    #         self.load_lora_adapter(checkpoint['lora_adapter_path'])
+
     def optimizer_zero_grad(self, epoch, batch_idx, optimizer):
         optimizer.zero_grad(set_to_none=True)
 
