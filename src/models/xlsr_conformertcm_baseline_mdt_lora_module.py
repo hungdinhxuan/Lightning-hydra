@@ -93,7 +93,7 @@ class XLSRConformerTCMLoraLitModule(LightningModule):
             lora_config = peft.LoraConfig(
                 r=args['lora']['r'],
                 target_modules=list(args['lora']['target_modules']),
-                modules_to_save=args['lora']['modules_to_save'],
+                modules_to_save=list(args['lora']['modules_to_save']),
                 lora_dropout=args['lora']['lora_dropout'], # Default 0.0
                 lora_alpha=args['lora']['lora_alpha'], # Default 8
             )
@@ -103,6 +103,9 @@ class XLSRConformerTCMLoraLitModule(LightningModule):
         if lora_adapter_path is not None:
             self.load_lora_adapter(lora_adapter_path)
             
+        # print(self.net)
+        # import sys
+        # sys.exit()
         
         # loss function
         cross_entropy_weight = torch.tensor(cross_entropy_weight)
@@ -428,6 +431,8 @@ class XLSRConformerTCMLoraLitModule(LightningModule):
         """
         # if self.use_lora:
         #     return self.configure_lora_optimizers()
+        # print("CONFIGURING OPTIMIZERS")
+        # print(self.trainer.model)
         optimizer = self.hparams.optimizer(
             params=self.trainer.model.parameters())
         if self.hparams.scheduler is not None:

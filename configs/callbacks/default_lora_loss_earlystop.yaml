@@ -3,6 +3,10 @@ defaults:
   - early_stopping
   - rich_progress_bar
   - _self_
+  # - learning_rate_logger
+
+# learning_rate_logger:
+#   logging_interval: 'step'
 
 lora_checkpoint:
   dirpath: ${paths.output_dir}/checkpoints

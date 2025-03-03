@@ -28,14 +28,23 @@ model:
   net: null
   scheduler: null
   compile: true
-  cross_entropy_weight: [0.7, 0.3] # Balanced weights for cross entropy loss
-
+  cross_entropy_weight: [0.5, 0.5] # Balanced weights for cross entropy loss
+  args:
+    lora:
+      r: 4
+      target_modules: ["q_proj", "v_proj", "k_proj", "out_proj"]
+      modules_to_save:  ["qkv"] # conformer qkv
+      lora_dropout: 0.0
+      lora_alpha: 2
 data:
-  batch_size: 14
+  batch_size: 16
   num_workers: 8
   pin_memory: true
+  data_dir: ${oc.env:NOISE_DATASET_PATH}
+
   args:
-    augmentation_methods: ["RawBoostdf", "none"] 
+    protocol_path: ${oc.env:NOISE_DATASET_PROTOCOL}
+    augmentation_methods: ["none"] 
     padding_type: repeat
     random_start: True
     view_padding_configs:
