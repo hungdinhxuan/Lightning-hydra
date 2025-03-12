@@ -3,6 +3,10 @@
 # to execute this experiment run:
 # python train.py experiment=example
 
+# V6 version of the config file
+# The only difference between this and the previous version is removing target_modules for backend from the lora args
+
+
 defaults:
   - override /data: normal_largecorpus_multiview_cnsl
   - override /model: xlsr_conformertcm_baseline_multiview_lora
@@ -25,7 +29,7 @@ model:
   optimizer:
     _target_: torch.optim.Adam
     _partial_: true
-    lr: 0.000001
+    lr: 0.00005 # 5e-5 
     weight_decay: 0.0001
   net: null
   # scheduler:
@@ -40,7 +44,7 @@ model:
   args:
     lora:
       r: 8
-      target_modules: ["q_proj", "v_proj", "k_proj", "out_proj", "fc1", "fc2", "final_proj", "LL", "qkv", "proj", "ht_proj"] ## All dense layers: "fc1", "fc2", "final_proj", "LL", "qkv", "proj", "ht_proj"
+      target_modules: ["q_proj", "v_proj", "k_proj", "out_proj", "fc1", "fc2", "final_proj"] # All dense layers (, "fc1", "fc2", "final_proj", "LL", "qkv", "proj", "ht_proj")
       modules_to_save:  [] # conformer qkv
       lora_dropout: 0.0
       lora_alpha: 16
@@ -53,7 +57,7 @@ data:
 
   args:
     protocol_path: ${oc.env:NOISE_DATASET_PROTOCOL}
-    augmentation_methods: ["RawBoost12", "none"]
+    augmentation_methods: ["highpass_filter_v1", "none"]
     padding_type: repeat
     random_start: True
     view_padding_configs:

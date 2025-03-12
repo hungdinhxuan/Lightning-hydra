@@ -23,27 +23,27 @@ trainer:
 
 model:
   optimizer:
-    _target_: torch.optim.AdamW
+    _target_: torch.optim.Adam
     _partial_: true
     lr: 0.000001
     weight_decay: 0.0001
   net: null
-  scheduler:
-    _target_: torch.optim.lr_scheduler.CyclicLR
-    _partial_: true
-    mode: triangular
-    base_lr: 0.0000001 # min_lr 1e-7
-    max_lr: 0.00001 # max_lr 1e-5
-    step_size_up: 200
+  # scheduler:
+  #   _target_: torch.optim.lr_scheduler.CyclicLR
+  #   _partial_: true
+  #   mode: triangular
+  #   base_lr: 0.0000001 # min_lr 1e-7
+  #   max_lr: 0.00001 # max_lr 1e-5
+  #   step_size_up: 200
 
   cross_entropy_weight: [0.7, 0.3] # Balanced weights for cross entropy loss
   args:
     lora:
       r: 8
-      target_modules: ["q_proj", "v_proj", "k_proj", "out_proj"]
+      target_modules: ["q_proj", "v_proj", "k_proj", "out_proj", "fc1", "fc2", "final_proj", "LL", "qkv", "proj", "ht_proj"] # All dense layers
       modules_to_save:  [] # conformer qkv
       lora_dropout: 0.0
-      lora_alpha: 2
+      lora_alpha: 16
   
 data:
   batch_size: 16

@@ -18,6 +18,7 @@ from .linear_filter import LinearFilterAugmentor
 from .bandpass import BandpassAugmentor
 from .time_stretch import TimeStretchAugmentor
 from .highpass_filter import HighPassFilterAugmentor
+from .autotune import AutoTuneAugmentor
 
 # from . import utils
 

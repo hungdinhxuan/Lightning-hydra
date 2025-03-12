@@ -273,7 +273,7 @@ class NormalDataModule(LightningDataModule):
             print('no. of validation trials', len(file_dev))
             d_meta, file_eval = self.genList(
                 is_train=False, is_eval=True, is_dev=False)
-
+            print('no. of evaluation trials', len(file_eval))
             self.data_train = Dataset_for(self.args, list_IDs=file_train, labels=d_label_trn,
                                           base_dir=self.data_dir+'/',  **self.args)
 

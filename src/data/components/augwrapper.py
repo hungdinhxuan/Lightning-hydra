@@ -6,7 +6,7 @@ from torch import Tensor
 import librosa
 
 from src.data.components.RawBoost import ISD_additive_noise, LnL_convolutive_noise, SSI_additive_noise, normWav
-from src.data.components.audio_augmentor import BackgroundNoiseAugmentor, PitchAugmentor, ReverbAugmentor, SpeedAugmentor, VolumeAugmentor, TelephoneEncodingAugmentor, GaussianAugmentor, CopyPasteAugmentor, BaseAugmentor, TimeMaskingAugmentor, FrequencyMaskingAugmentor, MaskingAugmentor, TimeSwapAugmentor, FrequencySwapAugmentor, SwappingAugmentor, LinearFilterAugmentor, BandpassAugmentor, TimeStretchAugmentor, HighPassFilterAugmentor
+from src.data.components.audio_augmentor import BackgroundNoiseAugmentor, PitchAugmentor, ReverbAugmentor, SpeedAugmentor, VolumeAugmentor, TelephoneEncodingAugmentor, GaussianAugmentor, CopyPasteAugmentor, BaseAugmentor, TimeMaskingAugmentor, FrequencyMaskingAugmentor, MaskingAugmentor, TimeSwapAugmentor, FrequencySwapAugmentor, SwappingAugmentor, LinearFilterAugmentor, BandpassAugmentor, TimeStretchAugmentor, HighPassFilterAugmentor, AutoTuneAugmentor
 from src.data.components.audio_augmentor.utils import pydub_to_librosa, librosa_to_pydub
 
 import soundfile as sf
@@ -68,6 +68,33 @@ def background_noise_5_15(x, args, sr=16000, audio_path=None):
             waveform, _ = librosa.load(aug_audio_path, sr=sr, mono=True)
             return waveform
 
+def autotune_v1(x, args, sr=16000, audio_path=None):
+    aug_dir = args.aug_dir
+    utt_id = os.path.basename(audio_path).split('.')[0]
+    args.input_path = os.path.dirname(audio_path)
+    aug_audio_path = os.path.join(aug_dir, 'autotune', utt_id + '.wav')
+    args.output_path = os.path.join(aug_dir, 'autotune')
+    args.out_format = 'wav'
+    config = {
+        "aug_type": "autotune",
+        "output_path": args.output_path,
+        "out_format": args.out_format,
+        "noise_path": args.noise_path
+    }
+    if (args.online_aug):
+        waveform = audio_transform(
+            filepath=audio_path, aug_type=AutoTuneAugmentor, config=config, online=True)
+        # waveform,_ = librosa.load(aug_audio_path, sr=sr, mono=True)
+        return waveform
+    else:
+        if os.path.exists(aug_audio_path):
+            waveform, _ = librosa.load(aug_audio_path, sr=sr, mono=True)
+            return waveform
+        else:
+            audio_transform(
+                filepath=audio_path, aug_type=AutoTuneAugmentor, config=config, online=False)
+            waveform, _ = librosa.load(aug_audio_path, sr=sr, mono=True)
+            return waveform
 
 def highpass_filter_v1(x, args, sr=16000, audio_path=None):
     aug_dir = args.aug_dir
