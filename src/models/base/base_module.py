@@ -6,7 +6,7 @@ from torchmetrics import MaxMetric, MeanMetric
 from torchmetrics.classification.accuracy import BinaryAccuracy
 
 from typing import Union
-
+from torch import nn
 import torch
 from src.utils import load_ln_model_weights
 from peft import LoraConfig, TaskType
@@ -14,94 +14,32 @@ import peft
 from peft import PeftModel
 
 class BaseLitModule(LightningModule):
-    """Example of a `LightningModule` for MNIST classification.
-
-    A `LightningModule` implements 8 key methods:
-
-    ```python
-    def __init__(self):
-    # Define initialization code here.
-
-    def setup(self, stage):
-    # Things to setup before each stage, 'fit', 'validate', 'test', 'predict'.
-    # This hook is called on every process when using DDP.
-
-    def training_step(self, batch, batch_idx):
-    # The complete training step.
-
-    def validation_step(self, batch, batch_idx):
-    # The complete validation step.
-
-    def test_step(self, batch, batch_idx):
-    # The complete test step.
-
-    def predict_step(self, batch, batch_idx):
-    # The complete predict step.
-
-    def configure_optimizers(self):
-    # Define and configure optimizers and LR schedulers.
-    ```
-
-    Docs:
-        https://lightning.ai/docs/pytorch/latest/common/lightning_module.html
-    """
 
     def __init__(
         self,
-        net: torch.nn.Module,
         optimizer: torch.optim.Optimizer,
         scheduler: torch.optim.lr_scheduler,
-        compile: bool,
         args: Union[Dict[str, Any], None] = None,
         **kwargs,
     ) -> None:
-        """Initialize a `MNISTLitModule`.
-
-        :param net: The model to train.
-        :param optimizer: The optimizer to use for training.
-        :param scheduler: The learning rate scheduler to use for training.
-        """
         super().__init__()
 
-        # this line allows to access init params with 'self.hparams' attribute
-        # also ensures init params will be stored in ckpt
-        self.use_lora = use_lora
-        #self.lora_path = lora_path
         self.save_hyperparameters(logger=False)
-        self.spec_eval = spec_eval
-
+        self.spec_eval = kwargs.get("spec_eval", False)
+        self.score_save_path = kwargs.get("score_save_path", None)
+        self.last_emb = kwargs.get("last_emb", False)
+        self.emb_save_path = kwargs.get("emb_save_path", None)
+        self.args = args
         self.net = self.init_model(**kwargs)
         
-        if base_line_ft_path is not None:
-            ckpt = torch.load(base_line_ft_path, weights_only=False)
-            #args = ckpt['hyper_parameters']['args']['conformer']
-            self.net = load_ln_model_weights(self.net, ckpt['state_dict'])
-            print("Loaded baseline model from: ", base_line_ft_path)
-        
-        if self.use_lora:
-            print("LoRA is enabled")
-            lora_config = peft.LoraConfig(
-                r=args['lora']['r'],
-                target_modules=list(args['lora']['target_modules']),
-                modules_to_save=list(args['lora']['modules_to_save']),
-                lora_dropout=args['lora']['lora_dropout'], # Default 0.0
-                lora_alpha=args['lora']['lora_alpha'], # Default 8
-            )
-            self.net = peft.get_peft_model(self.net, lora_config)
-            self.net.print_trainable_parameters()
-        
-        if lora_adapter_path is not None:
-            self.load_lora_adapter(lora_adapter_path)
-            
         # loss function
-        cross_entropy_weight = torch.tensor(cross_entropy_weight)
-        self.criterion = torch.nn.CrossEntropyLoss(cross_entropy_weight)
+        
+        self.criterion = self.init_criteria(**kwargs)
 
         # metric objects for calculating and averaging accuracy across batches
         self.train_acc = BinaryAccuracy()
         self.val_acc = BinaryAccuracy()
         self.test_acc = BinaryAccuracy()
-        self.score_save_path = score_save_path
 
         # for averaging loss across batches
         self.train_loss = MeanMetric()
@@ -110,6 +48,17 @@ class BaseLitModule(LightningModule):
 
         # for tracking best so far validation accuracy
         self.val_acc_best = MaxMetric()
+    
+    def init_criteria(self, **kwargs) -> torch.nn.Module:
+        """
+            Initialize the loss function with the given arguments. This method is used to initialize the loss
+            function with the given arguments. The loss function is initialized with the given arguments and the
+            loss function is returned.
+            
+            Base model doesn't implement this method. This method should be implemented in the derived
+            model class.
+        """
+        raise NotImplementedError("init_criteria method is not implemented")
 
     def init_model(self, **kwargs) -> nn.Module:
         """

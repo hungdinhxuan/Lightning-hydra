@@ -25,14 +25,14 @@ model:
   optimizer:
     _target_: torch.optim.Adam
     _partial_: true
-    lr: 0.00005 # 5e-5
+    lr: 0.000005 # 5e-61
     weight_decay: 0.0001
   net: null
   scheduler:
     _target_: torch.optim.lr_scheduler.MultiStepLR
     _partial_: true
     milestones:
-      - 5
+      # - 5
       - 15
       - 25
     gamma : 0.1 # Multiplicative factor of learning rate decay.
@@ -45,6 +45,7 @@ model:
       modules_to_save:  [] # conformer qkv
       lora_dropout: 0.0
       lora_alpha: 16
+      init_lora_weights: "olora"
   
 data:
   batch_size: 16
@@ -54,7 +55,9 @@ data:
 
   args:
     protocol_path: ${oc.env:NOISE_DATASET_PROTOCOL}
-    augmentation_methods: ["pitch_v1", "time_stretch_v1", "none"]
+    augmentation_methods: ["autotune_v1", "amplitude_modulation_v1", "echo_v1" , "none"]
+    #augmentation_methods: ["echo_v1", "amplitude_modulation_v1", "none"]
+    #augmentation_methods: ["autotune_v1", "none"]
     padding_type: repeat
     random_start: True
     view_padding_configs:

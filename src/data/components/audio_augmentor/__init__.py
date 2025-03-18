@@ -19,6 +19,9 @@ from .bandpass import BandpassAugmentor
 from .time_stretch import TimeStretchAugmentor
 from .highpass_filter import HighPassFilterAugmentor
 from .autotune import AutoTuneAugmentor
+from .echo import EchoAugmentor
+from .amplitude_modulation import AmplitudeModulationAugmentor
+from .gaussian_v1 import GaussianAugmentor as GaussianAugmentorV1
 
 # from . import utils
 
@@ -35,7 +38,7 @@ from .__version__ import (
 
 SUPPORTED_AUGMENTORS = ['background_noise', 'pitch', 'speed', 'volume', 'reverb', 'telephone', 'gaussian_noise',
                         'time_masking', 'freq_masking', 'masking', 'time_swap', 'freq_swap', 'swapping', 'linear_filter', 'bandpass',
-                        'time_stretch', 'highpass_filter']
+                        'time_stretch', 'highpass_filter', 'autotune', 'echo', 'amplitude_modulation', 'copy_paste']
 
 LOGGING = {
     "version": 1,

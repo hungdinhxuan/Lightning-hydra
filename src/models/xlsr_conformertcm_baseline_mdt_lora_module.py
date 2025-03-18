@@ -5,7 +5,7 @@ from lightning import LightningModule
 from torchmetrics import MaxMetric, MeanMetric
 from torchmetrics.classification.accuracy import BinaryAccuracy
 
-from typing import Union
+from typing import Union, List
 import os
 import numpy as np
 from torch import nn
@@ -60,7 +60,7 @@ class XLSRConformerTCMLoraLitModule(LightningModule):
         args: Union[Dict[str, Any], None] = None,
         ssl_pretrained_path: str = None,
         score_save_path: str = None,
-        cross_entropy_weight: list[float] = [0.1, 0.9],
+        cross_entropy_weight: List[float] = [0.1, 0.9],
         weighted_views: Dict[str, float] = {
             '1': 1.0, '2': 1.0, '3': 1.0, '4': 1.0},
         adaptive_weights: bool = False,
@@ -70,6 +70,9 @@ class XLSRConformerTCMLoraLitModule(LightningModule):
         lora_adapter_path: str = None,
         last_emb: bool = False,
         emb_save_path: str = None,
+        lora_adapter_paths: Union[List[str], str] = None,
+        merge_adapters: bool = False,  # Whether to merge adapters
+        adapter_weights: Union[List[float], None] = None,  # Weights for merging
     ) -> None:
         """Initialize a `MNISTLitModule`.
 
@@ -108,12 +111,27 @@ class XLSRConformerTCMLoraLitModule(LightningModule):
                 modules_to_save=list(args['lora']['modules_to_save']),
                 lora_dropout=args['lora']['lora_dropout'], # Default 0.0
                 lora_alpha=args['lora']['lora_alpha'], # Default 8
+                init_lora_weights=args['lora'].get('init_lora_weights', True), # Passing True (default) results in the default initialization from the reference implementation from Microsoft, with the LoRA B weight being set to 0
             )
             self.net = peft.get_peft_model(self.net, lora_config)
             self.net.print_trainable_parameters()
         
         if lora_adapter_path is not None:
             self.load_lora_adapter(lora_adapter_path)
+        
+        if lora_adapter_paths is not None:
+            # Convert single path to list for consistent handling
+            if isinstance(lora_adapter_paths, str):
+                lora_adapter_paths = [lora_adapter_paths]
+                
+            if self.merge_adapters and len(lora_adapter_paths) > 1:
+                # If no weights provided, use equal weights
+                if adapter_weights is None:
+                    adapter_weights = [1.0/len(lora_adapter_paths)] * len(lora_adapter_paths)
+                
+                self.load_and_merge_adapters(lora_adapter_paths, adapter_weights)
+            else:
+                self.load_separate_adapters(lora_adapter_paths)
             
         # loss function
         cross_entropy_weight = torch.tensor(cross_entropy_weight)
@@ -163,6 +181,64 @@ class XLSRConformerTCMLoraLitModule(LightningModule):
                 self.register_parameter(f"adaptive_weight_{k}", param)
                 self.weighted_views[k] = param
 
+    def load_separate_adapters(self, adapter_paths):
+        """Load multiple LoRA adapters separately.
+        
+        :param adapter_paths: List of paths to LoRA adapters
+        """
+        for i, adapter_path in enumerate(adapter_paths):
+            adapter_name = f"adapter_{i}"
+            self.net.load_adapter(adapter_path, adapter_name=adapter_name)
+            print(f"Loaded LoRA adapter from: {adapter_path} as {adapter_name}")
+        
+        # Set the first one as active by default
+        if adapter_paths:
+            self.net.set_adapter(adapter_name="adapter_0")
+            print("Set adapter_0 as the active adapter")
+    
+    def load_and_merge_adapters(self, adapter_paths, weights):
+        """Load and merge multiple LoRA adapters.
+        
+        :param adapter_paths: List of paths to LoRA adapters
+        :param weights: List of weights for each adapter in the merge
+        """
+        # First, load each adapter with a unique name
+        adapter_names = []
+        for i, adapter_path in enumerate(adapter_paths):
+            adapter_name = f"adapter_{i}"
+            adapter_names.append(adapter_name)
+            self.net.load_adapter(adapter_path, adapter_name=adapter_name)
+            print(f"Loaded LoRA adapter from: {adapter_path} as {adapter_name}")
+        
+        # Merge the adapters
+        merged_adapter_name = "merged_adapter"
+        self.net.add_adapter(merged_adapter_name, adapter_type="lora")
+        
+        # Create a dictionary of weights for merging
+        weight_dict = {name: weight for name, weight in zip(adapter_names, weights)}
+        
+        # Perform the merge operation
+        self.net.merge_and_unload(adapter_names=adapter_names, 
+                                 weights=weight_dict,
+                                 adapter_name=merged_adapter_name)
+        
+        # Set the merged adapter as active
+        self.net.set_adapter(adapter_name=merged_adapter_name)
+        print(f"Merged {len(adapter_paths)} adapters with weights {weights} as '{merged_adapter_name}'")
+    
+    def set_active_adapter(self, adapter_idx):
+        """Set the active adapter by index (for non-merged mode).
+        
+        :param adapter_idx: Index of the adapter to activate
+        """
+        if self.merge_adapters:
+            print("Warning: In merged adapter mode. Using the merged adapter.")
+            self.net.set_adapter(adapter_name="merged_adapter")
+        else:
+            adapter_name = f"adapter_{adapter_idx}"
+            self.net.set_adapter(adapter_name=adapter_name)
+            print(f"Set {adapter_name} as the active adapter")
+            
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Perform a forward pass through the model `self.net`.
 

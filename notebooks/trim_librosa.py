@@ -31,16 +31,13 @@ DATASET_PATH = "/data/hungdx/Lightning-hydra/data/0_large-corpus"
 PROTOCOL_PATH = "/data/hungdx/Lightning-hydra/data/0_large-corpus/protocol.txt"
 
 SAMPLE_RATE = 16000
-CUT_SIZE = 16000
+
 
 
 DESTINATION_PATH = f"/data/hungdx/Lightning-hydra/data/0_large-corpus/trim_librosa"
 
 if not os.path.exists(DESTINATION_PATH):
     os.makedirs(DESTINATION_PATH)
-
-THRESHOLD = 0.5  # Threshold for VAD to determine speech
-
 
 def process_line(line):
     line = line.strip().split()

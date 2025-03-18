@@ -5,7 +5,10 @@ import librosa
 import random
 import numpy as np
 import torchaudio.functional as F
-from torchaudio.io import AudioEffector
+try:
+    from torchaudio.io import AudioEffector
+except ImportError:
+    pass
 import logging
 import torch
 from torchaudio.sox_effects import apply_effects_tensor as sox_fx

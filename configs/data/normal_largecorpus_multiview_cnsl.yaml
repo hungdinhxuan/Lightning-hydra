@@ -44,7 +44,7 @@ args:
   wav_samp_rate: 16000
   trim_length: 64000
   online_aug: true
-  aug_dir: aug
+  aug_dir: ${oc.env:AUG_PATH}
   noise_path: ${oc.env:NOISE_PATH}
   rir_path: ${oc.env:RIR_PATH}
   repeat_pad: True #  If true, repeat the audio to the trim_length

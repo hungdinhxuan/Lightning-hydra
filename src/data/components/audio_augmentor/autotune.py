@@ -78,15 +78,23 @@ def aclosest_pitch_from_scale(f0, scale):
         sanitized_pitch[np.isnan(smoothed_sanitized_pitch)]
     return smoothed_sanitized_pitch
 
-
+import numba
+numba.config.DISABLE_JIT = True
 def autotune(audio, sr, correction_function):
     # Set some basis parameters.
+    
+
     frame_length = 2048
     hop_length = frame_length // 4
     fmin = librosa.note_to_hz('C2')
     fmax = librosa.note_to_hz('C7')
+    
+    #print(f"Audio shape: {audio.shape}, dtype: {audio.dtype}, frame_length: {frame_length}, hop_length: {hop_length}")
 
+    if frame_length > len(audio):
+        frame_length = 1024  # Adjust dynamically
     # Pitch tracking using the PYIN algorithm.
+    #print("Pitch tracking...")
     f0, voiced_flag, voiced_probabilities = librosa.pyin(audio,
                                                          frame_length=frame_length,
                                                          hop_length=hop_length,
@@ -95,9 +103,12 @@ def autotune(audio, sr, correction_function):
                                                          fmax=fmax)
 
     # Apply the chosen adjustment strategy to the pitch.
+    #print("Correcting pitch...")
     corrected_f0 = correction_function(f0)
 
     # Pitch-shifting using the PSOLA algorithm.
+    #print("Pitch-shifting...")
+    
     return psola.vocode(audio, sample_rate=int(sr), target_pitch=corrected_f0, fmin=fmin, fmax=fmax)
 
 class AutoTuneAugmentor(BaseAugmentor):
@@ -124,9 +135,8 @@ class AutoTuneAugmentor(BaseAugmentor):
         """
         Time stretch the audio using librosa time stretch method
         """
-        self.augmented_audio = self.my_transform(
-            samples=self.audio_data, sample_rate=self.sr)
         correction_function = closest_pitch if self.correction_method == 'closest' else \
             partial(aclosest_pitch_from_scale, scale='major')
 
-        self.augmented_audio = autotune(self.augmented_audio, self.sr, correction_function)
+        self.augmented_audio = autotune(self.audio_data, self.sr, correction_function)
+        self.augmented_audio = librosa_to_pydub(self.augmented_audio, sr=self.sr)

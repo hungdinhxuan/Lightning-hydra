@@ -12,28 +12,26 @@ from src.utils import load_ln_model_weights
 from peft import LoraConfig, TaskType
 import peft
 from peft import PeftModel
-from src.models.base.base_module import BaseLitModule
+from src.models.base.adapter_module import AdapterLitModule
 
-class MDTModule(BaseLitModule):
+class MDTLitModule(AdapterLitModule):
   
     def __init__(
         self,
-        net: torch.nn.Module,
         optimizer: torch.optim.Optimizer,
         scheduler: torch.optim.lr_scheduler,
-        compile: bool,
         args: Union[Dict[str, Any], None] = None,
         **kwargs,
     ) -> None:
      
-        super().__init__()
+        super().__init__(optimizer, scheduler, args, **kwargs)
+        self.criterion = self.init_criteria(**kwargs)
         
         weighted_views = kwargs.get("weighted_views", {})
         self.adaptive_weights = kwargs.get("adaptive_weights", False)
         self.score_save_path = kwargs.get("score_save_path", None)
         self.spec_eval = kwargs.get("spec_eval", False)
-        
-        
+
         self.train_view_acc = {
             view: BinaryAccuracy() for view in weighted_views
         }
@@ -48,23 +46,25 @@ class MDTModule(BaseLitModule):
 
         self.train_loss_detail = {}
         self.val_loss_detail = {}
-        self.running_loss = 0.0
-
         self.weighted_views = weighted_views
-        self.net = self.init_model(**kwargs)
         
-
-    def init_model(self, **kwargs) -> nn.Module:
+        
+    def init_criteria(self, **kwargs) -> torch.nn.Module:
         """
-            Initialize the model with the given arguments. This method is used to initialize the model
-            with the given arguments. The model is initialized with the given arguments and the model is
-            returned.
+            Initialize the loss function with the given arguments. This method is used to initialize the loss
+            function with the given arguments. The loss function is initialized with the given arguments and the
+            loss function is returned.
             
             Base model doesn't implement this method. This method should be implemented in the derived
             model class.
         """
-        raise NotImplementedError("init_model method is not implemented")
-
+        cross_entropy_weight = kwargs.get("cross_entropy_weight", None)
+        if cross_entropy_weight is None:
+            cross_entropy_weight = torch.tensor(cross_entropy_weight)
+        else:
+            cross_entropy_weight = torch.tensor([1.0, 1.0])
+        self.criterion = torch.nn.CrossEntropyLoss(cross_entropy_weight)
+        
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.net(x)
 
@@ -76,8 +76,6 @@ class MDTModule(BaseLitModule):
         self.val_acc.reset()
         self.val_acc_best.reset()
 
-        # Reset all details for loss and accuracy
-
         for k, v in self.val_loss_detail.items():
             self.val_loss_detail[k].reset()
 
@@ -86,10 +84,6 @@ class MDTModule(BaseLitModule):
 
         for k, v in self.val_view_acc_best.items():
             self.val_view_acc_best[k].reset()
-
-        # Log current adaptive_weights
-        if self.adaptive_weights:
-            print("Adaptive weights are enabled")
 
     def model_step(
         self, batch: Tuple[torch.Tensor, torch.Tensor]
@@ -139,8 +133,6 @@ class MDTModule(BaseLitModule):
             train_loss += loss
             preds = torch.argmax(logits, dim=1)
 
-            # Update view accuracy metric to view_acc
-            # Initialize view accuracy metric
             view_acc[view] = view_acc.get(view, [])
 
             # Append predictions and target to view_acc
@@ -152,8 +144,6 @@ class MDTModule(BaseLitModule):
 
             # Intialize loss_detail dictionary
             loss_detail[view] = loss_detail.get(view, 0) + loss.item()
-
-        # self.running_loss += train_loss.item()
 
         # Concatenate all predictions and labels
         all_preds = torch.cat(all_preds)
@@ -173,17 +163,13 @@ class MDTModule(BaseLitModule):
         """
         loss, preds, targets, loss_detail, view_acc = self.model_step(batch)
 
-        self.running_loss += loss.item()
-
         # Update train_view_acc and log metrics
         for k, v in view_acc.items():
             # Initialize train_view_acc dictionary
             self.train_view_acc[k] = self.train_view_acc.get(
                 k, BinaryAccuracy())
             _preds, _targets = v[0]
-            # v[0] is preds, v[1] is targets
             self.train_view_acc[k](_preds, _targets)
-            # self.log(f"train/view_{k}_acc", self.train_view_acc[k].compute(), on_step=False, on_epoch=True, prog_bar=True, sync_dist=True)
 
         # Update train_loss_detail and log metrics
         for k, v in loss_detail.items():
@@ -191,9 +177,6 @@ class MDTModule(BaseLitModule):
             self.train_loss_detail[k] = self.train_loss_detail.get(
                 k, MeanMetric())
             self.train_loss_detail[k](v)
-
-            # self.train_loss_detail[k] = self.train_loss_detail.get(k, 0) + v
-            # self.log(f"train/view_{k}_loss", self.train_loss_detail[k].compute(), on_step=False, on_epoch=True, prog_bar=True, sync_dist=True)
 
         # Update and log train loss and accuracy
         self.train_loss(loss)
@@ -203,8 +186,6 @@ class MDTModule(BaseLitModule):
         self.log("train/acc", self.train_acc, on_step=False, on_epoch=True,
                  prog_bar=True, sync_dist=True, batch_size=self.batch_size)
 
-        self.log_dict({f"adaptive_weight_{k}": v for k, v in self.weighted_views.items(
-        )}, on_step=False, on_epoch=True, prog_bar=True, sync_dist=True)
         # Return loss for backpropagation
         return loss
 
@@ -238,16 +219,13 @@ class MDTModule(BaseLitModule):
             # Initialize val_view_acc dictionary
             self.val_view_acc[k] = self.val_view_acc.get(k, BinaryAccuracy())
             _preds, _targets = v[0]
-            # v[0] is preds, v[1] is targets
             self.val_view_acc[k](_preds, _targets)
-            # self.log(f"val/view_{k}_acc", self.val_view_acc[k].compute(), on_step=False, on_epoch=True, prog_bar=True, sync_dist=True)
-
+            
         # Update val_loss_detail and log metrics
         for k, v in loss_detail.items():
             # Initialize val_loss_detail dictionary
             self.val_loss_detail[k] = self.val_loss_detail.get(k, MeanMetric())
             self.val_loss_detail[k](v)
-            # self.log(f"val/view_{k}_loss", self.val_loss_detail[k].compute(), on_step=False, on_epoch=True, prog_bar=True, sync_dist=True)
 
         # Update and log val loss and accuracy
         self.val_loss(loss)
@@ -274,89 +252,5 @@ class MDTModule(BaseLitModule):
             self.log(
                 f"val/view_{k}_acc_best", self.val_view_acc_best[k].compute(), prog_bar=True, sync_dist=True)
 
-        # log `val_acc_best` as a value through `.compute()` method, instead of as a metric object
-        # otherwise metric would be reset by lightning after each epoch
         self.log("val/acc_best", self.val_acc_best.compute(),
                  sync_dist=True, prog_bar=True, batch_size=self.batch_size)
-
-    def test_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> None:
-        """Perform a single test step on a batch of data from the test set.
-
-        :param batch: A batch of data (a tuple) containing the input tensor of images and target
-            labels.
-        :param batch_idx: The index of the current batch.
-        """
-        if self.score_save_path is not None:
-            self._export_score_file(batch)
-        else:
-            raise ValueError("score_save_path is not provided")
-
-    def _export_score_file(self, batch: Tuple[torch.Tensor, torch.Tensor]) -> None:
-        """Get the score file for the batch of data.
-
-        :param batch: A batch of data (a tuple) containing the input tensor of images and target
-            labels.
-        """
-        batch_x, utt_id = batch
-        batch_out = self.net(batch_x)
-
-        fname_list = list(utt_id)
-        score_list = batch_out.data.cpu().numpy().tolist()
-
-        with open(self.score_save_path, 'a+') as fh:
-            for f, cm in zip(fname_list, score_list):
-                fh.write('{} {} {}\n'.format(f, cm[0], cm[1])) if self.spec_eval else fh.write(
-                    '{} {}\n'.format(f, cm[1]))
-
-    def on_test_epoch_end(self) -> None:
-        """Lightning hook that is called when a test epoch ends."""
-        pass
-
-    def setup(self, stage: str) -> None:
-        """Lightning hook that is called at the beginning of fit (train + validate), validate,
-        test, or predict.
-
-        This is a good hook when you need to build models dynamically or adjust something about
-        them. This hook is called on every process when using DDP.
-
-        :param stage: Either `"fit"`, `"validate"`, `"test"`, or `"predict"`.
-        """
-        pass
-
-    def configure_optimizers(self) -> Dict[str, Any]:
-        """Choose what optimizers and learning-rate schedulers to use in your optimization.
-        Normally you'd need one. But in the case of GANs or similar you might have multiple.
-
-        Examples:
-            https://lightning.ai/docs/pytorch/latest/common/lightning_module.html#configure-optimizers
-
-        :return: A dict containing the configured optimizers and learning-rate schedulers to be used for training.
-        """
-        optimizer = self.hparams.optimizer(
-            params=self.trainer.model.parameters())
-        if self.hparams.scheduler is not None:
-            scheduler = self.hparams.scheduler(optimizer=optimizer)
-            return {
-                "optimizer": optimizer,
-                "lr_scheduler": {
-                    "scheduler": scheduler,
-                    "monitor": "val/loss",
-                    "interval": "epoch",
-                    "frequency": 1,
-                },
-            }
-        return {"optimizer": optimizer}
-    
-    def load_lora_adapter(self, checkpoint_path: str, adapter_name: str = "default"):
-        """Specialized method for loading LoRA adapters"""
-        if hasattr(self.net, 'load_adapter'):
-            self.net.load_adapter(checkpoint_path, adapter_name=adapter_name)
-            self.net.set_adapter(adapter_name)
-        else:
-            self.net = PeftModel.from_pretrained(self.net, checkpoint_path)
-            self.net.merge_and_unload()
-        
-        print(f"Loaded LoRA adapter from {checkpoint_path}")
-    
-    def optimizer_zero_grad(self, epoch, batch_idx, optimizer):
-        optimizer.zero_grad(set_to_none=True)

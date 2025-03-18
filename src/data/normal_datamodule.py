@@ -26,12 +26,15 @@ for aug in SUPPORTED_AUGMENTATION:
 class Dataset_for(Dataset_base):
     def __init__(self, args, list_IDs, labels, base_dir, algo=5, vocoders=[],
                  augmentation_methods=[], eval_augment=None, num_additional_real=2, num_additional_spoof=2,
-                 trim_length=64000, wav_samp_rate=16000, noise_path=None, rir_path=None,
-                 aug_dir=None, online_aug=False, repeat_pad=True, is_train=True, random_start=False):
+                 trim_length=66800, wav_samp_rate=16000, noise_path=None, rir_path=None,
+                 aug_dir=None, online_aug=True, repeat_pad=True, is_train=True, random_start=False,
+                 **kwargs):
         super(Dataset_for, self).__init__(args, list_IDs, labels, base_dir, algo, vocoders,
                                           augmentation_methods, eval_augment, num_additional_real, num_additional_spoof,
                                           trim_length, wav_samp_rate, noise_path, rir_path,
                                           aug_dir, online_aug, repeat_pad, is_train, random_start)
+        # self.args.online_aug = online_aug
+        self.padding_type = "repeat" if repeat_pad else "zero"
 
     def __getitem__(self, idx):
         utt_id = self.list_IDs[idx]
@@ -40,65 +43,66 @@ class Dataset_for(Dataset_base):
 
         # apply augmentation
         # randomly choose an augmentation method
-        if self.is_train:
-            augmethod_index = random.choice(range(len(self.augmentation_methods))) if len(
-                self.augmentation_methods) > 0 else -1
-            if augmethod_index >= 0:
-                X = globals()[self.augmentation_methods[augmethod_index]](X, self.args, self.sample_rate,
-                                                                          audio_path=filepath)
-
-        X_pad = pad(X, padding_type="repeat" if self.repeat_pad else "zero",
-                    max_len=self.trim_length, random_start=True)
-        x_inp = Tensor(X_pad)
+        augmethod_index = random.choice(range(len(self.augmentation_methods))) if len(
+            self.augmentation_methods) > 0 else -1
+        
+        if augmethod_index >= 0:
+            # print("Augmenting with", self.augmentation_methods[augmethod_index])
+            X = globals()[self.augmentation_methods[augmethod_index]](X, self.args, self.sample_rate,
+                                                                      audio_path=filepath)
+        X = pad(X, padding_type=self.padding_type,
+                    max_len=self.trim_length, random_start=self.random_start)
+        x_inp = Tensor(X)
         target = self.labels[utt_id]
-        return idx, x_inp, target
+        return x_inp, target
 
 
 class Dataset_for_dev(Dataset_base):
     def __init__(self, args, list_IDs, labels, base_dir, algo=5, vocoders=[],
                  augmentation_methods=[], eval_augment=None, num_additional_real=2, num_additional_spoof=2,
-                 trim_length=64000, wav_samp_rate=16000, noise_path=None, rir_path=None,
-                 aug_dir=None, online_aug=False, repeat_pad=False, is_train=True,
-                 random_start=False
+                 trim_length=66800, wav_samp_rate=16000, noise_path=None, rir_path=None,
+                 aug_dir=None, online_aug=True, repeat_pad=False, is_train=True,
+                 random_start=False, **kwargs
                  ):
         super(Dataset_for_dev, self).__init__(args, list_IDs, labels, base_dir, algo, vocoders,
                                               augmentation_methods, eval_augment, num_additional_real, num_additional_spoof,
                                               trim_length, wav_samp_rate, noise_path, rir_path,
                                               aug_dir, online_aug, repeat_pad, is_train, random_start)
-
-        if repeat_pad:
-            self.padding_type = "repeat"
-        else:
-            self.padding_type = "zero"
-
+        self.padding_type = "repeat" if repeat_pad else "zero"
     def __getitem__(self, index):
         utt_id = self.list_IDs[index]
-        X, fs = librosa.load(self.base_dir + "/" + utt_id, sr=16000)
-        X_pad = pad(X, self.padding_type, self.trim_length,
-                    random_start=self.random_start)
-        x_inp = Tensor(X_pad)
+        filepath = os.path.join(self.base_dir, utt_id)
+        X, fs = librosa.load(filepath, sr=16000)
+        X = pad(X, padding_type=self.padding_type,
+                    max_len=self.trim_length, random_start=self.random_start)
+        x_inp = Tensor(X)
         target = self.labels[utt_id]
-        return index, x_inp, target
+        return x_inp, target
 
 
 class Dataset_for_eval(Dataset_base):
     def __init__(self, args, list_IDs, labels, base_dir, algo=5, vocoders=[],
                  augmentation_methods=[], eval_augment=None, num_additional_real=2, num_additional_spoof=2,
-                 trim_length=64000, wav_samp_rate=16000, noise_path=None, rir_path=None,
-                 aug_dir=None, online_aug=False, repeat_pad=True, is_train=True, enable_chunking=False, random_start=False
+                 trim_length=66800, wav_samp_rate=16000, noise_path=None, rir_path=None,
+                 aug_dir=None, online_aug=True, repeat_pad=True, is_train=True, enable_chunking=False, random_start=False, **kwargs
                  ):
         super(Dataset_for_eval, self).__init__(args, list_IDs, labels, base_dir, algo, vocoders,
                                                augmentation_methods, eval_augment, num_additional_real, num_additional_spoof,
                                                trim_length, wav_samp_rate, noise_path, rir_path,
                                                aug_dir, online_aug, repeat_pad, is_train, random_start)
         self.enable_chunking = enable_chunking
-        if repeat_pad:
-            self.padding_type = "repeat"
-        else:
-            self.padding_type = "zero"
+        self.padding_type = "repeat" if repeat_pad else "zero"
+        print("Chunking enabled:", self.enable_chunking)
+        print("trim_length:", trim_length)
+        print("padding_type:", self.padding_type)
+        self.no_pad = args.get('no_pad', False) if args is not None else False
+        if self.no_pad:
+            print('No padding')
 
     def __getitem__(self, idx):
         utt_id = self.list_IDs[idx]
+        # print("utt_id:", utt_id)
+        # print("self.base_dir:", self.base_dir)
         filepath = os.path.join(self.base_dir, utt_id)
         X, _ = librosa.load(filepath, sr=16000)
         # apply augmentation at inference time
@@ -106,9 +110,11 @@ class Dataset_for_eval(Dataset_base):
             # print("eval_augment:", self.eval_augment)
             X = globals()[self.eval_augment](
                 X, self.args, self.sample_rate, audio_path=filepath)
-        if not self.enable_chunking:
+        if not self.enable_chunking and not self.no_pad:
             X = pad(X, padding_type=self.padding_type,
                     max_len=self.trim_length, random_start=self.random_start)
+        if self.no_pad and len(X) > 160000: # 10 seconds is the maximum
+            X = X[:160000]
         x_inp = Tensor(X)
         return x_inp, utt_id
 
@@ -164,6 +170,7 @@ class NormalDataModule(LightningDataModule):
         num_workers: int = 0,
         pin_memory: bool = False,
         args: Optional[Dict[str, Any]] = None,
+        chunking_eval: bool = False,
     ) -> None:
         """Initialize a `ASVSpoofDataModule`.
 
@@ -186,6 +193,10 @@ class NormalDataModule(LightningDataModule):
         self.data_dir = data_dir
 
         self.args = args
+        self.chunking_eval = chunking_eval
+        self.data_dir = data_dir
+        self.protocol_path = args.get(
+            'protocol_path', os.path.join(self.data_dir, 'protocol.txt'))
 
     @property
     def num_classes(self) -> int:
@@ -221,25 +232,26 @@ class NormalDataModule(LightningDataModule):
 
             # define train dataloader
 
-            d_label_trn, file_train = self.genList(dir_meta=os.path.join(
-                self.data_dir), is_train=True, is_eval=False, is_dev=False)
+            d_label_trn, file_train = self.genList(
+                is_train=True, is_eval=False, is_dev=False)
 
             print('no. of training trials', len(file_train))
 
-            d_label_dev, file_dev = self.genList(dir_meta=os.path.join(
-                self.data_dir), is_train=False, is_eval=False, is_dev=True)
+            d_label_dev, file_dev = self.genList(
+                is_train=False, is_eval=False, is_dev=True)
             print('no. of validation trials', len(file_dev))
-            file_eval = self.genList(dir_meta=os.path.join(
-                self.data_dir), is_train=False, is_eval=True, is_dev=False)
-
+            d_meta, file_eval = self.genList(
+                is_train=False, is_eval=True, is_dev=False)
+            print('no. of evaluation trials', len(file_eval))
             self.data_train = Dataset_for(self.args, list_IDs=file_train, labels=d_label_trn,
-                                          base_dir=self.data_dir+'/',  **self.args['data'])
+                                          base_dir=self.data_dir+'/',  **self.args)
 
             self.data_val = Dataset_for_dev(self.args, list_IDs=file_dev, labels=d_label_dev,
-                                            base_dir=self.data_dir+'/',  is_train=False, **self.args['data'])
+                                            base_dir=self.data_dir+'/',  is_train=False, **self.args)
 
             self.data_test = Dataset_for_eval(self.args, list_IDs=file_eval, labels=None,
-                                              base_dir=self.data_dir+'/',  **self.args['data'])
+                                              base_dir=self.data_dir+'/',  random_start=self.args.random_start, trim_length=self.args.trim_length, repeat_pad=True if self.args.padding_type == 'repeat' else False,
+                                              enable_chunking=self.chunking_eval)
 
     def train_dataloader(self) -> DataLoader[Any]:
         """Create and return the train dataloader.
@@ -305,14 +317,17 @@ class NormalDataModule(LightningDataModule):
         """
         pass
 
-    def genList(self, dir_meta, is_train=False, is_eval=False, is_dev=False):
+    def genList(self, is_train=False, is_eval=False, is_dev=False):
+        """
+            This function generates the list of files and their corresponding labels
+            Specifically for the standard CNSL dataset
+        """
         # bonafide: 1, spoof: 0
         d_meta = {}
         file_list = []
-        protocol = os.path.join(dir_meta, "protocol.txt")
 
         if (is_train):
-            with open(protocol, 'r') as f:
+            with open(self.protocol_path, 'r') as f:
                 l_meta = f.readlines()
             for line in l_meta:
                 utt, subset, label = line.strip().split()
@@ -322,7 +337,7 @@ class NormalDataModule(LightningDataModule):
 
             return d_meta, file_list
         if (is_dev):
-            with open(protocol, 'r') as f:
+            with open(self.protocol_path, 'r') as f:
                 l_meta = f.readlines()
             for line in l_meta:
                 utt, subset, label = line.strip().split()
@@ -332,14 +347,17 @@ class NormalDataModule(LightningDataModule):
             return d_meta, file_list
 
         if (is_eval):
-            # no eval protocol yet
-            with open(protocol, 'r') as f:
+            # no eval self.protocol_path yet
+            with open(self.protocol_path, 'r') as f:
                 l_meta = f.readlines()
             for line in l_meta:
                 utt, subset, label = line.strip().split()
-                if subset == 'eval':
-                    file_list.append(utt)
-                    d_meta[utt] = 1 if label == 'bonafide' else 0
+                # if subset == 'eval' or subset == 'test':
+                #     file_list.append(utt)
+                #     d_meta[utt] = 1 if label == 'bonafide' else 0
+
+                file_list.append(utt)
+                d_meta[utt] = 1 if label == 'bonafide' else 0
             # return d_meta, file_list
             return d_meta, file_list
 

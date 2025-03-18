@@ -54,7 +54,7 @@ data:
 
   args:
     protocol_path: ${oc.env:NOISE_DATASET_PROTOCOL}
-    augmentation_methods: ["pitch_v1", "time_stretch_v1", "none"]
+    augmentation_methods: ["pitch_v1", "none"]
     padding_type: repeat
     random_start: True
     view_padding_configs:
