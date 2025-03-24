@@ -25,7 +25,7 @@ class MDTLitModule(AdapterLitModule):
     ) -> None:
      
         super().__init__(optimizer, scheduler, args, **kwargs)
-        self.criterion = self.init_criteria(**kwargs)
+        self.init_criteria(**kwargs)
         
         weighted_views = kwargs.get("weighted_views", {})
         self.adaptive_weights = kwargs.get("adaptive_weights", False)

@@ -34,6 +34,16 @@ class SSLModel(nn.Module):
         input_data = input_data.squeeze(1)
         dict_ = self.model(input_data, mask=False, features_only=True)
         x, layerresult = dict_['x'], dict_['layer_results']
+        # print("total layers: ", len(layerresult))
+        # for t in layerresult[:self.n_layers]:
+        #     if isinstance(t, tuple):
+        #         # print shape of t
+        #         print(t[0].permute(1, 0, 2).shape)
+        #     else:
+        #         print(t.shape)
+        # import sys
+        # sys.exit(1)
+        
         return torch.stack([t[0].permute(1, 0, 2) if isinstance(t, tuple) else t for t in layerresult[:self.n_layers]], dim=1)
 
     def forward(self, input_data):

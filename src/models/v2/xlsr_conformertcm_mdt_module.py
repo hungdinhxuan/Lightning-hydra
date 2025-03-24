@@ -18,6 +18,13 @@ class XLSRConformertcmMDTLitModule(MDTLitModule):
         :param scheduler: The learning rate scheduler to use for training.
         """
         super().__init__(optimizer, scheduler, args, **kwargs)
+        self.net = self.init_model(**kwargs)
+        self.init_adapter()
         
-    def init_model(self, **kwargs) -> nn.Module:
-        return XLSRConformerTCM(**kwargs)
+    def init_model(self, **kwargs) -> torch.nn.Module:
+        ssl_pretrained_path = kwargs.get("ssl_pretrained_path", None)
+        if ssl_pretrained_path is None:
+            raise ValueError("ssl_pretrained_path is required for XLSRConformertcmMDTLitModule")
+        return XLSRConformerTCM(
+            self.args['conformer'], ssl_pretrained_path
+        )

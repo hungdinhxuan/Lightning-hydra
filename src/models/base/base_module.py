@@ -1,17 +1,13 @@
 from typing import Any, Dict, Tuple
-
 import torch
 from lightning import LightningModule
 from torchmetrics import MaxMetric, MeanMetric
 from torchmetrics.classification.accuracy import BinaryAccuracy
-
 from typing import Union
 from torch import nn
 import torch
 from src.utils import load_ln_model_weights
-from peft import LoraConfig, TaskType
-import peft
-from peft import PeftModel
+
 
 class BaseLitModule(LightningModule):
 
@@ -31,7 +27,7 @@ class BaseLitModule(LightningModule):
         self.emb_save_path = kwargs.get("emb_save_path", None)
         self.args = args
         self.net = self.init_model(**kwargs)
-        
+        self.kwargs = kwargs
         # loss function
         
         self.criterion = self.init_criteria(**kwargs)
@@ -180,14 +176,7 @@ class BaseLitModule(LightningModule):
             }
         return {"optimizer": optimizer}
     
-    def load_lora_adapter(self, checkpoint_path: str, adapter_name: str = "default"):
-        """Specialized method for loading LoRA adapters"""
-        if hasattr(self.net, 'load_adapter'):
-            self.net.load_adapter(checkpoint_path, adapter_name=adapter_name)
-            self.net.set_adapter(adapter_name)
-        else:
-            self.net = PeftModel.from_pretrained(self.net, checkpoint_path)
-            self.net.merge_and_unload()
+
         
         print(f"Loaded LoRA adapter from {checkpoint_path}")
     

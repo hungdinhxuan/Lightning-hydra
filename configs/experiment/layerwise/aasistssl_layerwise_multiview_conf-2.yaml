@@ -28,7 +28,7 @@ model:
   net: null
   scheduler: null
   compile: true
-  n_layers: 12
+  n_layers: 24
   ssl_freeze: true
 
 data:

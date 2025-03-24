@@ -69,10 +69,22 @@ class Dataset_for_dev(Dataset_base):
                                               trim_length, wav_samp_rate, noise_path, rir_path,
                                               aug_dir, online_aug, repeat_pad, is_train, random_start)
         self.padding_type = "repeat" if repeat_pad else "zero"
+        self.is_dev_aug = kwargs.get('is_dev_aug', False)
+        if self.is_dev_aug:
+            print("Dev aug is enabled")
     def __getitem__(self, index):
         utt_id = self.list_IDs[index]
         filepath = os.path.join(self.base_dir, utt_id)
         X, fs = librosa.load(filepath, sr=16000)
+        # apply augmentation at inference time
+        if self.is_dev_aug:
+            augmethod_index = random.choice(range(len(self.augmentation_methods))) if len(
+            self.augmentation_methods) > 0 else -1
+            if augmethod_index >= 0:
+                # print("Augmenting with", self.augmentation_methods[augmethod_index])
+                X = globals()[self.augmentation_methods[augmethod_index]](X, self.args, self.sample_rate,
+                                                                        audio_path=filepath)
+            
         X = pad(X, padding_type=self.padding_type,
                     max_len=self.trim_length, random_start=self.random_start)
         x_inp = Tensor(X)

@@ -112,7 +112,7 @@ class BackEnd(nn.Module):
 
         # output linear
         logits = self.m_utt_level(feat_utt)
-        return logits
+        return logits, feat_utt
 
 
 class VIB(nn.Module):
@@ -160,11 +160,8 @@ class VIB(nn.Module):
 
 
 class Model(nn.Module):
-    def __init__(self, args, cp_path, is_train = False):
+    def __init__(self, cp_path, **kwargs):
         super().__init__()
-        self.is_train = is_train
-        self.contra_mode = args['contra_mode']
-        self.loss_type = args['loss_type']
         ####
         # create network wav2vec 2.0
         ####
@@ -185,7 +182,7 @@ class Model(nn.Module):
         # Post-processing
 
     def _forward(self, x):
-
+        x.requires_grad = True
         x_ssl_feat = self.ssl_model.extract_feat(x.squeeze(-1))
 
         x = self.LL(x_ssl_feat)  # (bs,frame_number,feat_out_dim)
@@ -198,9 +195,9 @@ class Model(nn.Module):
 
         # output [batch, 2]
         # emb [batch, 128]
-        output = self.backend(x)
+        output, emb = self.backend(x)
 
-        return output
+        return output, (decoded, mu, logvar, feats), emb
 
     def forward(self, x_big):
         return self._forward(x_big)
