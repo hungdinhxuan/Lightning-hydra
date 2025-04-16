@@ -72,3 +72,13 @@ python src/train.py trainer.max_epochs=20 data.batch_size=64
 ```
 
 CUDA_VISIBLE_DEVICES=2 OMP_NUM_THREADS=1 python src/train.py experiment=partialspoof/aasistssl_multiview_conf-beta-1.1 ++model_averaging=True +model.score_save_path="logs/eval/ps/ps_xlsr_aasist_multiview_conf-beta-1.1_eval_4s.txt"  ++train=False ++test=True ++ckpt_path='/nvme1/hungdx/Lightning-hydra/logs/train/runs/2024-12-29_23-09-16-beta-1.1/checkpoints' callbacks=none ++data.args.cut=64600 ++data.args.random_start=False  ++data.batch_size=64 ++data.args.protocols_path="/nvme1/hungdx/Lightning-hydra/data/PartialSpoof/database/protocol.txt"  ++data.data_dir="/nvme1/hungdx/Lightning-hydra/data/PartialSpoof/database/" ++data.chunking_eval=False ++data.args.eval_set='partialspoof' ++data.args.eval=True ++data.args.chunk_size=64000 ++data.args.overlap_size=32000 
+
+## Docker Build Instructions
+
+To build with the default options, simply run docker buildx bake.
+To build a specific target, use docker buildx bake <target>.
+To specify the platform, use docker buildx bake <target> --set <target>.platform=linux/amd64.
+
+```bash
+docker buildx bake 280-py311-cuda1281-cudnn-devel-ubuntu2204 --set 280-py311-cuda1281-cudnn-devel-ubuntu2204.platform=linux/amd64
+```

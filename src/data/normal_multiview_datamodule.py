@@ -109,7 +109,9 @@ class Dataset_for_eval(Dataset_base):
         # print("utt_id:", utt_id)
         # print("self.base_dir:", self.base_dir)
         filepath = os.path.join(self.base_dir, utt_id)
+        #print("filepath:", filepath)
         X, _ = librosa.load(filepath, sr=16000)
+        #print("loaded X:", X.shape)
         # apply augmentation at inference time
         if self.eval_augment is not None:
             # print("eval_augment:", self.eval_augment)

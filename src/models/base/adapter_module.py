@@ -23,7 +23,7 @@ class AdapterLitModule(BaseLitModule):
         adapter_type: Optional[str] = None,
         base_model_path: Optional[str] = None,
         adapter_paths: str = None,
-        adapter_weights: Optional[List[float]] = None,
+        adapter_weights: str = None,
         merge_adapters: bool = False,
         **kwargs,
     ) -> None:
@@ -62,10 +62,16 @@ class AdapterLitModule(BaseLitModule):
             # parse adapter_paths 
             print("Loading adapters from:", self.adapter_paths)
             self.adapter_paths = self.adapter_paths.split(",")
+            
+            if self.adapter_weights is not None:
+                self.adapter_weights = self.adapter_weights.split(",")
+                self.adapter_weights = [float(w) for w in self.adapter_weights if w.strip() != ""]
+            
             # if self.adapter_weights is None:
             #     self.adapter_weights = [1.0] * len(self.adapter_paths) # Default to equal weights
             
             if len(self.adapter_paths) > 1:
+                print("Loading multiple adapters...")
                 self.load_adapters(self.adapter_paths, self.adapter_weights)
             else:
                 self.load_single_lora_adapter(self.adapter_paths[0])
@@ -185,12 +191,6 @@ class AdapterLitModule(BaseLitModule):
         # import sys
         # sys.exit(1)    
 
-    def load_and_merge_adapters(self, adapter_paths: List[str], adapter_weights: List[float]):
-        """Handles merging multiple adapters."""
-        print(f"Merging adapters: {adapter_paths} with weights {adapter_weights}")
-        # Implement merging logic here
-
-    
     def load_separate_adapters(self, adapter_paths: List[str]):
         """Loads adapters separately without merging.
         
