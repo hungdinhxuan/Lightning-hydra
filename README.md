@@ -82,3 +82,24 @@ To specify the platform, use docker buildx bake <target> --set <target>.platform
 ```bash
 docker buildx bake 280-py311-cuda1281-cudnn-devel-ubuntu2204 --set 280-py311-cuda1281-cudnn-devel-ubuntu2204.platform=linux/amd64
 ```
+
+## April (ToP) cnsl
+```bash
+ CUDA_VISIBLE_DEVICES=3 OMP_NUM_THREADS=1 python src/train.py experiment=cnsl/xlsr_vib_large_corpus +model.score_save_path="/nvme1/hungdx/Lightning-hydra/logs/eval/cnsl/KoreanReadSpeechCorpus_april_xlsr_vib_large_corpus_s202412.txt"  ++data.data_dir="/nvme1/hungdx/Lightning-hydra/data/KoreanReadSpeechCorpus" ++data.args.protocol_path="/nvme1/hungdx/Lightning-hydra/data/KoreanReadSpeechCorpus/KoreanReadSpeechCorpus_protocol.txt" ++train=False ++test=True ++model.spec_eval=True ++data.batch_size=64
+ ```
+
+# Benchmark ToP april
+ ```bash
+./scripts/benchmark.sh -g 3 -c cnsl/xlsr_vib_large_corpus -b $(pwd)/data/huggingface_benchrmark_Speech-DF-Arena -m /datad/hungdx/KDW2V-AASISTL/pretrained/vib_conf-5_gelu_acmccs_apr3_moreko_telephone_epoch22.pth -r logs/results/huggingface_benchrmark_Speech-DF-Arena -n "ToP_April"
+ ```
+
+ # Benchmark Conformer + MDT
+ ```bash
+./scripts/benchmark.sh -g 2 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b $(pwd)/data/huggingface_benchrmark_Speech-DF-Arena -m /nvme1/hungdx/Lightning-hydra/logs/train/runs/2024-12-14_08-35-06-large-corpus-conf-1/checkpoints/averaged_top5.ckpt -r logs/results/huggingface_benchrmark_Speech-DF-Arena -n "Conformer_MDT_DEC2024_correct"
+ ```
+
+
+ # Benchmark ToP april
+ ```bash
+./scripts/benchmark.sh -g 3 -c cnsl/xlsr_vib_large_corpus -b $(pwd)/data/huggingface_benchrmark_Speech-DF-Arena -m /datad/pretrained/AudioDeepfakeCMs/vib/vib_asvspoof2019_epoch13.pth -r logs/results/huggingface_benchrmark_Speech-DF-Arena -n "ToP_LA19"
+ ```

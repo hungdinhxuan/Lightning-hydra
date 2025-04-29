@@ -37,7 +37,8 @@ from src.utils import (
 )
 
 log = RankedLogger(__name__, rank_zero_only=True)
-
+import warnings
+warnings.filterwarnings('ignore')
 
 @task_wrapper
 def train(cfg: DictConfig) -> Tuple[Dict[str, Any], Dict[str, Any]]:

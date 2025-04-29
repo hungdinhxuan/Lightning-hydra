@@ -29,7 +29,7 @@ class AdapterLitModule(BaseLitModule):
     ) -> None:
         super().__init__(optimizer, scheduler, args, **kwargs)
 
-        self.adapter_type = adapter_type.lower()  # Normalize input
+        self.adapter_type = adapter_type.lower() if adapter_type else None
         self.use_adapter = self.adapter_type is not None  # Generalized flag
         self.merge_adapters = merge_adapters
         self.base_model_path = base_model_path

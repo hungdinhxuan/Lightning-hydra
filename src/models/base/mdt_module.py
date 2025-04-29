@@ -65,8 +65,8 @@ class MDTLitModule(AdapterLitModule):
             cross_entropy_weight = torch.tensor([1.0, 1.0])
         self.criterion = torch.nn.CrossEntropyLoss(cross_entropy_weight)
         
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self.net(x)
+    # def forward(self, x: torch.Tensor) -> torch.Tensor:
+    #     return self.net(x)
 
     def on_train_start(self) -> None:
         """Lightning hook that is called when training begins."""

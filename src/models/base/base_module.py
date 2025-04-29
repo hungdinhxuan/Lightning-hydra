@@ -67,8 +67,8 @@ class BaseLitModule(LightningModule):
         """
         raise NotImplementedError("init_model method is not implemented")
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self.net(x)
+    def forward(self, x: torch.Tensor, inference_mode=False) -> torch.Tensor:
+        return self.net(x) if not inference_mode else self.net(x)[0] # for inference mode, return only the first element
 
     def on_train_start(self) -> None:
         """Lightning hook that is called when training begins."""
@@ -120,14 +120,14 @@ class BaseLitModule(LightningModule):
         else:
             raise ValueError("score_save_path is not provided")
 
-    def _export_score_file(self, batch: Tuple[torch.Tensor, torch.Tensor]) -> None:
+    def _export_score_file(self, batch: Tuple[torch.Tensor, torch.Tensor], interence_mode=True) -> None:
         """Get the score file for the batch of data.
 
         :param batch: A batch of data (a tuple) containing the input tensor of images and target
             labels.
         """
         batch_x, utt_id = batch
-        batch_out = self.net(batch_x)
+        batch_out = self.forward(batch_x, inference_mode=interence_mode)
 
         fname_list = list(utt_id)
         score_list = batch_out.data.cpu().numpy().tolist()
