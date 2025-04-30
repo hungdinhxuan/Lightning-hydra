@@ -103,3 +103,18 @@ docker buildx bake 280-py311-cuda1281-cudnn-devel-ubuntu2204 --set 280-py311-cud
  ```bash
 ./scripts/benchmark.sh -g 3 -c cnsl/xlsr_vib_large_corpus -b $(pwd)/data/huggingface_benchrmark_Speech-DF-Arena -m /datad/pretrained/AudioDeepfakeCMs/vib/vib_asvspoof2019_epoch13.pth -r logs/results/huggingface_benchrmark_Speech-DF-Arena -n "ToP_LA19"
  ```
+
+ # Benchmark ToP (LA19)
+ ```bash
+ ./scripts/benchmark.sh -g 2 -c cnsl/xlsr_vib_paper -b $(pwd)/data/huggingface_benchrmark_Speech-DF-Arena -m /datad/pretrained/AudioDeepfakeCMs/vib/vib_asvspoof2019_epoch13.pth -r logs/results/huggingface_benchrmark_Speech-DF-Arena -n "ToP_LA19"
+ ```
+
+ # Benchmark AASIST-SSL + MDT(LA19)
+ ```bash
+./scripts/benchmark.sh -g 2 -c huggingface_benchmark/xlsr_aasist_mdt_paper -b $(pwd)/data/huggingface_benchrmark_Speech-DF-Arena -m /nvme1/hungdx/Lightning-hydra/logs/train/runs/2024-10-16_21-04-31-conf-2/checkpoints/averaged_top5.ckpt -r logs/results/huggingface_benchrmark_Speech-DF-Arena -n "AASIST_SSL_MDT_LA19"
+ ```
+
+  # Benchmark ConformerTCM + MDT (LA19)
+ ```bash
+./scripts/benchmark.sh -g 2 -c huggingface_benchmark/xlsr_conformertcm_mdt_lora_infer -b $(pwd)/data/huggingface_benchrmark_Speech-DF-Arena -m /nvme1/hungdx/tcm_add/models/Conformer_w_TCM_LA_WCE_1e-06_ES144_H4_NE4_KS31_AUG3_w_sin_pos_multiview/best/avg_5_best_4.pth -r logs/results/huggingface_benchrmark_Speech-DF-Arena -n "ConformerTCM_MDT_LA19"
+ ```

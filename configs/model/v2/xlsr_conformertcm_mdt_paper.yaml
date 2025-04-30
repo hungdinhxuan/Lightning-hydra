@@ -1,0 +1,32 @@
+_target_: src.models.v2.xlsr_conformertcm_paper_module.XLSRConformerTCMNormalLitModule
+
+optimizer:
+  _target_: torch.optim.Adam
+  _partial_: true
+  lr: 0.000001
+  weight_decay: 0.0001
+
+scheduler: null
+
+args:
+  conformer:
+    emb_size: 144
+    heads: 4
+    kernel_size: 31
+    n_encoders: 4
+    # type: "conv" # conv_res2net, conv_seblock, conv_res2net_seblock
+    # pooling: "first"
+
+  adapter:
+    r: 16
+    target_modules: ["q_proj", "v_proj", "k_proj"]
+    modules_to_save: ""
+    lora_dropout: 0.0
+    lora_alpha: 8
+
+# kwargs
+ssl_pretrained_path: ${oc.env:XLSR_PRETRAINED_MODEL_PATH}
+cross_entropy_weight: [0.1, 0.9] # weight for cross entropy loss 0.1 for spoof and 0.9 for bonafide
+adapter_type: null
+base_model_path: /nvme1/hungdx/tcm_add/models/Conformer_w_TCM_LA_WCE_1e-06_ES144_H4_NE4_KS31_AUG3_w_sin_pos_multiview/best/avg_5_best_4.pth
+is_base_model_path_ln: true
