@@ -13,7 +13,8 @@ class SSLModel(nn.Module):
         cp_path = ssl_pretrained_path   # Change the pre-trained XLSR model path. 
         model, cfg, task = fairseq.checkpoint_utils.load_model_ensemble_and_task([cp_path])
         self.model = model[0]
-        self.out_dim = 1024
+        #self.out_dim = 1024
+        self.out_dim = self.model.cfg.encoder_embed_dim
 
     def extract_feat(self, input_data):
         if input_data.ndim == 3:

@@ -1,0 +1,29 @@
+_target_: src.models.v2.xlsr_conformertcm_mdt_module.XLSRConformertcmMDTLitModule
+
+optimizer:
+  _target_: torch.optim.Adam
+  _partial_: true
+  lr: 0.000001
+  weight_decay: 0.0001
+
+scheduler: null
+
+args:
+  conformer:
+    emb_size: 144
+    heads: 4
+    kernel_size: 31
+    n_encoders: 28 # 4 is default, however, we use 28 for better performance because frontend model right now is ~ 7 times bigger than previous one
+    type: "conv" # conv_res2net, conv_seblock, conv_res2net_seblock
+    pooling: "first"
+
+  adapter:
+    r: 16
+    target_modules: ["q_proj", "v_proj", "k_proj"]
+    modules_to_save: ""
+    lora_dropout: 0.0
+    lora_alpha: 8
+# kwargs
+ssl_pretrained_path: ${oc.env:XLSR_2B_PRETRAINED_MODEL_PATH}
+cross_entropy_weight: [0.1, 0.9] # weight for cross entropy loss 0.1 for spoof and 0.9 for bonafide
+adapter_type: null

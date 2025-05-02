@@ -17,16 +17,16 @@ from typing import Union
 
 
 class SSLModel(nn.Module):
-    def __init__(self, ssl_pretrained_path, n_layers):
+    def __init__(self, ssl_pretrained_path, n_layers, extractor_type='layerwise'):
         super(SSLModel, self).__init__()
         # Change the pre-trained XLSR model path.
         cp_path = ssl_pretrained_path
         model, cfg, task = fairseq.checkpoint_utils.load_model_ensemble_and_task([
                                                                                  cp_path])
         self.model = model[0]
-        self.out_dim = 1024
+        self.out_dim = self.model.cfg.encoder_embed_dim
         self.n_layers = n_layers
-        
+        self.extractor_type = extractor_type
         # Get the first n layers
         self.model.encoder.layers = self.model.encoder.layers[:self.n_layers]
 
@@ -34,17 +34,10 @@ class SSLModel(nn.Module):
         input_data = input_data.squeeze(1)
         dict_ = self.model(input_data, mask=False, features_only=True)
         x, layerresult = dict_['x'], dict_['layer_results']
-        # print("total layers: ", len(layerresult))
-        # for t in layerresult[:self.n_layers]:
-        #     if isinstance(t, tuple):
-        #         # print shape of t
-        #         print(t[0].permute(1, 0, 2).shape)
-        #     else:
-        #         print(t.shape)
-        # import sys
-        # sys.exit(1)
-        
-        return torch.stack([t[0].permute(1, 0, 2) if isinstance(t, tuple) else t for t in layerresult[:self.n_layers]], dim=1)
+        if self.extractor_type == 'layerwise':
+            return torch.stack([t[0].permute(1, 0, 2) if isinstance(t, tuple) else t for t in layerresult[:self.n_layers]], dim=1)
+        else:
+            return x
 
     def forward(self, input_data):
         return self.extract_feat(input_data)
