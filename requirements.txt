@@ -25,7 +25,7 @@ pytest          # tests
 
 # --------- audio --------- #
 pydub==0.25.1
-speechbrain==1.0.1
+speechbrain==1.0.2
 librosa==0.10.2.post1
 
 audiomentations==0.40.0
