@@ -8,7 +8,7 @@ args:
   # The sampling rate of the audio files
   protocols_path: ${oc.env:ASVSPOOF_PATH_PROTOCOLS}
   sample_rate: 16000
-  cut: 64000
+  cut: 64600
   padding_type: zero
   random_start: True
   # The number of views to use

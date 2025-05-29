@@ -98,12 +98,6 @@ docker buildx bake 280-py311-cuda1281-cudnn-devel-ubuntu2204 --set 280-py311-cud
 ./scripts/benchmark.sh -g 2 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b $(pwd)/data/huggingface_benchrmark_Speech-DF-Arena -m /nvme1/hungdx/Lightning-hydra/logs/train/runs/2024-12-14_08-35-06-large-corpus-conf-1/checkpoints/averaged_top5.ckpt -r logs/results/huggingface_benchrmark_Speech-DF-Arena -n "Conformer_MDT_DEC2024_correct"
  ```
 
-
- # Benchmark ToP april
- ```bash
-./scripts/benchmark.sh -g 3 -c cnsl/xlsr_vib_large_corpus -b $(pwd)/data/huggingface_benchrmark_Speech-DF-Arena -m /datad/pretrained/AudioDeepfakeCMs/vib/vib_asvspoof2019_epoch13.pth -r logs/results/huggingface_benchrmark_Speech-DF-Arena -n "ToP_LA19"
- ```
-
  # Benchmark ToP (LA19)
  ```bash
  ./scripts/benchmark.sh -g 2 -c cnsl/xlsr_vib_paper -b $(pwd)/data/huggingface_benchrmark_Speech-DF-Arena -m /datad/pretrained/AudioDeepfakeCMs/vib/vib_asvspoof2019_epoch13.pth -r logs/results/huggingface_benchrmark_Speech-DF-Arena -n "ToP_LA19"
@@ -128,3 +122,23 @@ docker buildx bake 280-py311-cuda1281-cudnn-devel-ubuntu2204 --set 280-py311-cud
  ```bash
 ./scripts/benchmark.sh -g 3 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_more_elevenlabs -b $(pwd)/data/huggingface_benchrmark_Speech-DF-Arena -m /nvme1/hungdx/Lightning-hydra/logs/train/runs/2024-12-14_08-35-06-large-corpus-conf-1/checkpoints/averaged_top5.ckpt -a /nvme1/hungdx/Lightning-hydra/logs/train/runs/2025-04-29_11-38-10-v4-corrected/checkpoints/epoch_020.ckpt -r logs/results/huggingface_benchrmark_Speech-DF-Arena -n "ConformerTCM_MDT_LoRA_LargeCorpus_MoreElevenlabs"
  ```
+
+# CNSL benchmark
+## ConformerTCM + MDT LoRA (Large corpus + More elevenlabs)
+```bash
+./scripts/benchmark.sh -g 2 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_more_elevenlabs -b $(pwd)/data/cnsl_benchmark -m /nvme1/hungdx/Lightning-hydra/logs/train/runs/2024-12-14_08-35-06-large-corpus-conf-1/checkpoints/averaged_top5.ckpt -a /nvme1/hungdx/Lightning-hydra/logs/train/runs/2025-04-29_11-38-10-v4-corrected/checkpoints/epoch_020.ckpt -r logs/results/cnsl_benchmark -n "ConformerTCM_MDT_LoRA_LargeCorpus_MoreElevenlabs"
+ ```
+ ## ToP April
+ ```bash
+./scripts/benchmark.sh -g 3 -c cnsl/xlsr_vib_large_corpus -b $(pwd)/data/cnsl_benchmark -m /datad/hungdx/KDW2V-AASISTL/pretrained/vib_conf-5_gelu_acmccs_apr3_moreko_telephone_epoch22.pth -r logs/results/cnsl_benchmark -n "ToP_April"
+ ```
+
+ # 2B benchmark
+ ```bash
+./scripts/benchmark2.sh -g 2 -c cnsl/xlsr_2b_conformertcm_layerwise_24_mdt_large_corpus -b $(pwd)/data/huggingface_benchrmark_Speech-DF-Arena -m /nvme1/hungdx/Lightning-hydra/logs/train/runs/2025-05-02_02-31-32-2b/checkpoints/epoch_018.ckpt -r logs/results/huggingface_benchrmark_Speech-DF-Arena -n "ConformerTCM_MDT_2B_LargeCorpus_e18"
+ ```
+
+ # 
+```bash
+./scripts/benchmark.sh -g 2 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b $(pwd)/data/cnsl_benchmark -m /nvme1/hungdx/Lightning-hydra/logs/train/runs/2024-12-14_08-35-06-large-corpus-conf-1/checkpoints/averaged_top5.ckpt -r logs/results/cnsl_benchmark -n "Conformer_MDT_DEC2024_correct"
+```

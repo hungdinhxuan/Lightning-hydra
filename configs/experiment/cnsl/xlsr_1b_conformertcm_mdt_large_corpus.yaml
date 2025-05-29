@@ -23,10 +23,9 @@ trainer:
 
 model:
   optimizer:
-    lr: 0.000001
+    lr: 0.00001
     weight_decay: 0.0001
   net: null
-  scheduler: null
   compile: true
   cross_entropy_weight: [0.7, 0.3] # Balanced weights for cross entropy loss
   weighted_views:
@@ -34,6 +33,13 @@ model:
     '2': 1.0
     '3': 1.0
     '4': 1.0
+
+  scheduler:
+    _target_: torch.optim.lr_scheduler.MultiStepLR
+    _partial_: true
+    milestones:
+      - 5
+    gamma : 0.1 # Multiplicative factor of learning rate decay.
 
 data:
   batch_size: 2

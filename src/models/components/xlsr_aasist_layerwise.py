@@ -25,15 +25,17 @@ class SSLModel(nn.Module):
                                                                                  cp_path])
         self.model = model[0]
         self.out_dim = self.model.cfg.encoder_embed_dim
-        self.n_layers = n_layers
+        self.n_layers = n_layers if n_layers is not None else self.model.cfg.encoder_layers
         self.extractor_type = extractor_type
         # Get the first n layers
+        print("Num layers: ", self.n_layers)
         self.model.encoder.layers = self.model.encoder.layers[:self.n_layers]
 
     def extract_feat(self, input_data):
         input_data = input_data.squeeze(1)
         dict_ = self.model(input_data, mask=False, features_only=True)
         x, layerresult = dict_['x'], dict_['layer_results']
+
         if self.extractor_type == 'layerwise':
             return torch.stack([t[0].permute(1, 0, 2) if isinstance(t, tuple) else t for t in layerresult[:self.n_layers]], dim=1)
         else:

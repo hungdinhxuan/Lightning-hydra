@@ -19,6 +19,10 @@ class XLSRConformertcmLayerwiseMDTLitModule(MDTLitModule):
         """
         super().__init__(optimizer, scheduler, args, **kwargs)
         self.net = self.init_model(**kwargs)
+        ssl_freeze = kwargs.get("ssl_freeze", False)
+        if ssl_freeze:
+            self.net.front_end.freeze_model()
+            print("SSL model frozen")
         self.init_adapter()
         
     def forward(self, x: torch.Tensor, inference_mode=False) -> torch.Tensor:

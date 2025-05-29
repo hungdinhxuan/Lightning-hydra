@@ -1,55 +1,25 @@
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, Tuple, Union, List
 
 import torch
 from lightning import LightningModule
 from torchmetrics import MaxMetric, MeanMetric
 from torchmetrics.classification.accuracy import BinaryAccuracy
-
-from typing import Union
-
-import torch
 from src.models.components.wavlm_layerwise_conformertcm import Model as WavlmConformerTCM
 
-
 class WavlmConformerTCMLitModule(LightningModule):
-    """Example of a `LightningModule` for MNIST classification.
-
-    A `LightningModule` implements 8 key methods:
-
-    ```python
-    def __init__(self):
-    # Define initialization code here.
-
-    def setup(self, stage):
-    # Things to setup before each stage, 'fit', 'validate', 'test', 'predict'.
-    # This hook is called on every process when using DDP.
-
-    def training_step(self, batch, batch_idx):
-    # The complete training step.
-
-    def validation_step(self, batch, batch_idx):
-    # The complete validation step.
-
-    def test_step(self, batch, batch_idx):
-    # The complete test step.
-
-    def predict_step(self, batch, batch_idx):
-    # The complete predict step.
-
-    def configure_optimizers(self):
-    # Define and configure optimizers and LR schedulers.
-    ```
-
-    Docs:
-        https://lightning.ai/docs/pytorch/latest/common/lightning_module.html
+    """LightningModule for WavLM-Conformer-TCM model with layerwise features and multiview support.
+    
+    This module implements a WavLM-Conformer-TCM model that:
+    1. Uses layerwise features from WavLM
+    2. Supports multiple views of the input data
+    3. Allows adaptive weighting of different views
+    4. Implements training, validation and testing steps
     """
 
     def __init__(
         self,
-        net: torch.nn.Module,
         optimizer: torch.optim.Optimizer,
         scheduler: torch.optim.lr_scheduler,
-        compile: bool,
         args: Union[Dict[str, Any], None] = None,
         ssl_pretrained_path: str = None,
         score_save_path: str = None,
@@ -61,16 +31,23 @@ class WavlmConformerTCMLitModule(LightningModule):
         n_layers: int = 24,
         ssl_freeze: bool = False,
     ) -> None:
-        """Initialize a `MNISTLitModule`.
+        """Initialize the WavLM-Conformer-TCM module.
 
-        :param net: The model to train.
-        :param optimizer: The optimizer to use for training.
-        :param scheduler: The learning rate scheduler to use for training.
+        Args:
+            optimizer: The optimizer to use for training
+            scheduler: The learning rate scheduler to use for training
+            args: Configuration arguments for the model
+            ssl_pretrained_path: Path to pretrained SSL model weights
+            score_save_path: Path to save prediction scores
+            cross_entropy_weight: Weights for cross entropy loss
+            weighted_views: Weights for different views
+            adaptive_weights: Whether to use adaptive view weights
+            spec_eval: Whether to use special evaluation mode
+            n_layers: Number of WavLM layers to use
+            ssl_freeze: Whether to freeze SSL model weights
         """
         super().__init__()
 
-        # this line allows to access init params with 'self.hparams' attribute
-        # also ensures init params will be stored in ckpt
         self.save_hyperparameters(logger=False)
         self.spec_eval = spec_eval
 
@@ -88,8 +65,6 @@ class WavlmConformerTCMLitModule(LightningModule):
         self.val_acc = BinaryAccuracy()
         self.test_acc = BinaryAccuracy()
         self.score_save_path = score_save_path
-        
-        print("weighted_views: ", weighted_views)
 
         self.train_view_acc = {
             view: BinaryAccuracy() for view in weighted_views
@@ -159,264 +134,222 @@ class WavlmConformerTCMLitModule(LightningModule):
             print("Adaptive weights are enabled")
 
     def model_step(
-        self, batch: Tuple[torch.Tensor, torch.Tensor]
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        self, batch: Dict[str, Tuple[torch.Tensor, torch.Tensor]]
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, Dict[str, float], Dict[str, List]]:
         """Perform a single model step on a batch of data.
 
-        :param batch: A batch of data (a tuple) containing the input tensor of images and target labels.
+        Args:
+            batch: A dictionary mapping view keys to tuples of (input_tensor, target_tensor)
 
-        :return: A tuple containing (in order):
-            - A tensor of losses.
-            - A tensor of predictions.
-            - A tensor of target labels.
-            - A dictionary of loss details for each view.
-            - A dictionary of accuracy metrics for each view.
+        Returns:
+            Tuple containing:
+            - Total loss tensor
+            - Concatenated predictions tensor
+            - Concatenated target labels tensor
+            - Dictionary of per-view losses
+            - Dictionary of per-view accuracy metrics
         """
         train_loss = 0.0
         all_preds = []
         all_labels = []
         loss_detail = {}
         view_acc = {}
+
         for view, (x, y) in batch.items():
-            '''
-            In the case of multi-view, the batch is a dictionary with the view as the key and the value
-            is a tuple of the input tensor and target tensor.
-
-
-                view: int
-                x: sub-minibatch of input tensor
-                y: sub-minibatch of target tensor
-
-                Example:
-                 view: 1
-                 x: shape (batch_size, view * sample_rate)
-                 y: shape (batch_size, 1)
-            '''
-            self.batch_size = x.size(0) * len(self.weighted_views.keys())  # Update batch size 
-
             view = str(view)  # Convert view to string for indexing
+            self.batch_size = x.size(0) * len(self.weighted_views.keys())
 
-            # Ensure the input tensor is of type float
-            x = x.float()
-
-            logits = self.forward(x)
-            # print size of logits and size of y
-            loss = self.criterion(
-                logits, y) * self.weighted_views[str(view)]  # Weighted loss
+            # Forward pass
+            logits = self.forward(x.float())
+            loss = self.criterion(logits, y) * self.weighted_views[view]
             train_loss += loss
             preds = torch.argmax(logits, dim=1)
 
-            # Update view accuracy metric to view_acc
-            # Initialize view accuracy metric
-            view_acc[view] = view_acc.get(view, [])
-
-            # Append predictions and target to view_acc
-            view_acc[view].append([preds.cpu(), y.cpu()])
-
-            # Collect predictions and labels
+            # Store predictions and labels
             all_preds.append(preds)
             all_labels.append(y)
+            
+            # Update metrics
+            view_acc[view] = [[preds.cpu(), y.cpu()]]
+            loss_detail[view] = loss.item()
 
-            # Intialize loss_detail dictionary
-            loss_detail[view] = loss_detail.get(view, 0) + loss.item()
-
-        # self.running_loss += train_loss.item()
-
-        # Concatenate all predictions and labels
+        # Concatenate predictions and labels
         all_preds = torch.cat(all_preds)
         all_labels = torch.cat(all_labels)
 
         return train_loss, all_preds, all_labels, loss_detail, view_acc
 
     def training_step(
-        self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int
+        self, batch: Dict[str, Tuple[torch.Tensor, torch.Tensor]], batch_idx: int
     ) -> torch.Tensor:
-        """Perform a single training step on a batch of data from the training set.
+        """Perform a single training step on a batch of data.
 
-        :param batch: A batch of data (a tuple) containing the input tensor of images and target
-            labels.
-        :param batch_idx: The index of the current batch.
-        :return: A tensor of losses between model predictions and targets.
+        Args:
+            batch: A dictionary mapping view keys to tuples of (input_tensor, target_tensor)
+            batch_idx: The index of the current batch
+
+        Returns:
+            Loss tensor for backpropagation
         """
         loss, preds, targets, loss_detail, view_acc = self.model_step(batch)
-
         self.running_loss += loss.item()
 
-        # Update train_view_acc and log metrics
-        for k, v in view_acc.items():
-            # Initialize train_view_acc dictionary
-            self.train_view_acc[k] = self.train_view_acc.get(
-                k, BinaryAccuracy())
-            _preds, _targets = v[0]
-            # v[0] is preds, v[1] is targets
-            self.train_view_acc[k](_preds, _targets)
-            # self.log(f"train/view_{k}_acc", self.train_view_acc[k].compute(), on_step=False, on_epoch=True, prog_bar=True, sync_dist=True)
-
-        # Update train_loss_detail and log metrics
-        for k, v in loss_detail.items():
-            # Initialize train_loss_detail dictionary
-            self.train_loss_detail[k] = self.train_loss_detail.get(
-                k, MeanMetric())
-            self.train_loss_detail[k](v)
-
-            # self.train_loss_detail[k] = self.train_loss_detail.get(k, 0) + v
-            # self.log(f"train/view_{k}_loss", self.train_loss_detail[k].compute(), on_step=False, on_epoch=True, prog_bar=True, sync_dist=True)
-
-        # Update and log train loss and accuracy
+        # Update metrics
         self.train_loss(loss)
         self.train_acc(preds, targets)
+
+        # Update per-view metrics
+        for view, (view_preds, view_targets) in view_acc.items():
+            self.train_view_acc[view](view_preds, view_targets)
+            self.train_loss_detail[view] = self.train_loss_detail.get(view, MeanMetric())
+            self.train_loss_detail[view](loss_detail[view])
+
+        # Log metrics
         self.log("train/loss", self.train_loss, on_step=False, on_epoch=True,
                  prog_bar=True, sync_dist=True, batch_size=self.batch_size)
         self.log("train/acc", self.train_acc, on_step=False, on_epoch=True,
                  prog_bar=True, sync_dist=True, batch_size=self.batch_size)
 
-        self.log_dict({f"adaptive_weight_{k}": v for k, v in self.weighted_views.items(
-        )}, on_step=False, on_epoch=True, prog_bar=True, sync_dist=True)
-        # Return loss for backpropagation
+        # Log adaptive weights if enabled
+        if self.adaptive_weights:
+            self.log_dict({f"adaptive_weight_{k}": v for k, v in self.weighted_views.items()},
+                         on_step=False, on_epoch=True, prog_bar=True, sync_dist=True)
+
         return loss
 
     def on_train_epoch_end(self) -> None:
-        "Lightning hook that is called when a training epoch ends."
-        for k, v in self.train_view_acc.items():
-            self.log(
-                f"train/view_{k}_acc", self.train_view_acc[k].compute(), prog_bar=True, sync_dist=True)
+        """Lightning hook that is called when a training epoch ends."""
+        # Log per-view metrics
+        for view in self.train_view_acc:
+            self.log(f"train/view_{view}_acc", self.train_view_acc[view].compute(),
+                     prog_bar=True, sync_dist=True)
+            self.log(f"train/view_{view}_loss", self.train_loss_detail[view].compute(),
+                     prog_bar=True, sync_dist=True)
 
-        for k, v in self.train_loss_detail.items():
-            self.log(
-                f"train/view_{k}_loss", self.train_loss_detail[k].compute(), prog_bar=True, sync_dist=True)
-
-        # Log current adaptive_weights
+        # Log adaptive weights if enabled
         if self.adaptive_weights:
-            print(self.weighted_views)
-            self.log_dict({f"adaptive_weight_{k}": v for k, v in self.weighted_views.items(
-            )}, on_epoch=True, prog_bar=True, sync_dist=True)
+            self.log_dict({f"adaptive_weight_{k}": v for k, v in self.weighted_views.items()},
+                         on_epoch=True, prog_bar=True, sync_dist=True)
 
-    def validation_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> None:
-        """Perform a single validation step on a batch of data from the validation set.
+    def validation_step(
+        self, batch: Dict[str, Tuple[torch.Tensor, torch.Tensor]], batch_idx: int
+    ) -> None:
+        """Perform a single validation step on a batch of data.
 
-        :param batch: A batch of data (a tuple) containing the input tensor of images and target
-            labels.
-        :param batch_idx: The index of the current batch.
+        Args:
+            batch: A dictionary mapping view keys to tuples of (input_tensor, target_tensor)
+            batch_idx: The index of the current batch
         """
         loss, preds, targets, loss_detail, view_acc = self.model_step(batch)
 
-        # Update val_view_acc and log metrics
-        for k, v in view_acc.items():
-            # Initialize val_view_acc dictionary
-            self.val_view_acc[k] = self.val_view_acc.get(k, BinaryAccuracy())
-            _preds, _targets = v[0]
-            # v[0] is preds, v[1] is targets
-            self.val_view_acc[k](_preds, _targets)
-            # self.log(f"val/view_{k}_acc", self.val_view_acc[k].compute(), on_step=False, on_epoch=True, prog_bar=True, sync_dist=True)
-
-        # Update val_loss_detail and log metrics
-        for k, v in loss_detail.items():
-            # Initialize val_loss_detail dictionary
-            self.val_loss_detail[k] = self.val_loss_detail.get(k, MeanMetric())
-            self.val_loss_detail[k](v)
-            # self.log(f"val/view_{k}_loss", self.val_loss_detail[k].compute(), on_step=False, on_epoch=True, prog_bar=True, sync_dist=True)
-
-        # Update and log val loss and accuracy
+        # Update metrics
         self.val_loss(loss)
         self.val_acc(preds, targets)
+
+        # Update per-view metrics
+        for view, (view_preds, view_targets) in view_acc.items():
+            self.val_view_acc[view](view_preds, view_targets)
+            self.val_loss_detail[view] = self.val_loss_detail.get(view, MeanMetric())
+            self.val_loss_detail[view](loss_detail[view])
+
+        # Log metrics
         self.log("val/loss", self.val_loss, on_step=False, on_epoch=True,
                  prog_bar=True, sync_dist=True, batch_size=self.batch_size)
         self.log("val/acc", self.val_acc, on_step=False, on_epoch=True,
                  prog_bar=True, sync_dist=True, batch_size=self.batch_size)
 
     def on_validation_epoch_end(self) -> None:
-        "Lightning hook that is called when a validation epoch ends."
-        acc = self.val_acc.compute()  # get current val acc
-        self.val_acc_best(acc)  # update best so far val acc
-
-        for k, v in self.val_loss_detail.items():
-            self.log(
-                f"val/view_{k}_loss", self.val_loss_detail[k].compute(), prog_bar=True, sync_dist=True)
-
-        for k, v in self.val_view_acc.items():
-            acc = v.compute()
-            self.val_view_acc_best[k](acc)
-            self.log(
-                f"val/view_{k}_acc", self.val_view_acc[k].compute(), prog_bar=True, sync_dist=True)
-            self.log(
-                f"val/view_{k}_acc_best", self.val_view_acc_best[k].compute(), prog_bar=True, sync_dist=True)
-
-        # log `val_acc_best` as a value through `.compute()` method, instead of as a metric object
-        # otherwise metric would be reset by lightning after each epoch
+        """Lightning hook that is called when a validation epoch ends."""
+        # Update and log best validation accuracy
+        acc = self.val_acc.compute()
+        self.val_acc_best(acc)
         self.log("val/acc_best", self.val_acc_best.compute(),
                  sync_dist=True, prog_bar=True, batch_size=self.batch_size)
 
-    def test_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> None:
-        """Perform a single test step on a batch of data from the test set.
+        # Log per-view metrics
+        for view in self.val_view_acc:
+            acc = self.val_view_acc[view].compute()
+            self.val_view_acc_best[view](acc)
+            self.log(f"val/view_{view}_acc", acc, prog_bar=True, sync_dist=True)
+            self.log(f"val/view_{view}_acc_best", self.val_view_acc_best[view].compute(),
+                     prog_bar=True, sync_dist=True)
+            self.log(f"val/view_{view}_loss", self.val_loss_detail[view].compute(),
+                     prog_bar=True, sync_dist=True)
 
-        :param batch: A batch of data (a tuple) containing the input tensor of images and target
-            labels.
-        :param batch_idx: The index of the current batch.
+    def test_step(
+        self, batch: Dict[str, Tuple[torch.Tensor, torch.Tensor]], batch_idx: int
+    ) -> None:
+        """Perform a single test step on a batch of data.
+
+        Args:
+            batch: A dictionary mapping view keys to tuples of (input_tensor, target_tensor)
+            batch_idx: The index of the current batch
         """
-        if self.score_save_path is not None:
-            self._export_score_file(batch)
-        else:
-            raise ValueError("score_save_path is not provided")
-
-    def _export_score_file(self, batch: Tuple[torch.Tensor, torch.Tensor]) -> None:
-        """Get the score file for the batch of data.
-
-        :param batch: A batch of data (a tuple) containing the input tensor of images and target
-            labels.
-        """
-        batch_x, utt_id = batch
-        batch_out = self.net(batch_x)
-
-        fname_list = list(utt_id)
-        score_list = batch_out.data.cpu().numpy().tolist()
-
-        with open(self.score_save_path, 'a+') as fh:
-            for f, cm in zip(fname_list, score_list):
-                fh.write('{} {} {}\n'.format(f, cm[0], cm[1])) if self.spec_eval else fh.write(
-                    '{} {}\n'.format(f, cm[1]))
+        if self.score_save_path is None:
+            raise ValueError("score_save_path must be provided for testing")
+            
+        loss, preds, targets, loss_detail, view_acc = self.model_step(batch)
+        
+        # Update metrics
+        self.test_loss(loss)
+        self.test_acc(preds, targets)
+        
+        # Update per-view metrics
+        for view, (view_preds, view_targets) in view_acc.items():
+            self.test_view_acc[view] = self.test_view_acc.get(view, BinaryAccuracy())
+            self.test_view_acc[view](view_preds, view_targets)
+            
+        # Log metrics
+        self.log("test/loss", self.test_loss, on_step=False, on_epoch=True,
+                 prog_bar=True, sync_dist=True, batch_size=self.batch_size)
+        self.log("test/acc", self.test_acc, on_step=False, on_epoch=True,
+                 prog_bar=True, sync_dist=True, batch_size=self.batch_size)
 
     def on_test_epoch_end(self) -> None:
         """Lightning hook that is called when a test epoch ends."""
-        pass
+        # Log per-view metrics
+        for view in self.test_view_acc:
+            self.log(f"test/view_{view}_acc", self.test_view_acc[view].compute(),
+                     prog_bar=True, sync_dist=True)
 
     def setup(self, stage: str) -> None:
-        """Lightning hook that is called at the beginning of fit (train + validate), validate,
-        test, or predict.
+        """Lightning hook that is called at the beginning of fit, validate, test, or predict.
 
-        This is a good hook when you need to build models dynamically or adjust something about
-        them. This hook is called on every process when using DDP.
-
-        :param stage: Either `"fit"`, `"validate"`, `"test"`, or `"predict"`.
+        Args:
+            stage: Either "fit", "validate", "test", or "predict"
         """
-        # if self.hparams.compile and stage == "fit":
-        #     self.net = torch.compile(self.net)
         pass
 
     def configure_optimizers(self) -> Dict[str, Any]:
-        """Choose what optimizers and learning-rate schedulers to use in your optimization.
-        Normally you'd need one. But in the case of GANs or similar you might have multiple.
+        """Configure optimizers and learning rate schedulers.
 
-        Examples:
-            https://lightning.ai/docs/pytorch/latest/common/lightning_module.html#configure-optimizers
-
-        :return: A dict containing the configured optimizers and learning-rate schedulers to be used for training.
+        Returns:
+            Dictionary containing optimizer and optional scheduler configuration
         """
-        optimizer = self.hparams.optimizer(
-            params=self.trainer.model.parameters())
-        if self.hparams.scheduler is not None:
-            scheduler = self.hparams.scheduler(optimizer=optimizer)
-            return {
-                "optimizer": optimizer,
-                "lr_scheduler": {
-                    "scheduler": scheduler,
-                    "monitor": "val/loss",
-                    "interval": "epoch",
-                    "frequency": 1,
-                },
-            }
-        return {"optimizer": optimizer}
+        optimizer = self.hparams.optimizer(params=self.trainer.model.parameters())
+        
+        if self.hparams.scheduler is None:
+            return {"optimizer": optimizer}
+            
+        scheduler = self.hparams.scheduler(optimizer=optimizer)
+        return {
+            "optimizer": optimizer,
+            "lr_scheduler": {
+                "scheduler": scheduler,
+                "monitor": "val/loss",
+                "interval": "epoch",
+                "frequency": 1,
+            },
+        }
 
-    def optimizer_zero_grad(self, epoch, batch_idx, optimizer):
+    def optimizer_zero_grad(self, epoch: int, batch_idx: int, optimizer: torch.optim.Optimizer) -> None:
+        """Zero out gradients with improved memory efficiency.
+
+        Args:
+            epoch: Current epoch number
+            batch_idx: Current batch index
+            optimizer: The optimizer to zero gradients for
+        """
         optimizer.zero_grad(set_to_none=True)
 
 

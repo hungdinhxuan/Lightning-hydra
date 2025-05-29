@@ -376,6 +376,7 @@ class NormalDataModule(LightningDataModule):
             with open(self.protocol_path, 'r') as f:
                 l_meta = f.readlines()
             for line in l_meta:
+                #print(line)
                 utt, subset, label = line.strip().split()
                 if subset == 'train':
                     file_list.append(utt)

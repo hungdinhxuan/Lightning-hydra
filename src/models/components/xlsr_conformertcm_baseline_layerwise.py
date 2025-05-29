@@ -10,7 +10,7 @@ class Model(nn.Module):
     def __init__(self, args, ssl_pretrained_path, n_layers, extractor_type='layerwise'):
         super().__init__()
         self.front_end = SSLModel(ssl_pretrained_path, n_layers, extractor_type)
-        self.n_layers = n_layers
+        self.n_layers = self.front_end.n_layers
         self.extractor_type = extractor_type
         if extractor_type == 'layerwise':
             self.layer_norm = nn.BatchNorm2d(num_features=self.n_layers)
