@@ -57,7 +57,7 @@ show_usage() {
     print_color "$BLUE" "│                 Bulk Benchmark Runner Script                    │"
     print_color "$BLUE" "└─────────────────────────────────────────────────────────────────┘"
     echo ""
-    print_color "$CYAN" "Usage: $0 -g <gpu_number> -c <yaml_config_file> -b <bulk_benchmark_folder> -m <base_model_path> -r <results_folder> -n <comment> [-a <adapter_paths>]"
+    print_color "$CYAN" "Usage: $0 -g <gpu_number> -c <yaml_config_file> -b <bulk_benchmark_folder> -m <base_model_path> -r <results_folder> -n <comment> [-a <adapter_paths>] [-l <is_base_model_path_ln>]"
     echo ""
     print_color "$YELLOW" "Parameters:"
     echo "  -g <gpu_number>             GPU number to use (0, 1, 2, 3, ...)"
@@ -67,6 +67,7 @@ show_usage() {
     echo "  -r <results_folder>         Results folder path"
     echo "  -n <comment>                Comment to note"
     echo "  -a <adapter_paths>          Adapter paths (optional)"
+    echo "  -l <is_base_model_path_ln>  Whether to use Lightning checkpoint loading (default: true)"
     exit 1
 }
 
@@ -83,7 +84,7 @@ print_banner() {
 print_banner
 
 # Parse command line arguments
-while getopts "g:c:b:m:r:n:a:" opt; do
+while getopts "g:c:b:m:r:n:a:l:" opt; do
     case $opt in
         g) GPU_NUMBER="$OPTARG" ;;
         c) YAML_CONFIG="$OPTARG" ;;
@@ -92,6 +93,7 @@ while getopts "g:c:b:m:r:n:a:" opt; do
         r) RESULTS_FOLDER="$OPTARG" ;;
         n) COMMENT="$OPTARG" ;;
         a) ADAPTER_PATHS="$OPTARG" ;;
+        l) IS_BASE_MODEL_PATH_LN="$OPTARG" ;;
         *) show_usage ;;
     esac
 done
@@ -100,6 +102,11 @@ done
 if [ -z "$GPU_NUMBER" ] || [ -z "$YAML_CONFIG" ] || [ -z "$BENCHMARK_FOLDER" ] || [ -z "$BASE_MODEL_PATH" ] || [ -z "$RESULTS_FOLDER" ]; then
     print_color "$RED" "Error: Missing required parameters"
     show_usage
+fi
+
+# Set default value for IS_BASE_MODEL_PATH_LN if not provided
+if [ -z "$IS_BASE_MODEL_PATH_LN" ]; then
+    IS_BASE_MODEL_PATH_LN="true"
 fi
 
 # Ensure benchmark folder exists
@@ -123,6 +130,7 @@ NORMALIZED_YAML=$(echo "$YAML_CONFIG" | tr '/' '_')
 echo "Config: $YAML_CONFIG" > "$SUMMARY_FILE"
 echo "Base_model_path: $BASE_MODEL_PATH" >> "$SUMMARY_FILE"
 echo "Lora Path: ${ADAPTER_PATHS:-None}" >> "$SUMMARY_FILE"
+echo "Is Base Model Path LN: $IS_BASE_MODEL_PATH_LN" >> "$SUMMARY_FILE"
 echo "Date: $TIMESTAMP" >> "$SUMMARY_FILE"
 echo "" >> "$SUMMARY_FILE"
 echo "Dataset | EER | min_score | max_score | Threshold | Accuracy" >> "$SUMMARY_FILE"
@@ -215,6 +223,7 @@ for subfolder in "${SUBDIRS[@]}"; do
     CMD+="++data.args.protocol_path=\"$PROTOCOL_PATH\" "
     CMD+="++train=False ++test=True ++model.spec_eval=True ++data.batch_size=128 "
     CMD+="++model.base_model_path=\"$BASE_MODEL_PATH\" "
+    CMD+="++model.is_base_model_path_ln=$IS_BASE_MODEL_PATH_LN "
     
     # Add adapter paths if provided
     if [ ! -z "$ADAPTER_PATHS" ]; then

@@ -142,3 +142,13 @@ docker buildx bake 280-py311-cuda1281-cudnn-devel-ubuntu2204 --set 280-py311-cud
 ```bash
 ./scripts/benchmark.sh -g 2 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b $(pwd)/data/cnsl_benchmark -m /nvme1/hungdx/Lightning-hydra/logs/train/runs/2024-12-14_08-35-06-large-corpus-conf-1/checkpoints/averaged_top5.ckpt -r logs/results/cnsl_benchmark -n "Conformer_MDT_DEC2024_correct"
 ```
+
+# Merge lora weights to base model
+```bash
+python scripts/inference/merge_lora_to_base.py --checkpoint_path="/datad/pretrained/AudioDeepfakeCMs/S_241214_conf-1.pth" --config_path="/nvme1/hungdx/Lightning-hydra/configs/experiment/cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_more_elevenlabs.yaml" --lora_path="/datad/pretrained/AudioDeepfakeCMs/lora/MDT_241214_lora_250418" --output_path="/nvme1/hungdx/Lightning-hydra/logs/best_ckpt/MDT_241214_lora_250418_merged.pth"
+```
+
+## benchmark again merged lora model
+```bash
+./scripts/benchmark.sh -g 2 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b $(pwd)/data/cnsl_benchmark -m /nvme1/hungdx/Lightning-hydra/logs/best_ckpt/MDT_241214_lora_250418_merged.pth -r logs/results/cnsl_benchmark -n "merged_ConformerTCM_MDT_LoRA_LargeCorpus_MoreElevenlabs"
+```

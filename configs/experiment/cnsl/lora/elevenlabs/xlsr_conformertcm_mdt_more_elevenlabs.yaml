@@ -46,6 +46,13 @@ model:
       lora_dropout: 0.0
       lora_alpha: 16
       #init_lora_weights: "gaussian"
+    conformer:
+      emb_size: 144
+      heads: 4
+      kernel_size: 31
+      n_encoders: 4
+      type: "conv" # conv_res2net, conv_seblock, conv_res2net_seblock
+      pooling: "first"
   
   weighted_views:
     '1': 1

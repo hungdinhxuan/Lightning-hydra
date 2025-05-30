@@ -84,8 +84,7 @@ class AdapterLitModule(BaseLitModule):
             self.net.set_adapter(adapter_name)
         else:
             self.net = PeftModel.from_pretrained(self.net, checkpoint_path)
-            self.net.merge_and_unload()
-        
+        self.net.merge_and_unload()
         print(f"Loaded LoRA adapter from {checkpoint_path}")
     
     def apply_adapter(self):
@@ -249,9 +248,3 @@ class AdapterLitModule(BaseLitModule):
         
         # Provide info on how to switch adapters
         print("To switch adapters, use: model.set_adapter(adapter_name)")
-    
-    # def test_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> None:
-    #     """Overridden test step to handle adapter-specific logic."""
-    #     if self.use_adapter:
-    #         self.net = self.net.merge_and_unload()
-    #     super().test_step(batch, batch_idx)
