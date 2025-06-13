@@ -5,16 +5,59 @@ import soundfile as sf
 import torch
 import torchaudio
 from typing import Union
+import shutil
 
 
-def load_audio(file_path: str, sr: int = 16000) -> np.ndarray:
+def get_cache_path(file_path: str, cache_dir: str) -> str:
+    """
+    Convert file path to cache path
+    Example:
+        input: /nvme1/0.wav
+        output: cache_dir/nvme1/0.npy
+    """
+    # Get the directory and filename without extension
+    dir_name = os.path.dirname(file_path)
+    file_name = os.path.splitext(os.path.basename(file_path))[0]
+    
+    # Create cache directory structure
+    cache_subdir = os.path.join(cache_dir, dir_name.lstrip('/'))
+    os.makedirs(cache_subdir, exist_ok=True)
+    
+    # Return full cache path
+    return os.path.join(cache_subdir, f"{file_name}.npy")
+
+
+def load_audio(file_path: str, sr: int = 16000, cache_dir: str = None) -> np.ndarray:
     '''
-    Load audio file
+    Load audio file with caching support
     file_path: path to the audio file
     sr: sampling rate, default 16000
+    cache_dir: directory to store cached audio files, if None caching is disabled
     '''
     if not os.path.exists(file_path):
         raise FileNotFoundError(f"File {file_path} not found")
+
+    # If caching is enabled, try to load from cache first
+    if cache_dir is not None:
+        cache_path = get_cache_path(file_path, cache_dir)
+        
+        # Try to load from cache
+        if os.path.exists(cache_path):
+            try:
+                return np.load(cache_path)
+            except Exception as e:
+                print(f"Error loading cache file {cache_path}: {e}")
+                # If cache loading fails, continue with normal loading
+        
+        # Load audio and cache it
+        audio, _ = librosa.load(file_path, sr=sr)
+        try:
+            np.save(cache_path, audio)
+        except Exception as e:
+            print(f"Error saving cache file {cache_path}: {e}")
+        return audio
+    
+    # If caching is disabled, load normally
     audio, _ = librosa.load(file_path, sr=sr)
     return audio
 

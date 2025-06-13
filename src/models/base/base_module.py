@@ -31,7 +31,11 @@ class BaseLitModule(LightningModule):
         # loss function
         
         self.criterion = self.init_criteria(**kwargs)
-
+        
+        # Optional: Initialize buffered writing for better performance
+        self._write_buffer = []
+        self._buffer_size = kwargs.get("write_buffer_size", 100)  # Buffer 100 batches by default
+  
         # metric objects for calculating and averaging accuracy across batches
         self.train_acc = BinaryAccuracy()
         self.val_acc = BinaryAccuracy()
@@ -116,29 +120,54 @@ class BaseLitModule(LightningModule):
         :param batch_idx: The index of the current batch.
         """
         if self.score_save_path is not None:
-            self._export_score_file(batch)
+            self._export_score_file(batch, batch_idx)
         else:
             raise ValueError("score_save_path is not provided")
 
-    def _export_score_file(self, batch: Tuple[torch.Tensor, torch.Tensor], interence_mode=True) -> None:
+    def _export_score_file(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int, inference_mode=True) -> None:
         """Get the score file for the batch of data.
 
         :param batch: A batch of data (a tuple) containing the input tensor of images and target
             labels.
+        :param batch_idx: The index of the current batch.
         """
         batch_x, utt_id = batch
-        batch_out = self.forward(batch_x, inference_mode=interence_mode)
+        
+        # Forward pass
+        batch_out = self.forward(batch_x, inference_mode=inference_mode)
+        
+        # Optimized tensor to numpy conversion (avoid .data and .tolist())
+        if batch_out.is_cuda:
+            scores_np = batch_out.detach().cpu().numpy()
+        else:
+            scores_np = batch_out.detach().numpy()
+        
+        # Pre-build all lines for batch writing (much faster than line-by-line)
+        if self.spec_eval:
+            batch_lines = [f'{fname} {scores[0]} {scores[1]}\n' 
+                          for fname, scores in zip(utt_id, scores_np)]
+        else:
+            batch_lines = [f'{fname} {scores[1]}\n' 
+                          for fname, scores in zip(utt_id, scores_np)]
+        
+        # Use buffered writing for maximum performance
+        self._write_buffer.extend(batch_lines)
+        
+        # Flush buffer when it reaches the specified size
+        if len(self._write_buffer) >= self._buffer_size * len(batch_lines):
+            self._flush_buffer()
 
-        fname_list = list(utt_id)
-        score_list = batch_out.data.cpu().numpy().tolist()
-
-        with open(self.score_save_path, 'a+') as fh:
-            for f, cm in zip(fname_list, score_list):
-                fh.write('{} {} {}\n'.format(f, cm[0], cm[1])) if self.spec_eval else fh.write(
-                    '{} {}\n'.format(f, cm[1]))
+    def _flush_buffer(self):
+        """Flush the write buffer to file."""
+        if self._write_buffer:
+            with open(self.score_save_path, 'a') as fh:
+                fh.writelines(self._write_buffer)
+            self._write_buffer.clear()
 
     def on_test_epoch_end(self) -> None:
         """Lightning hook that is called when a test epoch ends."""
+        # Ensure any remaining buffered data is written
+        self._flush_buffer()
         pass
 
     def setup(self, stage: str) -> None:
@@ -175,10 +204,6 @@ class BaseLitModule(LightningModule):
                 },
             }
         return {"optimizer": optimizer}
-    
-
-        
-        print(f"Loaded LoRA adapter from {checkpoint_path}")
     
     def optimizer_zero_grad(self, epoch, batch_idx, optimizer):
         optimizer.zero_grad(set_to_none=True)

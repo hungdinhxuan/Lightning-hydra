@@ -33,13 +33,13 @@ class Dataset_for(Dataset_base):
                                           augmentation_methods, eval_augment, num_additional_real, num_additional_spoof,
                                           trim_length, wav_samp_rate, noise_path, rir_path,
                                           aug_dir, online_aug, repeat_pad, is_train, random_start)
-        # self.args.online_aug = online_aug
         self.padding_type = "repeat" if repeat_pad else "zero"
+        self.cache_dir = args.get('cache_dir', None)
 
     def __getitem__(self, idx):
         utt_id = self.list_IDs[idx]
         filepath = os.path.join(self.base_dir, utt_id)
-        X = load_audio(filepath, self.sample_rate)
+        X = load_audio(filepath, self.sample_rate, cache_dir=self.cache_dir)
 
         # apply augmentation
         # randomly choose an augmentation method
@@ -70,12 +70,15 @@ class Dataset_for_dev(Dataset_base):
                                               aug_dir, online_aug, repeat_pad, is_train, random_start)
         self.padding_type = "repeat" if repeat_pad else "zero"
         self.is_dev_aug = kwargs.get('is_dev_aug', False)
+        self.cache_dir = args.get('cache_dir', None)
         if self.is_dev_aug:
             print("Dev aug is enabled")
+
     def __getitem__(self, index):
         utt_id = self.list_IDs[index]
         filepath = os.path.join(self.base_dir, utt_id)
-        X, fs = librosa.load(filepath, sr=16000)
+        X = load_audio(filepath, self.sample_rate, cache_dir=self.cache_dir)
+        
         # apply augmentation at inference time
         if self.is_dev_aug:
             augmethod_index = random.choice(range(len(self.augmentation_methods))) if len(
@@ -104,6 +107,7 @@ class Dataset_for_eval(Dataset_base):
                                                aug_dir, online_aug, repeat_pad, is_train, random_start)
         self.enable_chunking = enable_chunking
         self.padding_type = "repeat" if repeat_pad else "zero"
+        self.cache_dir = args.get('cache_dir', None)
         print("Chunking enabled:", self.enable_chunking)
         print("trim_length:", trim_length)
         print("padding_type:", self.padding_type)
@@ -113,10 +117,9 @@ class Dataset_for_eval(Dataset_base):
 
     def __getitem__(self, idx):
         utt_id = self.list_IDs[idx]
-        # print("utt_id:", utt_id)
-        # print("self.base_dir:", self.base_dir)
         filepath = os.path.join(self.base_dir, utt_id)
-        X, _ = librosa.load(filepath, sr=16000)
+        X = load_audio(filepath, self.sample_rate, cache_dir=self.cache_dir)
+        
         # apply augmentation at inference time
         if self.eval_augment is not None:
             # print("eval_augment:", self.eval_augment)
@@ -183,6 +186,7 @@ class NormalDataModule(LightningDataModule):
         pin_memory: bool = False,
         args: Optional[Dict[str, Any]] = None,
         chunking_eval: bool = False,
+        enable_cache: bool = False,
     ) -> None:
         """Initialize a `ASVSpoofDataModule`.
 
@@ -190,6 +194,7 @@ class NormalDataModule(LightningDataModule):
         :param batch_size: The batch size. Defaults to `64`.
         :param num_workers: The number of workers. Defaults to `0`.
         :param pin_memory: Whether to pin memory. Defaults to `False`.
+        :param enable_cache: Whether to enable caching. Defaults to `False`.
         """
         super().__init__()
 
@@ -203,8 +208,8 @@ class NormalDataModule(LightningDataModule):
 
         self.batch_size_per_device = batch_size
         self.data_dir = data_dir
-
         self.args = args
+        self.enable_cache = enable_cache
         self.chunking_eval = chunking_eval
         self.data_dir = data_dir
         self.protocol_path = args.get(
@@ -222,15 +227,7 @@ class NormalDataModule(LightningDataModule):
         pass
 
     def setup(self, stage: Optional[str] = None) -> None:
-        """Load data. Set variables: `self.data_train`, `self.data_val`, `self.data_test`.
-
-        This method is called by Lightning before `trainer.fit()`, `trainer.validate()`, `trainer.test()`, and
-        `trainer.predict()`, so be careful not to execute things like random split twice! Also, it is called after
-        `self.prepare_data()` and there is a barrier in between which ensures that all the processes proceed to
-        `self.setup()` once the data is prepared and available for use.
-
-        :param stage: The stage to setup. Either `"fit"`, `"validate"`, `"test"`, or `"predict"`. Defaults to ``None``.
-        """
+        """Load data. Set variables: `self.data_train`, `self.data_val`, `self.data_test`."""
         # Divide batch size by the number of devices.
         if self.trainer is not None:
             if self.hparams.batch_size % self.trainer.world_size != 0:
@@ -241,9 +238,7 @@ class NormalDataModule(LightningDataModule):
 
         # load and split datasets only if not loaded already
         if not self.data_train and not self.data_val and not self.data_test:
-
             # define train dataloader
-
             d_label_trn, file_train = self.genList(
                 is_train=True, is_eval=False, is_dev=False)
 
@@ -255,6 +250,23 @@ class NormalDataModule(LightningDataModule):
             d_meta, file_eval = self.genList(
                 is_train=False, is_eval=True, is_dev=False)
             print('no. of evaluation trials', len(file_eval))
+
+            # Add cache settings to args
+            if self.args is None:
+                self.args = {}
+            
+            # Check both enable_cache parameter and args.enable_cache
+            cache_enabled = self.enable_cache or self.args.get('enable_cache', False)
+            cache_dir = self.args.get('cache_dir')
+            
+            if cache_enabled and cache_dir is not None:
+                print(f"Cache is ENABLED")
+                print(f"Using cache directory: {cache_dir}")
+                self.args['cache_dir'] = cache_dir
+            else:
+                print(f"Cache is DISABLED")
+                self.args['cache_dir'] = None
+
             self.data_train = Dataset_for(self.args, list_IDs=file_train, labels=d_label_trn,
                                           base_dir=self.data_dir+'/',  **self.args)
 

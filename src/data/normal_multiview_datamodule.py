@@ -34,18 +34,20 @@ class Dataset_for(Dataset_base):
                                           trim_length, wav_samp_rate, noise_path, rir_path,
                                           aug_dir, online_aug, repeat_pad, is_train, random_start)
         # self.args.online_aug = online_aug
+        
+        # Pre-compute augmentation indices for efficiency
+        self.aug_method_count = len(self.augmentation_methods)
+        self.use_augmentation = self.aug_method_count > 0
 
     def __getitem__(self, idx):
         utt_id = self.list_IDs[idx]
         filepath = os.path.join(self.base_dir, utt_id)
         X = load_audio(filepath, self.sample_rate)
 
-        # apply augmentation
-        # randomly choose an augmentation method
-        augmethod_index = random.choice(range(len(self.augmentation_methods))) if len(
-            self.augmentation_methods) > 0 else -1
-
-        if augmethod_index >= 0:
+        # apply augmentation - optimized selection
+        if self.use_augmentation:
+            # More efficient than random.choice(range(len(...)))
+            augmethod_index = random.randrange(self.aug_method_count)
             # print("Augmenting with", self.augmentation_methods[augmethod_index])
             X = globals()[self.augmentation_methods[augmethod_index]](X, self.args, self.sample_rate,
                                                                       audio_path=filepath)
@@ -67,19 +69,30 @@ class Dataset_for_dev(Dataset_base):
                                               trim_length, wav_samp_rate, noise_path, rir_path,
                                               aug_dir, online_aug, repeat_pad, is_train, random_start)
         self.is_dev_aug = kwargs.get('is_dev_aug', False)
+        # Use consistent caching
+        self.cache_dir = kwargs.get('cache_dir')
+        
+        # Pre-compute augmentation indices for efficiency
+        self.aug_method_count = len(self.augmentation_methods)
+        self.use_augmentation = self.is_dev_aug and self.aug_method_count > 0
+        
         if self.is_dev_aug:
             print("Dev aug is enabled")
+
     def __getitem__(self, index):
         utt_id = self.list_IDs[index]
         filepath = os.path.join(self.base_dir, utt_id)
-        X, fs = librosa.load(filepath, sr=16000)
-        if self.is_dev_aug:
-            augmethod_index = random.choice(range(len(self.augmentation_methods))) if len(
-            self.augmentation_methods) > 0 else -1
-            if augmethod_index >= 0:
-                # print("Augmenting with", self.augmentation_methods[augmethod_index])
-                X = globals()[self.augmentation_methods[augmethod_index]](X, self.args, self.sample_rate,
-                                                                        audio_path=filepath)
+        
+        # Use load_audio for consistency and caching
+        X = load_audio(filepath, sr=self.sample_rate, cache_dir=self.cache_dir)
+        
+        # Optimized augmentation selection
+        if self.use_augmentation:
+            # More efficient than random.choice(range(len(...)))
+            augmethod_index = random.randrange(self.aug_method_count)
+            # print("Augmenting with", self.augmentation_methods[augmethod_index])
+            X = globals()[self.augmentation_methods[augmethod_index]](X, self.args, self.sample_rate,
+                                                                    audio_path=filepath)
         x_inp = Tensor(X)
         target = self.labels[utt_id]
         return x_inp, target
@@ -97,6 +110,8 @@ class Dataset_for_eval(Dataset_base):
                                                aug_dir, online_aug, repeat_pad, is_train, random_start)
         self.enable_chunking = enable_chunking
         self.padding_type = "repeat" if repeat_pad else "zero"
+        # Use consistent caching
+        self.cache_dir = kwargs.get('cache_dir')
         print("Chunking enabled:", self.enable_chunking)
         print("trim_length:", trim_length)
         print("padding_type:", self.padding_type)
@@ -110,7 +125,10 @@ class Dataset_for_eval(Dataset_base):
         # print("self.base_dir:", self.base_dir)
         filepath = os.path.join(self.base_dir, utt_id)
         #print("filepath:", filepath)
-        X, _ = librosa.load(filepath, sr=16000)
+        
+        # Use load_audio for consistency and caching
+        X = load_audio(filepath, sr=self.sample_rate, cache_dir=self.cache_dir)
+        
         #print("loaded X:", X.shape)
         # apply augmentation at inference time
         if self.eval_augment is not None:
@@ -178,6 +196,7 @@ class NormalDataModule(LightningDataModule):
         pin_memory: bool = False,
         args: Optional[Dict[str, Any]] = None,
         chunking_eval: bool = False,
+        enable_cache: bool = False,
     ) -> None:
         """Initialize a `ASVSpoofDataModule`.
 
@@ -185,6 +204,7 @@ class NormalDataModule(LightningDataModule):
         :param batch_size: The batch size. Defaults to `64`.
         :param num_workers: The number of workers. Defaults to `0`.
         :param pin_memory: Whether to pin memory. Defaults to `False`.
+        :param enable_cache: Whether to enable caching. Defaults to `False`.
         """
         super().__init__()
 
@@ -199,6 +219,7 @@ class NormalDataModule(LightningDataModule):
         self.batch_size_per_device = batch_size
         self.data_dir = data_dir
         self.args = args
+        self.enable_cache = enable_cache
         self.protocol_path = args.get(
             'protocol_path', os.path.join(self.data_dir, 'protocol.txt'))
         self.is_variable_multi_view = args.get(
@@ -252,15 +273,7 @@ class NormalDataModule(LightningDataModule):
         pass
 
     def setup(self, stage: Optional[str] = None) -> None:
-        """Load data. Set variables: `self.data_train`, `self.data_val`, `self.data_test`.
-
-        This method is called by Lightning before `trainer.fit()`, `trainer.validate()`, `trainer.test()`, and
-        `trainer.predict()`, so be careful not to execute things like random split twice! Also, it is called after
-        `self.prepare_data()` and there is a barrier in between which ensures that all the processes proceed to
-        `self.setup()` once the data is prepared and available for use.
-
-        :param stage: The stage to setup. Either `"fit"`, `"validate"`, `"test"`, or `"predict"`. Defaults to ``None``.
-        """
+        """Load data. Set variables: `self.data_train`, `self.data_val`, `self.data_test`."""
         # Divide batch size by the number of devices.
         if self.trainer is not None:
             if self.hparams.batch_size % self.trainer.world_size != 0:
@@ -271,9 +284,7 @@ class NormalDataModule(LightningDataModule):
 
         # load and split datasets only if not loaded already
         if not self.data_train and not self.data_val and not self.data_test:
-
             # define train dataloader
-
             d_label_trn, file_train = self.genList(
                 is_train=True, is_eval=False, is_dev=False)
 
@@ -285,6 +296,23 @@ class NormalDataModule(LightningDataModule):
             d_meta, file_eval = self.genList(
                 is_train=False, is_eval=True, is_dev=False)
             print('no. of evaluation trials', len(file_eval))
+
+            # Add cache settings to args
+            if self.args is None:
+                self.args = {}
+            
+            # Check both enable_cache parameter and args.enable_cache
+            cache_enabled = self.enable_cache or self.args.get('enable_cache', False)
+            cache_dir = self.args.get('cache_dir')
+            
+            if cache_enabled and cache_dir is not None:
+                print(f"Cache is ENABLED")
+                print(f"Using cache directory: {cache_dir}")
+                self.args['cache_dir'] = cache_dir
+            else:
+                print(f"Cache is DISABLED")
+                self.args['cache_dir'] = None
+
             self.data_train = Dataset_for(self.args, list_IDs=file_train, labels=d_label_trn,
                                           base_dir=self.data_dir+'/',  **self.args)
 
@@ -323,6 +351,7 @@ class NormalDataModule(LightningDataModule):
             pin_memory=self.hparams.pin_memory,
             shuffle=False,
             collate_fn=self.collate_fn,
+            persistent_workers=True if self.hparams.num_workers > 0 else False
         )
 
     def test_dataloader(self) -> DataLoader[Any]:
@@ -337,6 +366,7 @@ class NormalDataModule(LightningDataModule):
             pin_memory=self.hparams.pin_memory,
             shuffle=False,
             collate_fn=self.eval_collator,
+            persistent_workers=True if self.hparams.num_workers > 0 else False
         )
 
     def teardown(self, stage: Optional[str] = None) -> None:
@@ -367,46 +397,32 @@ class NormalDataModule(LightningDataModule):
         """
             This function generates the list of files and their corresponding labels
             Specifically for the standard CNSL dataset
+            Optimized to read protocol file only once
         """
         # bonafide: 1, spoof: 0
         d_meta = {}
         file_list = []
 
-        if (is_train):
-            with open(self.protocol_path, 'r') as f:
-                l_meta = f.readlines()
-            for line in l_meta:
-                #print(line)
-                utt, subset, label = line.strip().split()
-                if subset == 'train':
-                    file_list.append(utt)
-                    d_meta[utt] = 1 if label == 'bonafide' else 0
-
-            return d_meta, file_list
-        if (is_dev):
-            with open(self.protocol_path, 'r') as f:
-                l_meta = f.readlines()
-            for line in l_meta:
-                utt, subset, label = line.strip().split()
-                if subset == 'dev':
-                    file_list.append(utt)
-                    d_meta[utt] = 1 if label == 'bonafide' else 0
-            return d_meta, file_list
-
-        if (is_eval):
-            # no eval self.protocol_path yet
-            with open(self.protocol_path, 'r') as f:
-                l_meta = f.readlines()
-            for line in l_meta:
-                utt, subset, label = line.strip().split()
-                # if subset == 'eval' or subset == 'test':
-                #     file_list.append(utt)
-                #     d_meta[utt] = 1 if label == 'bonafide' else 0
-
+        # Read protocol file only once - major optimization!
+        with open(self.protocol_path, 'r') as f:
+            l_meta = f.readlines()
+        
+        # Parse all data in single pass
+        for line in l_meta:
+            utt, subset, label = line.strip().split()
+            label_val = 1 if label == 'bonafide' else 0
+            
+            if is_train and subset == 'train':
                 file_list.append(utt)
-                d_meta[utt] = 1 if label == 'bonafide' else 0
-            # return d_meta, file_list
-            return d_meta, file_list
+                d_meta[utt] = label_val
+            elif is_dev and subset == 'dev':
+                file_list.append(utt)
+                d_meta[utt] = label_val
+            elif is_eval and (subset == 'eval' or subset == 'test'):
+                file_list.append(utt)
+                d_meta[utt] = label_val
+
+        return d_meta, file_list
 
 
 if __name__ == "__main__":
