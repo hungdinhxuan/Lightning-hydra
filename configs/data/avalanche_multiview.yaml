@@ -1,0 +1,72 @@
+_target_: src.data.avalanche_multiview_datamodule.AvalancheMultiViewDataModule
+data_dir: ${oc.env:AVALANCHE_DATA_DIR}
+batch_size: 16
+num_workers: 4
+pin_memory: True
+args:
+  # Number of experiences in the continual learning scenario
+  n_experiences: 5
+  
+  # Base directories for each split
+  split_dirs:
+    train: train
+    dev: dev
+    eval: eval
+
+  # Multi-view configuration
+  views: [1, 2, 3, 4]
+  view_padding_configs:
+    '1':
+      padding_type: repeat
+      random_start: False
+    '2':
+      padding_type: repeat
+      random_start: False
+    '3':
+      padding_type: repeat
+      random_start: False
+    '4':
+      padding_type: repeat
+      random_start: False
+
+  # Data augmentation
+  augmentation_methods:
+    - "RawBoost12"
+    - "pitch_1"
+    - "volume_10"
+    - "speed_01"
+    - "none"
+
+  # Audio processing parameters
+  wav_samp_rate: 16000
+  trim_length: 64000
+  online_aug: true
+  aug_dir: ${oc.env:AUG_PATH}
+  noise_path: ${oc.env:NOISE_PATH}
+  rir_path: ${oc.env:RIR_PATH}
+  repeat_pad: True
+  random_start: True
+  padding_type: repeat
+
+  # Experience-specific configurations
+  experience_configs:
+    exp1:
+      name: "Basic Spoofing"
+      description: "Basic spoofing attacks"
+      attack_types: ["replay", "synthesis"]
+    exp2:
+      name: "Advanced Spoofing"
+      description: "Advanced spoofing attacks"
+      attack_types: ["voice_conversion", "tts"]
+    exp3:
+      name: "Complex Spoofing"
+      description: "Complex spoofing attacks"
+      attack_types: ["hybrid", "unknown"]
+    exp4:
+      name: "Adversarial Spoofing"
+      description: "Adversarial spoofing attacks"
+      attack_types: ["adversarial", "gan"]
+    exp5:
+      name: "Novel Spoofing"
+      description: "Novel spoofing attacks"
+      attack_types: ["novel", "zero_shot"] 

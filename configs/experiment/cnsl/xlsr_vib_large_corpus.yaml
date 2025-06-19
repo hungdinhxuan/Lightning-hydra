@@ -4,7 +4,7 @@
 # python train.py experiment=example
 
 defaults:
-  - override /data: normal_largecorpus_multiview_cnsl
+  - override /data: normal_largecorpus_for_asvspoof5
   - override /model: v2/xlsr_vib
   - override /callbacks: default_loss_earlystop
   - override /trainer: default
@@ -12,7 +12,7 @@ defaults:
 # all parameters below will be merged with parameters from default configurations set above
 # this allows you to overwrite only specified parameters
 
-tags: ["normal_largecorpus_multiview_cnsl", "xlsr_vib"]
+tags: ["normal_largecorpus_for_asvspoof5", "xlsr_vib"]
 
 seed: 1234
 
@@ -40,7 +40,7 @@ data:
   num_workers: 8
   pin_memory: true
   args:
-    augmentation_methods: ["RawBoostdf", "pitch_v1", "background_noise_v1"] # "none" is the original data
+    augmentation_methods: ["none"] # "none" is the original data
     padding_type: repeat
     random_start: True
     view_padding_configs:
@@ -64,6 +64,6 @@ data:
 logger:
   wandb:
     tags: ${tags}
-    group: "normal_largecorpus_multiview_cnsl"
+    group: "normal_largecorpus_for_asvspoof5"
   aim:
-    experiment: "normal_largecorpus_multiview_cnsl"
+    experiment: "normal_largecorpus_for_asvspoof5"

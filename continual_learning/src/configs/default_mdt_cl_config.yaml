@@ -1,0 +1,46 @@
+model:
+  ssl_pretrained_path: "path/to/ssl/model"
+  conformer_config:
+    input_dim: 1024
+    num_heads: 8
+    num_layers: 6
+    dropout: 0.1
+    use_relative_pos: true
+  replay_buffer_size: 1000
+  weighted_views:
+    "1": 1.0  # Short duration
+    "2": 1.0  # Medium duration
+    "3": 1.0  # Long duration
+  adaptive_weights: true
+
+training:
+  batch_size: 32
+  max_epochs: 100
+  patience: 10
+  lr: 1e-4
+  weight_decay: 1e-5
+  eval_every: 1
+  num_workers: 4
+  device: "cuda"
+
+data:
+  data_dir: "data"
+  protocol_dir: "protocols"
+  cache_dir: null
+  enable_cache: false
+  wav_samp_rate: 16000
+  trim_length: 66800
+  padding_type: "repeat"
+  random_start: false
+  views: 3
+  view_padding_configs:
+    min_duration: 16000
+    max_duration: 64000
+    top_k: 4
+
+logging:
+  checkpoint_dir: "checkpoints"
+  log_dir: "logs"
+  save_top_k: 3
+  monitor: "val/acc"
+  mode: "max" 

@@ -1,0 +1,69 @@
+# @package _global_
+
+# specify here default training configuration
+defaults:
+  - _self_
+  - data: avalanche_multiview.yaml
+  - model: v2/xlsr_conformertcm_mdt_lora.yaml
+  - callbacks: default.yaml
+  - logger: wandb.yaml
+  - trainer: default.yaml
+  - paths: default.yaml
+  - extras: default.yaml
+  - hydra: default.yaml
+
+# experiment configs allow for version control of specific hyperparameters
+# e.g. best hyperparameters for given model and datamodule
+# experiment configs are meant to be used with `python src/train.py experiment=experiment_name`
+experiment: null
+
+# debugging config (enable through submitit launcher)
+debug: false
+
+# disable python warnings if they annoy you
+ignore_warnings: true
+
+# set False to skip model training
+train: True
+
+# evaluate on test set, using best model weights achieved during training
+# lightning chooses best weights based on the metric specified in checkpoint callback
+test: True
+
+# seed for random number generators in pytorch, numpy and python.random
+seed: 42
+
+# Avalanche configuration
+avalanche:
+  # Number of experiences in the continual learning scenario
+  n_experiences: 2
+  
+  # Strategy selection
+  strategy: "replay"  # Options: "naive", "replay", "ewc", "lwf"
+  
+  # Strategy-specific parameters
+  replay_buffer_size: 1000  # For replay strategy
+  ewc_lambda: 0.4  # For EWC strategy
+  lwf_alpha: 1.0  # For LwF strategy
+  lwf_temperature: 2.0  # For LwF strategy
+  
+  # MDT-specific parameters
+  weighted_views:  # View weights for MDT
+    "1": 1.0
+    "2": 1.0
+    "3": 1.0
+    "4": 1.0
+  adaptive_weights: false  # Whether to use adaptive weights for views
+
+# optimize metric to optimize
+# if not specified, will use the first metric in the list of metrics in the model
+optimized_metric: "val/acc"
+
+# path to original working directory
+# hydra hijacks working directory by changing it to the new log directory
+# so it's useful to have this path as a special variable
+# https://hydra.cc/docs/next/tutorials/basic/running_your_app/working_directory
+work_dir: ${hydra:runtime.cwd}
+
+# path to a base config to use with --config-name
+config_name: train 

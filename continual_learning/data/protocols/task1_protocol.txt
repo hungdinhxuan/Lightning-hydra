@@ -1,0 +1,8 @@
+May31_25/b08/10/1.wav train bonafide
+May31_25/b08/10/2.wav train spoof
+May31_25/b08/11/1.wav train bonafide
+May31_25/b08/11/2.wav train spoof
+May31_25/b08/12/1.wav dev bonafide
+May31_25/b08/12/2.wav dev spoof
+May31_25/b08/13/1.wav eval bonafide
+May31_25/b08/13/2.wav eval spoof 

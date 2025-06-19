@@ -3,10 +3,14 @@ data_dir: ${oc.env:LARGE_CORPUS_FOR_CNSL}
 batch_size: 16 
 num_workers: 4
 pin_memory: True
+enable_cache: false  # Enable caching at the top level
 args:
   # The number of views to use
   views: [1, 2, 3, 4]
   protocol_path: ${oc.env:LARGE_CORPUS_FOR_CNSL_PROTOCOLS}
+  # Cache settings
+  cache_dir: ${oc.env:CACHE_DIR}  # Directory for cache
+  enable_cache: false  # Whether to enable caching in args
   # The sampling rate of the audio files
   nBands: 5
   minF: 20

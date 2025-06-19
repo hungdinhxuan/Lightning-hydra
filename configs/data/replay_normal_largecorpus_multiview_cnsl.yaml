@@ -1,12 +1,21 @@
-_target_: src.data.cl.replay_normal_multiview_datamodule.ReplayNormalDataModule
-data_dir: ${oc.env:LARGE_CORPUS_FOR_CNSL}
+_target_: src.data.replay_multiview_datamodule.ReplayDataModule
+data_dir: ${oc.env:CL_DATA_DIR}
 batch_size: 16 
 num_workers: 4
 pin_memory: True
+enable_cache: false  # Enable caching at the top level
+# Replay-specific parameters
+novel_ratio: 0.7  # Ratio of novel samples in each batch
+replay_ratio: 0.3  # Ratio of replay samples in each batch
+novel_protocol_path: ${oc.env:CL_DATA_DIR}/protocols/novel_protocol.txt  # Protocol file for novel set
+replay_protocol_path: ${oc.env:CL_DATA_DIR}/protocols/replay_protocol.txt  # Protocol file for replay set
+chunking_eval: false  # Whether to use chunking for evaluation
 args:
   # The number of views to use
   views: [1, 2, 3, 4]
-  protocol_paths: ${oc.env:LARGE_CORPUS_FOR_CNSL_CONTINUOUS_PROTOCOLS}
+  # Cache settings
+  cache_dir: ${oc.env:CACHE_DIR}  # Directory for cache
+  enable_cache: false  # Whether to enable caching in args
   # The sampling rate of the audio files
   nBands: 5
   minF: 20

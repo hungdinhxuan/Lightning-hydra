@@ -1,0 +1,27 @@
+{
+    "data_dir": "data",
+    "protocol_dir": "data/protocols",
+    "batch_size": 32,
+    "num_workers": 4,
+    "ssl_pretrained_path": "path/to/ssl/model",
+    "conformer_config": {
+        "input_dim": 1024,
+        "encoder_dim": 256,
+        "num_encoder_layers": 6,
+        "num_attention_heads": 8,
+        "feed_forward_expansion_factor": 4,
+        "conv_expansion_factor": 2,
+        "dropout": 0.1
+    },
+    "learning_rate": 1e-4,
+    "epochs": 10,
+    "device": "cuda",
+    "replay_strategy": "reservoir",
+    "replay_buffer_size": 1000,
+    "replay_batch_size": 32,
+    "log_dir": "experiments/logs",
+    "checkpoint_dir": "checkpoints",
+    "tensorboard_dir": "experiments/logs/tensorboard",
+    "eval_every": 1,
+    "save_every": 1
+} 
