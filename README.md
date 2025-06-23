@@ -214,3 +214,12 @@ python tests/test_merge_lora.py \
 ```bash
 ./scripts/benchmark.sh -g 3 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_more_elevenlabs -b $(pwd)/data/CL_benchmark -m /nvme1/hungdx/Lightning-hydra/logs/train/runs/2024-12-14_08-35-06-large-corpus-conf-1/checkpoints/averaged_top5.ckpt -a /nvme1/hungdx/Lightning-hydra/logs/train/runs/2025-06-10_13-14-47/checkpoints/epoch_058.ckpt -r logs/results/CL_benchmark -n "ConformerTCM_MDT_LoRA_exp_2.1_june10"
 ```
+
+# Benchmark multi-duration  (MDT) paper
+## ConformerTCM + MDT paper 
+```bash
+bash scripts/benchmark_mdt_paper.sh -g 3 -c huggingface_benchmark/xlsr_conformertcm_mdt_lora_infer -b data/mdt_paper_benchmark -m /nvme1/hungdx/tcm_add/models/Conformer_w_TCM_LA_WCE_1e-06_ES144_H4_NE4_KS31_AUG3_w_sin_pos_multiview/best/avg_5_best_4.pth -r results/conformertcm_mdt_paper --random_start False -l False
+```
+## AASIST-SSL + MDT paper
+```bash
+bash scripts/benchmark_mdt_paper.sh -g 2 -c huggingface_benchmark/xlsr_aasist_mdt_paper -b data/mdt_paper_benchmark -m /nvme1/hungdx/Lightning-hydra/logs/train/runs/2024-10-16_21-04-31-conf-2/checkpoints/averaged_top5.ckpt -r results/aasistssl_mdt_paper --random_start False -l True
