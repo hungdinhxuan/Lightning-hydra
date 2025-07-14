@@ -60,7 +60,7 @@ model:
     '3': 1
     '4': 1
   
-  base_model_path: "/datad/pretrained/AudioDeepfakeCMs/S_241214_conf-1.pth"
+  base_model_path: "/nvme1/hungdx/Lightning-hydra/notebooks/S_241214_conf-1.pth"
   
 data:
   batch_size: 16

@@ -7,13 +7,21 @@ import subprocess
 import logging
 logger = logging.getLogger(__name__)
 
-def recursive_list_files(path: str, file_type: str =["wav", "mp3", "flac"]) -> list:
+def recursive_list_files(path: str, file_type: list = ["wav", "mp3", "flac"]) -> list:
     """Recursively lists all files in a directory and its subdirectories"""
     files = []
-    for dirpath, dirnames, filenames in os.walk(path):
+    if not os.path.exists(path):
+        logger.warning(f"Path does not exist: {path}")
+        return files
+        
+    # Convert file types to lowercase for case-insensitive comparison
+    file_type_lower = [ft.lower() for ft in file_type]
+    
+    # Use followlinks=True to follow symbolic links
+    for dirpath, dirnames, filenames in os.walk(path, followlinks=True):
         for filename in filenames:
-            real_file_type = filename.split(".")[-1]
-            if (real_file_type in file_type):
+            real_file_type = filename.split(".")[-1].lower()
+            if real_file_type in file_type_lower:
                 files.append(os.path.join(dirpath, filename))
     return files
 

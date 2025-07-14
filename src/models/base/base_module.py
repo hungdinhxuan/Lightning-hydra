@@ -6,6 +6,8 @@ from torchmetrics.classification.accuracy import BinaryAccuracy
 from typing import Union
 from torch import nn
 import torch
+import os
+import numpy as np
 from src.utils import load_ln_model_weights
 
 
@@ -26,6 +28,12 @@ class BaseLitModule(LightningModule):
         self.last_emb = kwargs.get("last_emb", False)
         self.emb_save_path = kwargs.get("emb_save_path", None)
         self.args = args
+        
+        # Create embedding save directory if specified
+        if self.emb_save_path is not None:
+            if not os.path.exists(self.emb_save_path):
+                os.makedirs(self.emb_save_path)
+        
         self.net = self.init_model(**kwargs)
         self.kwargs = kwargs
         # loss function
@@ -119,10 +127,13 @@ class BaseLitModule(LightningModule):
             labels.
         :param batch_idx: The index of the current batch.
         """
-        if self.score_save_path is not None:
-            self._export_score_file(batch, batch_idx)
+        if self.last_emb:
+            self._export_embedding_file(batch)
         else:
-            raise ValueError("score_save_path is not provided")
+            if self.score_save_path is not None:
+                self._export_score_file(batch, batch_idx)
+            else:
+                raise ValueError("score_save_path is not provided")
 
     def _export_score_file(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int, inference_mode=True) -> None:
         """Get the score file for the batch of data.
@@ -207,3 +218,18 @@ class BaseLitModule(LightningModule):
     
     def optimizer_zero_grad(self, epoch, batch_idx, optimizer):
         optimizer.zero_grad(set_to_none=True)
+
+    def _export_embedding_file(self, batch: Tuple[torch.Tensor, torch.Tensor]) -> None:
+        """ Get the embedding file for the batch of data.
+        :param batch: A batch of data (a tuple) containing the input tensor of images and target
+            labels.
+        """
+        batch_x, utt_id = batch
+        batch_emb = self.net(batch_x, last_emb=True)
+        
+        fname_list = list(utt_id)
+
+        for f, emb in zip(fname_list, batch_emb):
+            f = f.split('/')[-1].split('.')[0]  # utt id only
+            save_path_utt = os.path.join(self.emb_save_path, f)
+            np.save(save_path_utt, emb.data.cpu().numpy())

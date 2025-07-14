@@ -1,6 +1,7 @@
 from .base import BaseAugmentor
 import numpy as np
 import logging
+from .utils import librosa_to_pydub
 logger = logging.getLogger(__name__)
 
 
@@ -44,4 +45,5 @@ class EchoAugmentor(BaseAugmentor):
             echo_audio[delay_samples:] += decay * self.audio_data[:-delay_samples]
         
         self.augmented_audio = echo_audio
+        self.augmented_audio = librosa_to_pydub(self.augmented_audio, sr=self.sr)
         

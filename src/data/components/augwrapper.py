@@ -3,7 +3,7 @@ import numpy as np
 import librosa
 
 from src.data.components.RawBoost import ISD_additive_noise, LnL_convolutive_noise, SSI_additive_noise, normWav
-from src.data.components.audio_augmentor import BackgroundNoiseAugmentor, PitchAugmentor, ReverbAugmentor, SpeedAugmentor, VolumeAugmentor, TelephoneEncodingAugmentor, GaussianAugmentor, CopyPasteAugmentor, BaseAugmentor, TimeMaskingAugmentor, FrequencyMaskingAugmentor, MaskingAugmentor, TimeSwapAugmentor, FrequencySwapAugmentor, SwappingAugmentor, LinearFilterAugmentor, BandpassAugmentor, TimeStretchAugmentor, HighPassFilterAugmentor, AutoTuneAugmentor, EchoAugmentor, AmplitudeModulationAugmentor, GaussianAugmentorV1
+from src.data.components.audio_augmentor import BackgroundNoiseAugmentor, PitchAugmentor, ReverbAugmentor, SpeedAugmentor, VolumeAugmentor, TelephoneEncodingAugmentor, GaussianAugmentor, CopyPasteAugmentor, BaseAugmentor, TimeMaskingAugmentor, FrequencyMaskingAugmentor, MaskingAugmentor, TimeSwapAugmentor, FrequencySwapAugmentor, SwappingAugmentor, LinearFilterAugmentor, BandpassAugmentor, TimeStretchAugmentor, HighPassFilterAugmentor, LowPassFilterAugmentor, AutoTuneAugmentor, EchoAugmentor, AmplitudeModulationAugmentor, GaussianAugmentorV1, BackgroundMusicAugmentorDeepen, BackgroundNoiseAugmentorDeepen, BackgroundMusicAugmentorDeepen, FrequencyOperationAugmentorDeepen, ResampleAugmentor, BackgroundNoiseAugmentorAudiomentations, EchoAugmentorDeepen
 from src.data.components.audio_augmentor.utils import pydub_to_librosa, librosa_to_pydub
 
 import soundfile as sf
@@ -14,7 +14,7 @@ SUPPORTED_AUGMENTATION = [
     'RawBoostdf', 'RawBoost12', 'RawBoostFull', 'copy_paste_80', 'copy_paste_r', 'time_masking', 'masking', 'time_swap', 'time_stretch_v1', 'pitch_v1', 'background_noise_v1', 'highpass_filter_v1',
     'freq_swap', 'swapping', 'frequency_masking', 'linear_filter', 'mp32flac', 'ogg2flac', 'nonspeechtrim',
     'bandpass_0_4000', 'griffinlim_downsample', 'lowpass_hifigan_asvspoof5', 'lowpass_hifigan', 'librosa_downsample', 'none',
-    'autotune_v1', 'amplitude_modulation_v1', 'echo_v1', 'gaussian_v1']
+    'autotune_v1', 'amplitude_modulation_v1', 'echo_v1', 'gaussian_v1', 'autotune_deepen', 'background_music_deepen', 'background_noise_deepen', 'background_music_deepen', 'freq_operation_deepen', 'lowpass_filter_v1', 'resample_v1', 'background_noise_audiomentations']
 
 
 def audio_transform(filepath: str, aug_type: BaseAugmentor, config: dict, online: bool = False, lrs=False):
@@ -35,6 +35,70 @@ def audio_transform(filepath: str, aug_type: BaseAugmentor, config: dict, online
     else:
         at.save()
 
+def echo_deepen(x, args, sr=16000, audio_path=None):
+    aug_dir = args.aug_dir
+    utt_id = os.path.basename(audio_path).split('.')[0]
+    args.input_path = os.path.dirname(audio_path)
+    aug_audio_path = os.path.join(aug_dir, 'echo_deepen', utt_id + '.wav')
+    args.output_path = os.path.join(aug_dir, 'echo_deepen')
+    args.out_format = 'wav'
+
+    config = {
+        "aug_type": "echo_deepen",
+        "output_path": args.output_path,
+        "out_format": args.out_format,
+        "noise_path": args.noise_path,
+        "min_delay": 100,
+        "max_delay": 1000,
+        "min_decay": 0.3,
+        "max_decay": 0.9
+    }
+
+    if (args.online_aug):
+        waveform = audio_transform(
+            filepath=audio_path, aug_type=EchoAugmentorDeepen, config=config, online=True)
+        return waveform
+    else:
+        if os.path.exists(aug_audio_path):
+            waveform, _ = librosa.load(aug_audio_path, sr=sr, mono=True)
+            return waveform
+        else:
+            os.makedirs(os.path.dirname(aug_audio_path), exist_ok=True)
+            audio_transform(
+                filepath=audio_path, aug_type=EchoAugmentorDeepen, config=config, online=False)
+            waveform, _ = librosa.load(aug_audio_path, sr=sr, mono=True)
+            return waveform
+def background_noise_audiomentations(x, args, sr=16000, audio_path=None):
+    aug_dir = args.aug_dir
+    utt_id = os.path.basename(audio_path).split('.')[0]
+    args.input_path = os.path.dirname(audio_path)
+    aug_audio_path = os.path.join(aug_dir, 'background_noise_audiomentations', utt_id + '.wav')
+    args.output_path = os.path.join(aug_dir, 'background_noise_audiomentations')
+    args.out_format = 'wav'
+
+    config = {
+        "aug_type": "background_noise_audiomentations",
+        "output_path": args.output_path,
+        "out_format": args.out_format,
+        "noise_path": args.noise_path,
+        "min_snr_db": 3,
+        "max_snr_db": 30
+    }
+    
+    if (args.online_aug):
+        waveform = audio_transform(
+            filepath=audio_path, aug_type=BackgroundNoiseAugmentorAudiomentations, config=config, online=True)
+        return waveform
+    else:
+        if os.path.exists(aug_audio_path):
+            waveform, _ = librosa.load(aug_audio_path, sr=sr, mono=True)
+            return waveform
+        else:
+            os.makedirs(os.path.dirname(aug_audio_path), exist_ok=True)
+            audio_transform(
+                filepath=audio_path, aug_type=BackgroundNoiseAugmentorAudiomentations, config=config, online=False)
+            waveform, _ = librosa.load(aug_audio_path, sr=sr, mono=True)
+            return waveform
 
 def background_noise_5_15(x, args, sr=16000, audio_path=None):
     aug_dir = args.aug_dir
@@ -90,11 +154,71 @@ def autotune_v1(x, args, sr=16000, audio_path=None):
         return waveform
     else:
         # audio_transform(
-        #     filepath=audio_path, aug_type=AutoTuneAugmentor, config=config, online=False, lrs=True)
+        #     filepath=audio_path, aug_type=AutoTuneAugmentor, config=config, online=False)
         # waveform, _ = librosa.load(aug_audio_path, sr=sr, mono=True)
         # return waveform
         raise ValueError("This function doesn't work with online augmentation")
 
+def autotune_deepen(x, args, sr=16000, audio_path=None):
+    '''
+        This function doesn't work with online augmentation
+    '''
+    aug_dir = args.aug_dir
+    
+    # Make sure that audio_path is .wav file
+    audio_path = audio_path.split('.')[0] + '.wav'
+        
+    aug_audio_path = os.path.join(aug_dir, 'auto_tune_output', audio_path)
+    args.output_path = aug_audio_path
+    
+    args.out_format = 'wav'
+    config = {
+        "aug_type": "autotune",
+        "output_path": args.output_path,
+        "out_format": args.out_format,
+        "noise_path": args.noise_path
+    }
+
+    if os.path.exists(aug_audio_path):
+        waveform, _ = librosa.load(aug_audio_path, sr=sr, mono=True)
+        return waveform
+    else:
+        raise ValueError("This function doesn't work with online augmentation")
+
+def freq_operation_deepen(x, args, sr=16000, audio_path=None):
+    aug_dir = args.aug_dir
+    utt_id = os.path.basename(audio_path).split('.')[0]
+    args.input_path = os.path.dirname(audio_path)
+    aug_audio_path = os.path.join(aug_dir, 'freq_operation_deepen', utt_id + '.wav')
+    args.output_path = os.path.join(aug_dir, 'freq_operation_deepen')
+    if not os.path.exists(args.output_path):
+        os.makedirs(args.output_path)
+    args.out_format = 'wav'
+    
+    config = {
+        "aug_type": "freq_operation_deepen",
+        "output_path": args.output_path,
+        "out_format": args.out_format,
+        "noise_path": args.noise_path,
+        "num_operations": 1,
+        "max_freq": 4300,
+        "min_energy": 0.01,
+        "max_energy": 0.1
+    }
+    
+    if (args.online_aug):
+        waveform = audio_transform(
+            filepath=audio_path, aug_type=FrequencyOperationAugmentorDeepen, config=config, online=True)
+        return waveform
+    else:
+        if os.path.exists(aug_audio_path):
+            waveform, _ = librosa.load(aug_audio_path, sr=sr, mono=True)
+            return waveform
+        else:
+            audio_transform(
+                filepath=audio_path, aug_type=FrequencyOperationAugmentorDeepen, config=config, online=False)
+            waveform, _ = librosa.load(aug_audio_path, sr=sr, mono=True)
+            return waveform
 
 def echo_v1(x, args, sr=16000, audio_path=None):
     aug_dir = args.aug_dir
@@ -102,11 +226,7 @@ def echo_v1(x, args, sr=16000, audio_path=None):
     args.input_path = os.path.dirname(audio_path)
     aug_audio_path = os.path.join(aug_dir, 'echo', utt_id + '.wav')
     args.output_path = os.path.join(aug_dir, 'echo')
-    if not os.path.exists(args.output_path):
-        os.makedirs(args.output_path)
-    # make sure the output path exists
-    if not os.path.exists(args.output_path):
-        os.makedirs(args.output_path)
+    
     
     args.out_format = 'wav'
     config = {
@@ -121,7 +241,7 @@ def echo_v1(x, args, sr=16000, audio_path=None):
     }
     if (args.online_aug):
         waveform = audio_transform(
-            filepath=audio_path, aug_type=EchoAugmentor, config=config, online=True, lrs=True)
+            filepath=audio_path, aug_type=EchoAugmentor, config=config, online=True)
         # waveform,_ = librosa.load(aug_audio_path, sr=sr, mono=True)
         return waveform
     else:
@@ -129,11 +249,43 @@ def echo_v1(x, args, sr=16000, audio_path=None):
             waveform, _ = librosa.load(aug_audio_path, sr=sr, mono=True)
             return waveform
         else:
+            os.makedirs(os.path.dirname(aug_audio_path), exist_ok=True)
             audio_transform(
                 filepath=audio_path, aug_type=EchoAugmentor, config=config, online=False)
             waveform, _ = librosa.load(aug_audio_path, sr=sr, mono=True)
             return waveform
 
+def resample_v1(x, args, sr=16000, audio_path=None):
+    aug_dir = args.aug_dir
+    utt_id = os.path.basename(audio_path).split('.')[0]
+    args.input_path = os.path.dirname(audio_path)
+    aug_audio_path = os.path.join(aug_dir, 'resample', utt_id + '.wav')
+    args.output_path = os.path.join(aug_dir, 'resample')
+    
+    args.out_format = 'wav'
+    config = {
+        "aug_type": "resample",
+        "output_path": args.output_path,
+        "out_format": args.out_format,
+        "noise_path": args.noise_path,
+        "min_sample_rate": 16000,
+        "max_sample_rate": 24000
+    }
+    
+    if (args.online_aug):
+        waveform = audio_transform(
+            filepath=audio_path, aug_type=ResampleAugmentor, config=config, online=True)
+        return waveform
+    else:
+        if os.path.exists(aug_audio_path):
+            waveform, _ = librosa.load(aug_audio_path, sr=sr, mono=True)
+            return waveform
+        else:
+            os.makedirs(os.path.dirname(aug_audio_path), exist_ok=True)
+            audio_transform(
+                filepath=audio_path, aug_type=ResampleAugmentor, config=config, online=False)
+            waveform, _ = librosa.load(aug_audio_path, sr=sr, mono=True)
+            return waveform
 
 def amplitude_modulation_v1(x, args, sr=16000, audio_path=None):
     aug_dir = args.aug_dir
@@ -141,8 +293,7 @@ def amplitude_modulation_v1(x, args, sr=16000, audio_path=None):
     args.input_path = os.path.dirname(audio_path)
     aug_audio_path = os.path.join(aug_dir, 'amplitude_modulation', utt_id + '.wav')
     args.output_path = os.path.join(aug_dir, 'amplitude_modulation')
-    if not os.path.exists(args.output_path):
-        os.makedirs(args.output_path)
+    
     args.out_format = 'wav'
     config = {
         "aug_type": "amplitude_modulation",
@@ -154,7 +305,7 @@ def amplitude_modulation_v1(x, args, sr=16000, audio_path=None):
     }
     if (args.online_aug):
         waveform = audio_transform(
-            filepath=audio_path, aug_type=AmplitudeModulationAugmentor, config=config, online=True, lrs=True)
+            filepath=audio_path, aug_type=AmplitudeModulationAugmentor, config=config, online=True)
         # waveform,_ = librosa.load(aug_audio_path, sr=sr, mono=True)
         return waveform
     else:
@@ -162,6 +313,7 @@ def amplitude_modulation_v1(x, args, sr=16000, audio_path=None):
             waveform, _ = librosa.load(aug_audio_path, sr=sr, mono=True)
             return waveform
         else:
+            os.makedirs(os.path.dirname(aug_audio_path), exist_ok=True)
             audio_transform(
                 filepath=audio_path, aug_type=AmplitudeModulationAugmentor, config=config, online=False)
             waveform, _ = librosa.load(aug_audio_path, sr=sr, mono=True)
@@ -187,7 +339,7 @@ def highpass_filter_v1(x, args, sr=16000, audio_path=None):
     }
     if (args.online_aug):
         waveform = audio_transform(
-            filepath=audio_path, aug_type=HighPassFilterAugmentor, config=config, online=True, lrs=True)
+            filepath=audio_path, aug_type=HighPassFilterAugmentor, config=config, online=True)
         # waveform,_ = librosa.load(aug_audio_path, sr=sr, mono=True)
         return waveform
     else:
@@ -200,6 +352,37 @@ def highpass_filter_v1(x, args, sr=16000, audio_path=None):
             waveform, _ = librosa.load(aug_audio_path, sr=sr, mono=True)
             return waveform
 
+def lowpass_filter_v1(x, args, sr=16000, audio_path=None):
+    aug_dir = args.aug_dir
+    utt_id = os.path.basename(audio_path).split('.')[0]
+    args.input_path = os.path.dirname(audio_path)
+    aug_audio_path = os.path.join(aug_dir, 'lowpass_filter', utt_id + '.wav')
+    args.output_path = os.path.join(aug_dir, 'lowpass_filter')
+    if not os.path.exists(args.output_path):
+        os.makedirs(args.output_path)
+    args.out_format = 'wav'
+    config = {
+        "aug_type": "lowpass_filter",
+        "output_path": args.output_path,
+        "out_format": args.out_format,
+        "noise_path": args.noise_path,
+        "min_cutoff_freq": 2000,
+        "max_cutoff_freq": 4000
+    }
+    if (args.online_aug):
+        waveform = audio_transform(
+            filepath=audio_path, aug_type=LowPassFilterAugmentor, config=config, online=True)
+        # waveform,_ = librosa.load(aug_audio_path, sr=sr, mono=True)
+        return waveform
+    else:
+        if os.path.exists(aug_audio_path):
+            waveform, _ = librosa.load(aug_audio_path, sr=sr, mono=True)
+            return waveform
+        else:
+            audio_transform(
+                filepath=audio_path, aug_type=LowPassFilterAugmentor, config=config, online=False)
+            waveform, _ = librosa.load(aug_audio_path, sr=sr, mono=True)
+            return waveform
 
 def background_noise_v1(x, args, sr=16000, audio_path=None):
     # if args.aug_dir is None:
@@ -237,6 +420,68 @@ def background_noise_v1(x, args, sr=16000, audio_path=None):
             return waveform
 
 
+def background_noise_deepen(x, args, sr=16000, audio_path=None):
+    
+    aug_dir = args.aug_dir
+    utt_id = os.path.basename(audio_path).split('.')[0]
+    args.input_path = os.path.dirname(audio_path)
+    aug_audio_path = os.path.join(aug_dir, 'background_noise', utt_id + '.wav')
+    args.output_path = os.path.join(aug_dir, 'background_noise')
+    args.out_format = 'wav'
+    config = {
+        "aug_type": "background_noise",
+        "output_path": args.output_path,
+        "out_format": args.out_format,
+        "noise_path": args.noise_path,
+    }
+
+    if (args.online_aug):
+        waveform = audio_transform(
+            filepath=audio_path, aug_type=BackgroundNoiseAugmentorDeepen, config=config, online=True)
+        # waveform,_ = librosa.load(aug_audio_path, sr=sr, mono=True)
+        return waveform
+    else:
+        if os.path.exists(aug_audio_path):
+            waveform, _ = librosa.load(aug_audio_path, sr=sr, mono=True)
+            return waveform
+        else:
+            os.makedirs(os.path.dirname(aug_audio_path), exist_ok=True)
+            audio_transform(
+                filepath=audio_path, aug_type=BackgroundNoiseAugmentorDeepen, config=config, online=False)
+            waveform, _ = librosa.load(aug_audio_path, sr=sr, mono=True)
+            return waveform
+
+def background_music_deepen(x, args, sr=16000, audio_path=None):
+    
+    aug_dir = args.aug_dir
+    utt_id = os.path.basename(audio_path).split('.')[0]
+    args.input_path = os.path.dirname(audio_path)
+    aug_audio_path = os.path.join(aug_dir, 'background_music', utt_id + '.wav')
+    args.output_path = os.path.join(aug_dir, 'background_music')
+    args.out_format = 'wav'
+    config = {
+        "aug_type": "background_music",
+        "output_path": args.output_path,
+        "out_format": args.out_format,
+        "music_path": args.music_path,
+    }
+
+    if (args.online_aug):
+        waveform = audio_transform(
+            filepath=audio_path, aug_type=BackgroundMusicAugmentorDeepen, config=config, online=True)
+        # waveform,_ = librosa.load(aug_audio_path, sr=sr, mono=True)
+        return waveform
+    else:
+        if os.path.exists(aug_audio_path):
+            waveform, _ = librosa.load(aug_audio_path, sr=sr, mono=True)
+            return waveform
+        else:
+            os.makedirs(os.path.dirname(aug_audio_path), exist_ok=True)
+            audio_transform(
+                filepath=audio_path, aug_type=BackgroundMusicAugmentorDeepen, config=config, online=False)
+            waveform, _ = librosa.load(aug_audio_path, sr=sr, mono=True)
+            return waveform
+
 def none(x, args, sr=16000, audio_path=None):
     """
     No augmentation
@@ -260,8 +505,8 @@ def pitch_1(x, args, sr=16000, audio_path=None):
         "aug_type": "pitch",
         "output_path": args.output_path,
         "out_format": args.out_format,
-        "min_pitch_shift": -1,
-        "max_pitch_shift": 1
+        "min_semitones": -1,
+        "max_semitones": 1
     }
     if (args.online_aug):
         waveform = audio_transform(
@@ -297,8 +542,8 @@ def pitch_v1(x, args, sr=16000, audio_path=None):
         "aug_type": "pitch",
         "output_path": args.output_path,
         "out_format": args.out_format,
-        "min_pitch_shift": -5,
-        "max_pitch_shift": 5
+        "min_semitones": -5,
+        "max_semitones": 5
     }
     if (args.online_aug):
         waveform = audio_transform(
@@ -310,6 +555,7 @@ def pitch_v1(x, args, sr=16000, audio_path=None):
             waveform, _ = librosa.load(aug_audio_path, sr=sr, mono=True)
             return waveform
         else:
+            os.makedirs(os.path.dirname(aug_audio_path), exist_ok=True)
             audio_transform(filepath=audio_path,
                             aug_type=PitchAugmentor, config=config, online=False)
             waveform, _ = librosa.load(aug_audio_path, sr=sr, mono=True)
@@ -503,7 +749,7 @@ def time_stretch_v1(x, args, sr=16000, audio_path=None):
     }
     if (args.online_aug):
         waveform = audio_transform(
-            filepath=audio_path, aug_type=TimeStretchAugmentor, config=config, online=True, lrs=True)
+            filepath=audio_path, aug_type=TimeStretchAugmentor, config=config, online=True)
         # waveform,_ = librosa.load(aug_audio_path, sr=sr, mono=True)
         return waveform
     else:
@@ -511,6 +757,7 @@ def time_stretch_v1(x, args, sr=16000, audio_path=None):
             waveform, _ = librosa.load(aug_audio_path, sr=sr, mono=True)
             return waveform
         else:
+            os.makedirs(os.path.dirname(aug_audio_path), exist_ok=True)
             audio_transform(
                 filepath=audio_path, aug_type=TimeStretchAugmentor, config=config, online=False)
             waveform, _ = librosa.load(aug_audio_path, sr=sr, mono=True)
@@ -523,8 +770,8 @@ def gaussian_v1(x, args, sr=16000, audio_path=None):
     """
     aug_dir = args.aug_dir
     utt_id = os.path.basename(audio_path).split('.')[0]
-    aug_audio_path = os.path.join(aug_dir, 'gaussian_noise', utt_id + '.wav')
-    args.output_path = os.path.join(aug_dir, 'gaussian_noise')
+    aug_audio_path = os.path.join(aug_dir, 'gaussian_noise_0.01_0.2', utt_id + '.wav')
+    args.output_path = os.path.join(aug_dir, 'gaussian_noise_0.01_0.2')
     args.out_format = 'wav'
     args.input_path = os.path.dirname(audio_path)
     config = {
@@ -537,7 +784,7 @@ def gaussian_v1(x, args, sr=16000, audio_path=None):
     }
     if (args.online_aug):
         waveform = audio_transform(
-            filepath=audio_path, aug_type=GaussianAugmentorV1, config=config, online=True, lrs=True)
+            filepath=audio_path, aug_type=GaussianAugmentorV1, config=config, online=True)
         # waveform,_ = librosa.load(aug_audio_path, sr=sr, mono=True)
         return waveform
     else:
@@ -545,8 +792,9 @@ def gaussian_v1(x, args, sr=16000, audio_path=None):
             waveform, _ = librosa.load(aug_audio_path, sr=sr, mono=True)
             return waveform
         else:
+            os.makedirs(os.path.dirname(aug_audio_path), exist_ok=True)
             audio_transform(
-                filepath=audio_path, aug_type=GaussianAugmentorV1, config=config, online=False, lrs=True)
+                filepath=audio_path, aug_type=GaussianAugmentorV1, config=config, online=False)
             waveform, _ = librosa.load(aug_audio_path, sr=sr, mono=True)
             return waveform
 
@@ -577,6 +825,8 @@ def gaussian_1(x, args, sr=16000, audio_path=None):
             waveform, _ = librosa.load(aug_audio_path, sr=sr, mono=True)
             return waveform
         else:
+            # Create the directory if it doesn't exist
+            os.makedirs(os.path.dirname(aug_audio_path), exist_ok=True)
             audio_transform(
                 filepath=audio_path, aug_type=GaussianAugmentor, config=config, online=False)
             waveform, _ = librosa.load(aug_audio_path, sr=sr, mono=True)

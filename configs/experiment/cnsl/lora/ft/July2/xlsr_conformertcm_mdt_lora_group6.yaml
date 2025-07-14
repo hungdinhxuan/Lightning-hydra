@@ -1,0 +1,98 @@
+# @package _global_
+
+# to execute this experiment run:
+# python train.py experiment=example
+
+# This exp is the same as the group1 exp in June27
+# The difference is that more music augmentation is used
+# musics before increase
+# musan -> musan + fma_small (https://os.unil.cloud.switch.ch/fma/fma_small.zip)
+
+defaults:
+  - override /data: normal_largecorpus_multiview_cnsl
+  - override /model: v2/xlsr_conformertcm_mdt_lora
+  - override /callbacks: default_lora_loss_earlystop_logger
+  - override /trainer: default
+
+# all parameters below will be merged with parameters from default configurations set above
+# this allows you to overwrite only specified parameters
+
+tags: ["normal_largecorpus_multiview_cnsl", "xlsr_conformertcm_mdt_lora"]
+
+seed: 1234
+
+trainer:
+  max_epochs: 100
+  gradient_clip_val: 0.0
+  accelerator: cuda
+
+model:
+  optimizer:
+    _target_: torch.optim.Adam
+    _partial_: true
+    lr: 0.0001 # 1e-4
+    weight_decay: 0.0001
+  net: null
+  scheduler:
+    _target_: torch.optim.lr_scheduler.ReduceLROnPlateau
+    _partial_: true
+    factor: 0.5
+    patience: 3
+    verbose: True
+    min_lr: 1e-6
+
+  cross_entropy_weight: [0.7, 0.3] # amplify bonafide loss
+  args:
+    adapter:
+      r: 8
+      target_modules: ["q_proj", "v_proj", "k_proj", "out_proj", "fc1", "fc2", "final_proj", "LL", "qkv", "proj", "ht_proj"] # All dense layers (, "fc1", "fc2", "final_proj", "LL", "qkv", "proj", "ht_proj")
+      #target_modules: ["q_proj", "v_proj", "k_proj", "out_proj"] 
+      modules_to_save:  [] # conformer qkv
+      lora_dropout: 0.0
+      lora_alpha: 16
+      #init_lora_weights: "gaussian"
+  
+  weighted_views:
+    '1': 1
+    '2': 1
+    '3': 1
+    '4': 1
+  base_model_path: "/nvme1/hungdx/Lightning-hydra/notebooks/S_241214_conf-1.pth"
+  
+  
+data:
+  batch_size: 16
+  num_workers: 8
+  pin_memory: true
+  enable_cache: true # Enable caching at the top level
+  args:
+    enable_cache: true # Whether to enable caching in args
+    online_aug: False
+    protocol_paths: ${oc.env:LARGE_CORPUS_FOR_CNSL_CONTINUOUS_PROTOCOLS}
+    augmentation_methods: ["autotune_deepen", "echo_v1"]
+    aug_dir: /nvme1/hungdx/Lightning-hydra/data/normal_250625_noise
+    padding_type: repeat
+    random_start: True
+    is_dev_aug: True # Use dev augmentation to verify the augmentation process
+    
+    noise_path: ${oc.env:DEEPEN_ALL}
+    view_padding_configs:
+      '1':
+        padding_type: repeat
+        random_start: True
+      '2':
+        padding_type: repeat
+        random_start: True
+      '3':
+        padding_type: repeat
+        random_start: True
+      '4':
+        padding_type: repeat
+        random_start: True
+
+logger:
+  wandb:
+    tags: ${tags}
+    group: "normal_largecorpus_multiview_cnsl"
+  aim:
+    experiment: "normal_largecorpus_multiview_cnsl"

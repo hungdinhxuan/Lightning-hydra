@@ -111,6 +111,7 @@ class Dataset_for_eval(Dataset_base):
         print("Chunking enabled:", self.enable_chunking)
         print("trim_length:", trim_length)
         print("padding_type:", self.padding_type)
+        print("random_start:", random_start)
         self.no_pad = args.get('no_pad', False) if args is not None else False
         if self.no_pad:
             print('No padding')
@@ -376,12 +377,12 @@ class NormalDataModule(LightningDataModule):
                 l_meta = f.readlines()
             for line in l_meta:
                 utt, subset, label = line.strip().split()
-                # if subset == 'eval' or subset == 'test':
-                #     file_list.append(utt)
-                #     d_meta[utt] = 1 if label == 'bonafide' else 0
+                if subset == 'eval' or subset == 'test':
+                    file_list.append(utt)
+                    d_meta[utt] = 1 if label == 'bonafide' else 0
 
-                file_list.append(utt)
-                d_meta[utt] = 1 if label == 'bonafide' else 0
+                # file_list.append(utt)
+                # d_meta[utt] = 1 if label == 'bonafide' else 0
             # return d_meta, file_list
             return d_meta, file_list
 

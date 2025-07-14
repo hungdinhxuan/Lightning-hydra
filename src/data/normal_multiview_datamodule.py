@@ -318,6 +318,7 @@ class NormalDataModule(LightningDataModule):
 
             self.data_val = Dataset_for_dev(self.args, list_IDs=file_dev, labels=d_label_dev,
                                             base_dir=self.data_dir+'/',  is_train=False, **self.args)
+            self.no_pad = self.args.get('no_pad', False) if self.args is not None else False
 
             self.data_test = Dataset_for_eval(self.args, list_IDs=file_eval, labels=None,
                                               base_dir=self.data_dir+'/',  random_start=self.args.random_start, trim_length=self.args.trim_length, repeat_pad=True if self.args.padding_type == 'repeat' else False,
@@ -361,7 +362,7 @@ class NormalDataModule(LightningDataModule):
         """
         return DataLoader(
             dataset=self.data_test,
-            batch_size=self.batch_size_per_device,
+            batch_size=self.batch_size_per_device if self.no_pad is False else 1, # if no_pad is True, we need to set batch_size to 1
             num_workers=self.hparams.num_workers,
             pin_memory=self.hparams.pin_memory,
             shuffle=False,

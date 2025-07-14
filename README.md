@@ -223,3 +223,4 @@ bash scripts/benchmark_mdt_paper.sh -g 3 -c huggingface_benchmark/xlsr_conformer
 ## AASIST-SSL + MDT paper
 ```bash
 bash scripts/benchmark_mdt_paper.sh -g 2 -c huggingface_benchmark/xlsr_aasist_mdt_paper -b data/mdt_paper_benchmark -m /nvme1/hungdx/Lightning-hydra/logs/train/runs/2024-10-16_21-04-31-conf-2/checkpoints/averaged_top5.ckpt -r results/aasistssl_mdt_paper --random_start False -l True
+```

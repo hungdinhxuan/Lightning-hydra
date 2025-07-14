@@ -42,4 +42,5 @@ class AmplitudeModulationAugmentor(BaseAugmentor):
         self.augmented_audio = self.audio_data * modulation
         
         # transform to pydub audio segment
+        self.augmented_audio = librosa_to_pydub(self.augmented_audio, sr=self.sr)
         

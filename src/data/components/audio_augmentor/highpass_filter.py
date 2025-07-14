@@ -1,6 +1,7 @@
 from .base import BaseAugmentor
 from audiomentations import HighPassFilter
 import logging
+from .utils import recursive_list_files, librosa_to_pydub
 logger = logging.getLogger(__name__)
 
 
@@ -34,3 +35,4 @@ class HighPassFilterAugmentor(BaseAugmentor):
         """
         self.augmented_audio = self.my_transform(
             samples=self.audio_data, sample_rate=self.sr)
+        self.augmented_audio = librosa_to_pydub(self.augmented_audio)

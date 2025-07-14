@@ -13,7 +13,8 @@ logger = logging.getLogger(__name__)
 class GaussianAugmentor(BaseAugmentor):
     """
     Gaussian noise augmentation
-    
+    This augmentation is based on described in the paper:
+        "DeePen: Penetration Testing for Audio Deepfake Detection"
     Adds Gaussian noise with mean 0 and a standard
     deviation randomly selected between 0.01 and 0.2 to the audio.
     
@@ -31,17 +32,22 @@ class GaussianAugmentor(BaseAugmentor):
         self.min_std_dev = config.get('min_std_dev', 0.01)
         self.max_std_dev = config.get('max_std_dev', 0.2)
         self.mean =config.get('mean', 0)
-        assert self.min_std_dev > 0.0
-        assert self.max_std_dev > 0.0
-        assert self.max_std_dev >= self.min_std_dev
+        # assert self.min_std_dev > 0.0
+        # assert self.max_std_dev > 0.0
+        # assert self.max_std_dev >= self.min_std_dev
         self.std_dev = random.uniform(self.min_std_dev, self.max_std_dev)
-        
+    
     def transform(self):
         """
         Transform the audio by adding Gaussian noise with mean 0
         and randomly selected standard deviation.
+        
         """
         # Generate Gaussian noise with mean and selected std_dev
-        noise = np.random.normal(self.mean, self.std_dev, self.data.shape[0]).astype(np.float32)
+        noise = np.random.normal(self.mean, self.std_dev, len(self.data)).astype(np.float32)
+        
+        # This could be a wrong implementation
+        # Should noise normalize before adding to the audio or adding noise then normalize
         
         self.augmented_audio = self.data + noise
+        self.augmented_audio = librosa_to_pydub(self.augmented_audio, sr=self.sr)
