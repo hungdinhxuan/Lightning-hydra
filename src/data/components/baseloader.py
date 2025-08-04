@@ -22,14 +22,14 @@ class Dataset_base(Dataset):
         self.vocoded_dir = os.path.join(base_dir, 'vocoded')
         self.algo = algo
         self.vocoders = vocoders
-        print("vocoders:", vocoders)
+        #print("vocoders:", vocoders)
 
         self.augmentation_methods = augmentation_methods
-        print("augmentation_methods:", augmentation_methods)
-        if len(augmentation_methods) < 1:
-            # using default augmentation method RawBoostWrapper12
-            # self.augmentation_methods = ["RawBoost12"]
-            print("No augmentation method provided")
+        # print("augmentation_methods:", augmentation_methods)
+        # if len(augmentation_methods) < 1:
+        #     # using default augmentation method RawBoostWrapper12
+        #     # self.augmentation_methods = ["RawBoost12"]
+        #     print("No augmentation method provided")
         self.eval_augment = eval_augment
         self.num_additional_real = num_additional_real
         self.num_additional_spoof = num_additional_spoof

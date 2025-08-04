@@ -52,6 +52,9 @@ class AdapterLitModule(BaseLitModule):
             if is_base_model_path_ln:
                 self.net = load_ln_model_weights(self.net, ckpt['state_dict'])  
             else:
+                # Remove the prefix "module." from the keys
+                ckpt = {key.replace("module.", ""): value for key, value in ckpt.items()}
+                ckpt = {key.replace("_orig_mod.", ""): value for key, value in ckpt.items()}
                 self.net.load_state_dict(ckpt)
             print("Loaded baseline model from:", self.base_model_path)
 
@@ -107,7 +110,7 @@ class AdapterLitModule(BaseLitModule):
             self.net.set_adapter(adapter_name)
         else:
             self.net = PeftModel.from_pretrained(self.net, checkpoint_path)
-        self.net.merge_and_unload()
+        #self.net.merge_and_unload()
         print(f"Loaded LoRA adapter from {checkpoint_path}")
     
     def apply_adapter(self):
@@ -401,3 +404,11 @@ class AdapterLitModule(BaseLitModule):
         print(f"Available adapters: {available_adapters}")
         print(f"Active adapter: {self.net.active_adapter}")
         print("To switch adapters, use: model.set_adapter(adapter_name)")
+
+    def _load_multiple_lora_adapters(self, adapter_paths: List[str], adapter_names: List[str]):
+        """Load multiple LoRA adapters from a list of paths and names."""
+        for adapter_path, adapter_name in zip(adapter_paths, adapter_names):
+            self.load_single_lora_adapter(adapter_path, adapter_name)
+    def _set_lora_adapter(self, adapter_name: str):
+        self.net.set_adapter(adapter_name)
+        print(f"Set LoRA adapter to {adapter_name}") 

@@ -148,9 +148,9 @@ class Dataset_for_eval(Dataset_base):
                                                aug_dir, online_aug, repeat_pad, is_train, random_start)
         self.enable_chunking = enable_chunking
         self.padding_type = "repeat" if repeat_pad else "zero"
-        print("Chunking enabled:", self.enable_chunking)
-        print("trim_length:", trim_length)
-        print("padding_type:", self.padding_type)
+        # print("Chunking enabled:", self.enable_chunking)
+        # print("trim_length:", trim_length)
+        # print("padding_type:", self.padding_type)
         self.no_pad = args.get('no_pad', False) if args is not None else False
         if self.no_pad:
             print('No padding')

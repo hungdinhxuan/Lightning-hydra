@@ -51,13 +51,81 @@ display_progress() {
     printf "${WHITE}] ${percentage}%% (${current}/${total})${RESET}\n"
 }
 
+# Function to display inline progress bar (without newline)
+display_progress_inline() {
+    local current="$1"
+    local total="$2"
+    
+    # Prevent division by zero
+    if [ "$total" -eq 0 ]; then
+        return 1
+    fi
+    
+    local width=50
+    local percentage=$((current * 100 / total))
+    local completed=$((width * current / total))
+    local remaining=$((width - completed))
+    
+    printf "${WHITE}[${GREEN}"
+    for ((i=0; i<completed; i++)); do
+        printf "="
+    done
+    
+    if [[ $completed -lt $width ]]; then
+        printf ">"
+        for ((i=0; i<remaining-1; i++)); do
+            printf " "
+        done
+    fi
+    
+    printf "${WHITE}] ${percentage}%% (${current}/${total})${RESET}"
+}
+
+# Function to simulate batch processing progress
+simulate_batch_progress() {
+    local total_lines="$1"
+    local batch_size="${2:-128}"  # Default batch size is 128
+    local delay="${3:-0.1}"       # Default delay between batches
+    
+    # Calculate number of batches
+    local total_batches=$(( (total_lines + batch_size - 1) / batch_size ))  # Ceiling division
+    
+    if [ "$total_batches" -eq 0 ]; then
+        total_batches=1
+    fi
+    
+    print_color "$CYAN" "🔄 Processing $total_lines samples in $total_batches batches (batch size: $batch_size)..."
+    
+    # Simulate batch-by-batch progress with inline updates
+    for ((current_batch=1; current_batch<=total_batches; current_batch++)); do
+        # Calculate samples processed so far
+        local samples_processed=$((current_batch * batch_size))
+        if [ "$samples_processed" -gt "$total_lines" ]; then
+            samples_processed="$total_lines"
+        fi
+        
+        # Clear the line and display progress inline
+        printf "\r\033[K"  # Clear entire line
+        printf "${CYAN}⏳ Batch ${current_batch}/${total_batches}: ${RESET}"
+        display_progress_inline "$current_batch" "$total_batches"
+        printf " ${WHITE}| Samples: ${samples_processed}/${total_lines}${RESET}"
+        
+        # Add a small delay to simulate processing time
+        sleep "$delay"
+    done
+    
+    # Final newline and completion message
+    printf "\n"
+    print_color "$GREEN" "✓ Batch processing completed"
+}
+
 # Function to display usage information
 show_usage() {
     print_color "$BLUE" "┌─────────────────────────────────────────────────────────────────┐"
     print_color "$BLUE" "│                 Bulk Benchmark Runner Script                    │"
     print_color "$BLUE" "└─────────────────────────────────────────────────────────────────┘"
     echo ""
-    print_color "$CYAN" "Usage: $0 -g <gpu_number> -c <yaml_config_file> -b <bulk_benchmark_folder> -m <base_model_path> -r <results_folder> -n <comment> [-a <adapter_paths>] [-l <is_base_model_path_ln>] [-s <is_random_start>] [-t <trim_length>]"
+    print_color "$CYAN" "Usage: $0 -g <gpu_number> -c <yaml_config_file> -b <bulk_benchmark_folder> -m <base_model_path> -r <results_folder> -n <comment> [-a <adapter_paths>] [-l <is_base_model_path_ln>] [-s <is_random_start>] [-e <seed>] [-t <test_ratio>]"
     echo ""
     print_color "$YELLOW" "Parameters:"
     echo "  -g <gpu_number>             GPU number to use (0, 1, 2, 3, ...)"
@@ -69,7 +137,8 @@ show_usage() {
     echo "  -a <adapter_paths>          Adapter paths (optional)"
     echo "  -l <is_base_model_path_ln>  Whether to use Lightning checkpoint loading (default: true)"
     echo "  -s <is_random_start>        Whether to use random start (default: true)"
-    echo "  -t <trim_length>            Trim length for data processing (default: 64000)"
+    echo "  -e <seed>                   Random seed (default: 42)"
+    echo "  -t <test_ratio>             Test data ratio (default: 1.0, use 0.2 for 20%)"
     exit 1
 }
 
@@ -86,7 +155,7 @@ print_banner() {
 print_banner
 
 # Parse command line arguments
-while getopts "g:c:b:m:r:n:a:l:s:t:" opt; do
+while getopts "g:c:b:m:r:n:a:l:s:e:t:" opt; do
     case $opt in
         g) GPU_NUMBER="$OPTARG" ;;
         c) YAML_CONFIG="$OPTARG" ;;
@@ -97,7 +166,8 @@ while getopts "g:c:b:m:r:n:a:l:s:t:" opt; do
         a) ADAPTER_PATHS="$OPTARG" ;;
         l) IS_BASE_MODEL_PATH_LN="$OPTARG" ;;
         s) IS_RANDOM_START="$OPTARG" ;;
-        t) TRIM_LENGTH="$OPTARG" ;;
+        e) SEED="$OPTARG" ;;
+        t) TEST_RATIO="$OPTARG" ;;
         *) show_usage ;;
     esac
 done
@@ -126,13 +196,20 @@ else
     fi
 fi
 
-# Set default value for TRIM_LENGTH if not provided
-if [ -z "$TRIM_LENGTH" ]; then
-    TRIM_LENGTH="64000"
+# Set default value for SEED if not provided
+if [ -z "$SEED" ]; then
+    SEED="42"
 fi
 
-# print IS_RANDOM_START
+# Set default value for TEST_RATIO if not provided
+if [ -z "$TEST_RATIO" ]; then
+    TEST_RATIO="1.0"
+fi
+
+# print configuration values
 print_color "$CYAN" "IS_RANDOM_START: $IS_RANDOM_START"
+print_color "$CYAN" "SEED: $SEED"
+print_color "$CYAN" "TEST_RATIO: $TEST_RATIO"
 
 # Ensure benchmark folder exists
 if [ ! -d "$BENCHMARK_FOLDER" ]; then
@@ -156,10 +233,12 @@ echo "Config: $YAML_CONFIG" > "$SUMMARY_FILE"
 echo "Base_model_path: $BASE_MODEL_PATH" >> "$SUMMARY_FILE"
 echo "Lora Path: ${ADAPTER_PATHS:-None}" >> "$SUMMARY_FILE"
 echo "Is Base Model Path LN: $IS_BASE_MODEL_PATH_LN" >> "$SUMMARY_FILE"
-echo "Trim Length: $TRIM_LENGTH" >> "$SUMMARY_FILE"
+echo "Random Start: $IS_RANDOM_START" >> "$SUMMARY_FILE"
+echo "Seed: $SEED" >> "$SUMMARY_FILE"
+echo "Test Ratio: $TEST_RATIO" >> "$SUMMARY_FILE"
 echo "Date: $TIMESTAMP" >> "$SUMMARY_FILE"
 echo "" >> "$SUMMARY_FILE"
-echo "Dataset | EER | min_score | max_score | Threshold | Accuracy" >> "$SUMMARY_FILE"
+echo "Dataset | EER" >> "$SUMMARY_FILE"
 
 # Get list of subdirectories using ls instead of find
 print_color "$CYAN" "Checking subdirectories in '$BENCHMARK_FOLDER'..."
@@ -327,6 +406,14 @@ for subfolder in "${SUBDIRS[@]}"; do
     
     # Check if score file exists and is complete
     if validate_score_file "$SCORE_SAVE_PATH" "$PROTOCOL_PATH"; then
+        # Get the number of score lines for batch progress simulation
+        score_file_lines=$(grep -c "^[^[:space:]]*[[:space:]]" "$SCORE_SAVE_PATH" 2>/dev/null || echo "0")
+        
+        # Simulate batch processing progress
+        # if [ "$score_file_lines" -gt 0 ] 2>/dev/null; then
+        #     simulate_batch_progress "$score_file_lines" 128 0.05
+        # fi
+
         # Run the scoring script
         print_color "$CYAN" "🔄 Evaluating existing complete results..."
         RESULT=$(python scripts/score_file_to_eer.py "$SCORE_SAVE_PATH" "$PROTOCOL_PATH")
@@ -334,22 +421,22 @@ for subfolder in "${SUBDIRS[@]}"; do
         # Check if the evaluation script was successful
         if [ $? -eq 0 ]; then
             # Extract values from the result
-            MIN_SCORE=$(echo "$RESULT" | cut -d' ' -f1)
-            MAX_SCORE=$(echo "$RESULT" | cut -d' ' -f2)
-            THRESHOLD=$(echo "$RESULT" | cut -d' ' -f3)
+            # MIN_SCORE=$(echo "$RESULT" | cut -d' ' -f1)
+            # MAX_SCORE=$(echo "$RESULT" | cut -d' ' -f2)
+            # THRESHOLD=$(echo "$RESULT" | cut -d' ' -f3)
             EER=$(echo "$RESULT" | cut -d' ' -f4)
-            ACCURACY=$(echo "$RESULT" | cut -d' ' -f5)
+            # ACCURACY=$(echo "$RESULT" | cut -d' ' -f5)
             
             # Format output for summary file
-            echo "$subfolder_name | $EER | $MIN_SCORE | $MAX_SCORE | $THRESHOLD | $ACCURACY" >> "$SUMMARY_FILE"
+            echo "$subfolder_name | $EER" >> "$SUMMARY_FILE"
             
             # Display results
-            print_color "$GREEN" "✓ Results for $subfolder_name (using existing complete score file):"
+            print_color "$GREEN" "✓ Results for $subfolder_name :"
             print_color "$WHITE" "  EER      : $EER"
-            print_color "$WHITE" "  Accuracy : $ACCURACY"
-            print_color "$WHITE" "  Threshold: $THRESHOLD"
-            print_color "$WHITE" "  Min Score: $MIN_SCORE"
-            print_color "$WHITE" "  Max Score: $MAX_SCORE"
+            # print_color "$WHITE" "  Accuracy : $ACCURACY"
+            # print_color "$WHITE" "  Threshold: $THRESHOLD"
+            # print_color "$WHITE" "  Min Score: $MIN_SCORE"
+            # print_color "$WHITE" "  Max Score: $MAX_SCORE"
             continue
         else
             print_color "$RED" "❌ Error: Failed to evaluate results for $subfolder_name"
@@ -374,28 +461,36 @@ for subfolder in "${SUBDIRS[@]}"; do
             print_color "$GREEN" "✓ No missing entries found. Score file is actually complete."
             # Re-validate to make sure
             if validate_score_file "$SCORE_SAVE_PATH" "$PROTOCOL_PATH"; then
+                # Get the number of score lines for batch progress simulation
+                score_file_lines=$(grep -c "^[^[:space:]]*[[:space:]]" "$SCORE_SAVE_PATH" 2>/dev/null || echo "0")
+                
+                # Simulate batch processing progress
+                # if [ "$score_file_lines" -gt 0 ] 2>/dev/null; then
+                #     simulate_batch_progress "$score_file_lines" 128 0.05
+                # fi
+                
                 # Run the scoring script directly since file is complete
                 print_color "$CYAN" "🔄 Evaluating existing complete results..."
                 RESULT=$(python scripts/score_file_to_eer.py "$SCORE_SAVE_PATH" "$PROTOCOL_PATH")
                 
                 if [ $? -eq 0 ]; then
                     # Extract values from the result
-                    MIN_SCORE=$(echo "$RESULT" | cut -d' ' -f1)
-                    MAX_SCORE=$(echo "$RESULT" | cut -d' ' -f2)
-                    THRESHOLD=$(echo "$RESULT" | cut -d' ' -f3)
+                    # MIN_SCORE=$(echo "$RESULT" | cut -d' ' -f1)
+                    # MAX_SCORE=$(echo "$RESULT" | cut -d' ' -f2)
+                    # THRESHOLD=$(echo "$RESULT" | cut -d' ' -f3)
                     EER=$(echo "$RESULT" | cut -d' ' -f4)
-                    ACCURACY=$(echo "$RESULT" | cut -d' ' -f5)
+                    # ACCURACY=$(echo "$RESULT" | cut -d' ' -f5)
                     
                     # Format output for summary file
-                    echo "$subfolder_name | $EER | $MIN_SCORE | $MAX_SCORE | $THRESHOLD | $ACCURACY" >> "$SUMMARY_FILE"
+                    echo "$subfolder_name | $EER" >> "$SUMMARY_FILE"
                     
                     # Display results
-                    print_color "$GREEN" "✓ Results for $subfolder_name (using existing complete score file):"
+                    print_color "$GREEN" "✓ Results for $subfolder_name :"
                     print_color "$WHITE" "  EER      : $EER"
-                    print_color "$WHITE" "  Accuracy : $ACCURACY"
-                    print_color "$WHITE" "  Threshold: $THRESHOLD"
-                    print_color "$WHITE" "  Min Score: $MIN_SCORE"
-                    print_color "$WHITE" "  Max Score: $MAX_SCORE"
+                    # print_color "$WHITE" "  Accuracy : $ACCURACY"
+                    # print_color "$WHITE" "  Threshold: $THRESHOLD"
+                    # print_color "$WHITE" "  Min Score: $MIN_SCORE"
+                    # print_color "$WHITE" "  Max Score: $MAX_SCORE"
                 fi
             fi
             continue
@@ -419,13 +514,12 @@ for subfolder in "${SUBDIRS[@]}"; do
     fi
     
     # Construct command
-    CMD="CUDA_VISIBLE_DEVICES=$GPU_NUMBER python src/train.py callbacks=none experiment=$YAML_CONFIG "
+    CMD="CUDA_VISIBLE_DEVICES=$GPU_NUMBER python src/train.py callbacks=none extras=none trainer.deterministic=True experiment=$YAML_CONFIG "
     CMD+="++model.score_save_path=\"$SCORE_PATH_TO_USE\" "
     CMD+="++data.data_dir=\"$DATA_DIR\" "
     CMD+="++data.args.protocol_path=\"$PROTOCOL_TO_USE\" "
     CMD+="++train=False ++test=True ++model.spec_eval=True ++data.batch_size=128 "
     CMD+="++data.args.random_start=$IS_RANDOM_START "
-    CMD+="++data.args.trim_length=$TRIM_LENGTH "
     CMD+="++model.base_model_path=\"$BASE_MODEL_PATH\" "
     CMD+="++model.is_base_model_path_ln=$IS_BASE_MODEL_PATH_LN "
     
@@ -433,6 +527,10 @@ for subfolder in "${SUBDIRS[@]}"; do
     if [ ! -z "$ADAPTER_PATHS" ]; then
         CMD+="++model.adapter_paths=\"$ADAPTER_PATHS\" "
     fi
+
+    # Add seed and test ratio parameters
+    CMD+="seed=$SEED "
+    CMD+="++trainer.limit_test_batches=$TEST_RATIO "
     
     # Execute the command
     print_color "$CYAN" "🔄 Running benchmark..."
@@ -470,6 +568,14 @@ for subfolder in "${SUBDIRS[@]}"; do
     
     # Check if the final score file is complete
     if validate_score_file "$SCORE_SAVE_PATH" "$PROTOCOL_PATH"; then
+        # Get the number of score lines for batch progress simulation
+        score_file_lines=$(grep -c "^[^[:space:]]*[[:space:]]" "$SCORE_SAVE_PATH" 2>/dev/null || echo "0")
+        
+        # Simulate batch processing progress
+        # if [ "$score_file_lines" -gt 0 ] 2>/dev/null; then
+        #     simulate_batch_progress "$score_file_lines" 128 0.05
+        # fi
+        
         # Run the scoring script
         print_color "$CYAN" "🔄 Evaluating results..."
         RESULT=$(python scripts/score_file_to_eer.py "$SCORE_SAVE_PATH" "$PROTOCOL_PATH")
@@ -477,22 +583,22 @@ for subfolder in "${SUBDIRS[@]}"; do
         # Check if the evaluation script was successful
         if [ $? -eq 0 ]; then
             # Extract values from the result
-            MIN_SCORE=$(echo "$RESULT" | cut -d' ' -f1)
-            MAX_SCORE=$(echo "$RESULT" | cut -d' ' -f2)
-            THRESHOLD=$(echo "$RESULT" | cut -d' ' -f3)
+            # MIN_SCORE=$(echo "$RESULT" | cut -d' ' -f1)
+            # MAX_SCORE=$(echo "$RESULT" | cut -d' ' -f2)
+            # THRESHOLD=$(echo "$RESULT" | cut -d' ' -f3)
             EER=$(echo "$RESULT" | cut -d' ' -f4)
-            ACCURACY=$(echo "$RESULT" | cut -d' ' -f5)
+            #ACCURACY=$(echo "$RESULT" | cut -d' ' -f5)
             
             # Format output for summary file
-            echo "$subfolder_name | $EER | $MIN_SCORE | $MAX_SCORE | $THRESHOLD | $ACCURACY" >> "$SUMMARY_FILE"
+            echo "$subfolder_name | $EER" >> "$SUMMARY_FILE"
             
             # Display results
             print_color "$GREEN" "✓ Results for $subfolder_name:"
             print_color "$WHITE" "  EER      : $EER"
-            print_color "$WHITE" "  Accuracy : $ACCURACY"
-            print_color "$WHITE" "  Threshold: $THRESHOLD"
-            print_color "$WHITE" "  Min Score: $MIN_SCORE"
-            print_color "$WHITE" "  Max Score: $MAX_SCORE"
+            # print_color "$WHITE" "  Accuracy : $ACCURACY"
+            # print_color "$WHITE" "  Threshold: $THRESHOLD"
+            # print_color "$WHITE" "  Min Score: $MIN_SCORE"
+            # print_color "$WHITE" "  Max Score: $MAX_SCORE"
         else
             print_color "$RED" "❌ Error: Failed to evaluate results for $subfolder_name"
         fi
@@ -550,15 +656,15 @@ calculate_pooled_eer() {
         local result_parts=$(echo "$main_result" | wc -w)
         if [ "$result_parts" -eq 5 ]; then
             # Extract values from the result
-            local pooled_min_score=$(echo "$main_result" | cut -d' ' -f1)
-            local pooled_max_score=$(echo "$main_result" | cut -d' ' -f2)
-            local pooled_threshold=$(echo "$main_result" | cut -d' ' -f3)
+            # local pooled_min_score=$(echo "$main_result" | cut -d' ' -f1)
+            # local pooled_max_score=$(echo "$main_result" | cut -d' ' -f2)
+            # local pooled_threshold=$(echo "$main_result" | cut -d' ' -f3)
             local pooled_eer=$(echo "$main_result" | cut -d' ' -f4)
-            local pooled_accuracy=$(echo "$main_result" | cut -d' ' -f5)
+            # local pooled_accuracy=$(echo "$main_result" | cut -d' ' -f5)
             
             # Add pooled EER to summary file
             echo "" >> "$SUMMARY_FILE"
-            echo "POOLED_EER | $pooled_eer | $pooled_min_score | $pooled_max_score | $pooled_threshold | $pooled_accuracy" >> "$SUMMARY_FILE"
+            echo "POOLED_EER | $pooled_eer" >> "$SUMMARY_FILE"
             
             # Display the detailed output from Python script (stderr)
             echo "$pooled_stderr" | while IFS= read -r line; do
@@ -615,7 +721,7 @@ calculate_average_eer() {
         fi
         
         # Add average EER to summary file
-        echo "AVERAGE_EER | $average_eer | - | - | - | -" >> "$SUMMARY_FILE"
+        echo "AVERAGE_EER | $average_eer" >> "$SUMMARY_FILE"
         
         # Display average results
         print_color "$GREEN" "✓ Average EER Results (across $count datasets):"
@@ -650,6 +756,9 @@ create_merged_protocol() {
     echo "# Config: $YAML_CONFIG" >> "$metadata_path"
     echo "# Base Model: $BASE_MODEL_PATH" >> "$metadata_path"
     echo "# Comment: $COMMENT" >> "$metadata_path"
+    echo "# Seed: $SEED" >> "$metadata_path"
+    echo "# Test Ratio: $TEST_RATIO" >> "$metadata_path"
+    echo "# Random Start: $IS_RANDOM_START" >> "$metadata_path"
     echo "#" >> "$metadata_path"
     echo "# Dataset_Name | Entries_Count | Protocol_Path | Score_Path" >> "$metadata_path"
     

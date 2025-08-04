@@ -108,10 +108,10 @@ class Dataset_for_eval(Dataset_base):
         self.enable_chunking = enable_chunking
         self.padding_type = "repeat" if repeat_pad else "zero"
         self.cache_dir = args.get('cache_dir', None)
-        print("Chunking enabled:", self.enable_chunking)
+        # print("Chunking enabled:", self.enable_chunking)
         print("trim_length:", trim_length)
-        print("padding_type:", self.padding_type)
-        print("random_start:", random_start)
+        # print("padding_type:", self.padding_type)
+        # print("random_start:", random_start)
         self.no_pad = args.get('no_pad', False) if args is not None else False
         if self.no_pad:
             print('No padding')

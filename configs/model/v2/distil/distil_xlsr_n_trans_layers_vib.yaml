@@ -1,0 +1,18 @@
+_target_: src.models.v2.distil.distil_xlsr_n_trans_layers_vib_module.Distil_XLSR_N_Trans_Layer_VIBNormalLitModule
+
+optimizer:
+  _target_: torch.optim.Adam
+  _partial_: true
+  lr: 0.000001
+  weight_decay: 0.00001
+
+scheduler: null
+
+args:
+  kwargs:
+    num_layers: 5 #
+    order: "custom" # 'middle' for middle layers, 'first' for first layers, 'last' for last layers, "custom" for custom layers
+    custom_order: [1, 2, 3, 4, 5]
+
+ssl_pretrained_path: ${oc.env:XLSR_PRETRAINED_MODEL_PATH}
+cross_entropy_weight: [0.1, 0.9] # weight for cross entropy loss 0.1 for spoof and 0.9 for bonafide
