@@ -288,14 +288,14 @@ class NormalDataModule(LightningDataModule):
             d_label_trn, file_train = self.genList(
                 is_train=True, is_eval=False, is_dev=False)
 
-            print('no. of training trials', len(file_train))
+            #print('no. of training trials', len(file_train))
 
             d_label_dev, file_dev = self.genList(
                 is_train=False, is_eval=False, is_dev=True)
-            print('no. of validation trials', len(file_dev))
+            #print('no. of validation trials', len(file_dev))
             d_meta, file_eval = self.genList(
                 is_train=False, is_eval=True, is_dev=False)
-            print('no. of evaluation trials', len(file_eval))
+            #print('no. of evaluation trials', len(file_eval))
 
             # Add cache settings to args
             if self.args is None:

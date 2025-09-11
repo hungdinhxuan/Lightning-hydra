@@ -1,0 +1,62 @@
+# @package _global_
+
+# to execute this experiment run:
+# python train.py experiment=example
+
+defaults:
+  - override /data: normal_largecorpus_for_asvspoof5
+  - override /model: v2/xlsr_aasisst_mdt_paper
+  - override /callbacks: icassp26_lora_loss_earlystop_logger
+  - override /trainer: default
+
+# all parameters below will be merged with parameters from default configurations set above
+# this allows you to overwrite only specified parameters
+
+tags: ["normal_largecorpus_for_asvspoof5", "xlsr_aasisst_mdt_paper"]
+
+seed: 1234
+
+trainer:
+  max_epochs: 30 # -1 for infinite until early stopping is triggered
+  gradient_clip_val: 0.0
+  accelerator: cuda
+
+model:
+  optimizer:
+    lr: 0.00001 
+    weight_decay: 0.0001
+  net: null
+  scheduler: null
+  base_model_path: "/nvme1/hungdx/Lightning-hydra/Best_LA_model_for_DF.pth"
+  cross_entropy_weight: [0.9, 0.1] # amplify bonafide loss
+  args:
+    adapter:
+      r: 8
+      target_modules: ["q_proj", "v_proj", "k_proj", "out_proj", "fc1", "fc2", "final_proj", "LL", "qkv", "proj", "ht_proj"] # All dense layers (, "fc1", "fc2", "final_proj", "LL", "qkv", "proj", "ht_proj")
+      modules_to_save:  [] # conformer qkv
+      lora_dropout: 0.0
+      lora_alpha: 16
+      #init_lora_weights: "gaussian"
+  adapter_type: lora
+  
+data:
+  batch_size: 32
+  num_workers: 8
+  pin_memory: true
+  data_dir: ${oc.env:NOISE_DATASET_FOR_ICASSP26_DIR}
+  enable_cache: false # No spacee left
+
+  args:
+    protocol_path: ${oc.env:NOISE_DATASET_FOR_ICASSP26_PROTOCOL_PATH}
+    augmentation_methods: ["none"] # No augmentation
+    padding_type: repeat
+    random_start: False  # No random start
+    is_dev_aug: False
+    enable_cache: false # No spacee left
+  
+logger:
+  wandb:
+    tags: ${tags}
+    group: "normal_largecorpus_for_asvspoof5"
+  aim:
+    experiment: "normal_largecorpus_for_asvspoof5"

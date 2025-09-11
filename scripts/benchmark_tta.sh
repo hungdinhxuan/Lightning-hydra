@@ -119,6 +119,37 @@ simulate_batch_progress() {
     print_color "$GREEN" "✓ Batch processing completed"
 }
 
+# Function to display evaluation trials information
+display_evaluation_info() {
+    local protocol_file="$1"
+    local test_ratio="$2"
+    
+    # Count evaluation lines in protocol file
+    local total_eval_lines=0
+    if [ -f "$protocol_file" ]; then
+        if grep -q "eval" "$protocol_file"; then
+            # If protocol has eval subset, use only eval lines
+            total_eval_lines=$(grep -c "eval" "$protocol_file" 2>/dev/null || echo "0")
+        else
+            # If no eval subset, use all lines
+            total_eval_lines=$(grep -c "^[^[:space:]]*[[:space:]]" "$protocol_file" 2>/dev/null || echo "0")
+        fi
+    fi
+    
+    # Calculate percentage from test ratio
+    local percentage=0
+    if command -v bc >/dev/null 2>&1; then
+        percentage=$(echo "scale=0; $test_ratio * 100" | bc -l)
+    else
+        percentage=$(awk "BEGIN {printf \"%.0f\", $test_ratio * 100}")
+    fi
+    
+    # Display the information
+    if [ "$total_eval_lines" -gt 0 ]; then
+        print_color "$CYAN" "📊 No. of evaluation trials: $total_eval_lines (${percentage}% used)"
+    fi
+}
+
 # Function to display usage information
 show_usage() {
     print_color "$BLUE" "┌─────────────────────────────────────────────────────────────────┐"
@@ -210,6 +241,15 @@ fi
 print_color "$CYAN" "IS_RANDOM_START: $IS_RANDOM_START"
 print_color "$CYAN" "SEED: $SEED"
 print_color "$CYAN" "TEST_RATIO: $TEST_RATIO"
+
+# Calculate and display test ratio percentage
+TEST_PERCENTAGE=0
+if command -v bc >/dev/null 2>&1; then
+    TEST_PERCENTAGE=$(echo "scale=0; $TEST_RATIO * 100" | bc -l)
+else
+    TEST_PERCENTAGE=$(awk "BEGIN {printf \"%.0f\", $TEST_RATIO * 100}")
+fi
+print_color "$CYAN" "📊 Using ${TEST_PERCENTAGE}% of evaluation data"
 
 # Ensure benchmark folder exists
 if [ ! -d "$BENCHMARK_FOLDER" ]; then
@@ -312,7 +352,7 @@ for subfolder in "${SUBDIRS[@]}"; do
         fi
         
         print_color "$WHITE" "  Score file lines: $score_lines"
-        print_color "$WHITE" "  Expected lines (eval subset): $eval_lines"
+        # print_color "$WHITE" "  Expected lines (eval subset): $eval_lines"
         
         if [ "$score_lines" -eq "$eval_lines" ] && [ "$score_lines" -gt 0 ]; then
             return 0  # Valid and complete
@@ -513,6 +553,9 @@ for subfolder in "${SUBDIRS[@]}"; do
         continue
     fi
     
+    # Display evaluation trials information
+    display_evaluation_info "$PROTOCOL_PATH" "$TEST_RATIO"
+    
     # Construct command
     CMD="CUDA_VISIBLE_DEVICES=$GPU_NUMBER python src/train.py callbacks=none extras=none trainer.deterministic=True experiment=$YAML_CONFIG "
     CMD+="++model.score_save_path=\"$SCORE_PATH_TO_USE\" "
@@ -602,10 +645,11 @@ for subfolder in "${SUBDIRS[@]}"; do
         else
             print_color "$RED" "❌ Error: Failed to evaluate results for $subfolder_name"
         fi
-    elif [ -f "$SCORE_SAVE_PATH" ]; then
-        print_color "$RED" "❌ Error: Score file exists but is incomplete/corrupted for $subfolder_name"
+    # elif [ -f "$SCORE_SAVE_PATH" ]; then
+    #     print_color "$RED" "❌ Error: Score file exists but is incomplete/corrupted for $subfolder_name"
     else
-        print_color "$RED" "❌ Error: Score file was not created for $subfolder_name"
+        # print_color "$RED" "❌ Error: Score file was not created for $subfolder_name"
+        print_color "$RED" " "
     fi
     
     print_color "$GREEN" "✓ Finished processing $subfolder_name"
@@ -727,8 +771,8 @@ calculate_average_eer() {
         print_color "$GREEN" "✓ Average EER Results (across $count datasets):"
         print_color "$WHITE" "  Average EER: $average_eer"
         print_color "$WHITE" "  Individual EERs: ${eer_values[*]}"
-    else
-        print_color "$RED" "❌ No valid EER values found for average calculation"
+    # else
+    #     print_color "$RED" "❌ No valid EER values found for average calculation"
     fi
 }
 
@@ -812,6 +856,14 @@ create_merged_protocol() {
     done
     
     if [ -f "$merged_protocol_path" ] && [ -f "$merged_score_path" ] && [ $total_entries -gt 0 ]; then
+        # Calculate percentage from test ratio for pooled results
+        local pooled_percentage=0
+        if command -v bc >/dev/null 2>&1; then
+            pooled_percentage=$(echo "scale=0; $TEST_RATIO * 100" | bc -l)
+        else
+            pooled_percentage=$(awk "BEGIN {printf \"%.0f\", $TEST_RATIO * 100}")
+        fi
+        
         # Add summary to metadata file
         echo "#" >> "$metadata_path"
         echo "# SUMMARY" >> "$metadata_path"
@@ -824,7 +876,7 @@ create_merged_protocol() {
         print_color "$WHITE" "  Protocol file: $merged_protocol_path"
         print_color "$WHITE" "  Score file: $merged_score_path"
         print_color "$WHITE" "  Metadata file: $metadata_path"
-        print_color "$WHITE" "  Total entries: $total_entries"
+        print_color "$CYAN" "📊 Pooled evaluation trials: $total_entries (${pooled_percentage}% used)"
         print_color "$WHITE" "  Datasets included: $processed_datasets"
         
         # Add merged protocol info to summary file
@@ -832,7 +884,7 @@ create_merged_protocol() {
         echo "MERGED_PROTOCOL: $merged_protocol_path" >> "$SUMMARY_FILE"
         echo "MERGED_SCORES: $merged_score_path" >> "$SUMMARY_FILE"
         echo "PROTOCOL_METADATA: $metadata_path" >> "$SUMMARY_FILE"
-        echo "MERGED_ENTRIES: $total_entries" >> "$SUMMARY_FILE"
+        # echo "MERGED_ENTRIES: $total_entries" >> "$SUMMARY_FILE"
         echo "MERGED_DATASETS: $processed_datasets" >> "$SUMMARY_FILE"
     else
         print_color "$RED" "❌ Failed to create merged files"

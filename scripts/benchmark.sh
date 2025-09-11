@@ -182,7 +182,7 @@ if [ $TOTAL_SUBFOLDERS -eq 0 ]; then
     exit 1
 fi
 
-print_color "$GREEN" "✓ Found $TOTAL_SUBFOLDERS datasets to process"
+# print_color "$GREEN" "✓ Found $TOTAL_SUBFOLDERS datasets to process"
 print_color "$CYAN" "✓ Starting benchmark with GPU $GPU_NUMBER and config $YAML_CONFIG"
 print_color "$CYAN" "✓ Results will be saved to $RESULTS_FOLDER"
 echo ""
@@ -419,7 +419,8 @@ for subfolder in "${SUBDIRS[@]}"; do
     fi
     
     # Construct command
-    CMD="CUDA_VISIBLE_DEVICES=$GPU_NUMBER python src/train.py callbacks=none experiment=$YAML_CONFIG "
+    # callbacks=none
+    CMD="CUDA_VISIBLE_DEVICES=$GPU_NUMBER python src/train.py experiment=$YAML_CONFIG "
     CMD+="++model.score_save_path=\"$SCORE_PATH_TO_USE\" "
     CMD+="++data.data_dir=\"$DATA_DIR\" "
     CMD+="++data.args.protocol_path=\"$PROTOCOL_TO_USE\" "

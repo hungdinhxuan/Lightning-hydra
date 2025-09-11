@@ -119,6 +119,10 @@ def train(cfg: DictConfig) -> Tuple[Dict[str, Any], Dict[str, Any]]:
         if ckpt_path == "":
             ckpt_path = cfg.get("ckpt_path")
             log.warning(f"Using weights {ckpt_path} for testing...")
+        from lightning.pytorch.utilities.model_summary import summarize
+        model.eval()
+        log.info("Model summary:")
+        print(summarize(model, max_depth=2))
         trainer.test(model=model, datamodule=datamodule, ckpt_path=ckpt_path)
         log.info(f"Best ckpt path: {ckpt_path}")
 
