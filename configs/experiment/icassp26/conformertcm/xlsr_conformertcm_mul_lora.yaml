@@ -1,0 +1,66 @@
+# @package _global_
+
+# to execute this experiment run:
+# python train.py experiment=example
+
+defaults:
+  - override /data: normal_largecorpus_for_asvspoof5
+  - override /model: v2/xlsr_conformertcm_mul_lora_paper
+  - override /callbacks: icassp26_lora_loss_earlystop_logger
+  - override /trainer: default
+
+# all parameters below will be merged with parameters from default configurations set above
+# this allows you to overwrite only specified parameters
+
+tags: ["normal_largecorpus_for_asvspoof5", "xlsr_conformertcm_mul_lora_paper"]
+
+seed: 1234
+
+trainer:
+  max_epochs: 30
+  gradient_clip_val: 0.0
+  accelerator: cuda
+
+model:
+  optimizer:
+    lr: 0.00001
+    weight_decay: 0.0001
+  net: null
+  scheduler: null
+  base_model_path: "/nvme1/hungdx/tcm_add/models/pretrained/DF/avg_5_best.pth"
+  cross_entropy_weight: [0.9, 0.1] # amplify bonafide loss
+  args:
+    adapter:
+      r: 8
+      target_modules: ["q_proj", "v_proj", "k_proj", "out_proj", "fc1", "fc2", "final_proj", "LL", "qkv", "proj", "ht_proj"] # All dense layers (, "fc1", "fc2", "final_proj", "LL", "qkv", "proj", "ht_proj")
+      modules_to_save:  [] # conformer qkv
+      lora_dropout: 0.0
+      lora_alpha: 16
+      #init_lora_weights: "gaussian"
+  adapter_type: lora
+
+  ## Adapter names and paths
+  adapter_paths: "/home/hungdx/logs/train/runs/2025-09-11_05-38-35/checkpoints/epoch_008.ckpt,/home/hungdx/logs/train/runs/2025-09-11_05-38-53/checkpoints/epoch_029.ckpt,/home/hungdx/logs/train/runs/2025-09-11_06-02-37/checkpoints/epoch_011.ckpt,/home/hungdx/logs/train/runs/2025-09-11_06-07-41/checkpoints/epoch_029.ckpt,/home/hungdx/logs/train/runs/2025-09-11_06-29-53/checkpoints/epoch_017.ckpt,/home/hungdx/logs/train/runs/2025-09-11_06-36-06/checkpoints/epoch_019.ckpt,/home/hungdx/logs/train/runs/2025-09-11_07-05-42/checkpoints/epoch_021.ckpt"
+  adapter_names: "g1,g2,g3,g4,g5,g6,g7"
+  noise_model_path: "/nvme1/hungdx/Lightning-hydra/best_model_interspeech_6.pth"
+
+data:
+  batch_size: 1
+  num_workers: 8
+  pin_memory: true
+  data_dir: ${oc.env:NOISE_DATASET_FOR_ICASSP26_DIR}
+  enable_cache: false # No spacee left
+  args:
+    protocol_path: ${oc.env:NOISE_DATASET_FOR_ICASSP26_PROTOCOL_PATH}
+    augmentation_methods: ["none"] # No augmentation
+    padding_type: repeat
+    random_start: False  # No random start
+    is_dev_aug: False
+    enable_cache: false # No spacee left
+
+logger:
+  wandb:
+    tags: ${tags}
+    group: "normal_largecorpus_for_asvspoof5"
+  aim:
+    experiment: "normal_largecorpus_for_asvspoof5"
