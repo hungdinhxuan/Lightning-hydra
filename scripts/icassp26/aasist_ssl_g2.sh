@@ -15,4 +15,5 @@ CUDA_DEVICE=${CUDA_DEVICE:-3}
 CUDA_VISIBLE_DEVICES=$CUDA_DEVICE OMP_NUM_THREADS=1 python src/train.py \
     experiment=icassp26/aasist_ssl/xlsr_aasist_single_lora \
     ++model.is_base_model_path_ln=false \
+    ++data.args.protocol_path="/nvme1/hungdx/Lightning-hydra/protocols_icassp/auto_tune.txt" \
     logger=wandb
