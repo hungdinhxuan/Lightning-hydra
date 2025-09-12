@@ -420,7 +420,7 @@ for subfolder in "${SUBDIRS[@]}"; do
     
     # Construct command
     # callbacks=none
-    CMD="CUDA_VISIBLE_DEVICES=$GPU_NUMBER python src/train.py experiment=$YAML_CONFIG "
+    CMD="CUDA_VISIBLE_DEVICES=$GPU_NUMBER OMP_NUM_THREADS=5 python src/train.py experiment=$YAML_CONFIG "
     CMD+="++model.score_save_path=\"$SCORE_PATH_TO_USE\" "
     CMD+="++data.data_dir=\"$DATA_DIR\" "
     CMD+="++data.args.protocol_path=\"$PROTOCOL_TO_USE\" "

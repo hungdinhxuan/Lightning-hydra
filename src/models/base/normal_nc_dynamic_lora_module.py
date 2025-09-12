@@ -47,13 +47,13 @@ class DecisionNoise:
         self.model.eval()
         
     def forward(self, spec, mfcc, f0):
-        spec, mfcc, f0 = spec.to(self.device), mfcc.to(self.device), f0.to(self.device)
+        #spec, mfcc, f0 = spec.to(self.device), mfcc.to(self.device), f0.to(self.device)
         with torch.no_grad():
             out = self.model(spec, mfcc, f0)
         return out
     
     def predict(self, wav_np, sr: int = 16000):
-
+        #print("Type of wav_np = ", type(wav_np))
         spec, mfcc, f0 = extract_features(wav_np, sr)
         spec = spec.unsqueeze(0)
         mfcc = mfcc.unsqueeze(0)
@@ -229,7 +229,7 @@ class NormalNCDynamicLoRaLitModule(AdapterLitModule):
     
     def set_lora_adapter(self, adapter_name: str):
         self.net.set_adapter(adapter_name)
-        print(f"Set LoRA adapter to {adapter_name}")
+        #print(f"Set LoRA adapter to {adapter_name}")
         
     def model_step(
         self, batch: Tuple[torch.Tensor, torch.Tensor]
@@ -244,7 +244,7 @@ class NormalNCDynamicLoRaLitModule(AdapterLitModule):
             - A tensor of target labels.
             - A dictionary of detailed losses.
         """
-        noise_result = self.decision_nc.making_decision(self.group, batch[0])
+        noise_result = self.decision_nc.making_decision(batch[0])
         noise_type = noise_result["noise_type"]
         lora_group = self.route_decision(noise_type)
         self.set_group(lora_group)
@@ -281,7 +281,7 @@ class NormalNCDynamicLoRaLitModule(AdapterLitModule):
         return loss
     
     def set_group(self, group: str = "g0"):
-        print(f"Setting group to {group}")
+        #print(f"Setting group to {group}")
         self.group = group
         
     def route_decision(self, noise_type: str):
@@ -294,7 +294,7 @@ class NormalNCDynamicLoRaLitModule(AdapterLitModule):
             return "g0"
         
         lora_group = self.class_labels_to_lora_groups[noise_type]
-        print(f"Routed noise type '{noise_type}' to LoRA group '{lora_group}'")
+        #rint(f"Routed noise type '{noise_type}' to LoRA group '{lora_group}'")
         return lora_group
     def on_train_epoch_end(self) -> None:
         "Lightning hook that is called when a training epoch ends."
@@ -341,21 +341,25 @@ class NormalNCDynamicLoRaLitModule(AdapterLitModule):
         batch_x, utt_id = batch
         
         # Forward pass
-        
-        noise_result = self.decision_nc.making_decision(self.group, batch_x.detach().cpu().numpy())
+        #print(f"batch_x.shape = {batch_x.shape}")
+        noise_result = self.decision_nc.making_decision(batch_x[-1].detach().cpu().numpy())
         noise_type = noise_result["noise_type"]
         lora_group = self.route_decision(noise_type)
         self.set_group(lora_group)
-        
+        disable_adapter = False
         if self.group != "g0":
-            print(f"set LoRA adapter for model:")
-            self.net.enable_adapters()
+            # print(f"set LoRA adapter for model:")
+            # self.net.enable_adapters()
             self.set_lora_adapter(self.group)
         else:
-            print(f"unset LoRA")
-            self.net.disable_adapters()
-
-        batch_out = self.forward(batch_x, inference_mode=inference_mode)
+            disable_adapter = True
+        
+        
+        if disable_adapter:
+            with self.net.disable_adapter():
+                batch_out = self.forward(batch_x, inference_mode=inference_mode)
+        else:
+            batch_out = self.forward(batch_x, inference_mode=inference_mode)
         #preds = torch.argmax(logits, dim=1)
         #return preds, y
     
