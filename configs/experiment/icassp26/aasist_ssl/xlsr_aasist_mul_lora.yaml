@@ -39,7 +39,7 @@ model:
       #init_lora_weights: "gaussian"
   adapter_type: lora
 
-  adapter_paths: "/home/hungdx/logs/train/runs/2025-09-11_02-19-50/checkpoints/epoch_001.ckpt,/home/hungdx/logs/train/runs/2025-09-11_02-21-04/checkpoints/epoch_018.ckpt,/home/hungdx/logs/train/runs/2025-09-11_04-04-11/checkpoints/epoch_029.ckpt,/home/hungdx/logs/train/runs/2025-09-11_04-03-13/checkpoints/epoch_028.ckpt,/home/hungdx/logs/train/runs/2025-09-11_04-28-50/checkpoints/epoch_019.ckpt,/home/hungdx/logs/train/runs/2025-09-11_04-47-15/checkpoints/epoch_029.ckpt,/home/hungdx/logs/train/runs/2025-09-11_05-11-40/checkpoints/epoch_028.ckpt"
+  adapter_paths: "/home/hungdx/logs/train/runs/2025-09-12_14-07-14/checkpoints/epoch_010.ckpt,/home/hungdx/logs/train/runs/2025-09-11_02-21-04/checkpoints/epoch_018.ckpt,/home/hungdx/logs/train/runs/2025-09-11_04-04-11/checkpoints/epoch_029.ckpt,/home/hungdx/logs/train/runs/2025-09-13_04-27-17/checkpoints/epoch_022.ckpt,/home/hungdx/logs/train/runs/2025-09-11_04-47-15/checkpoints/epoch_029.ckpt,/home/hungdx/logs/train/runs/2025-09-11_04-47-15/checkpoints/epoch_029.ckpt,/home/hungdx/logs/train/runs/2025-09-13_09-54-56/checkpoints/epoch_012.ckpt"
   adapter_names: "g1,g2,g3,g4,g5,g6,g7"
   noise_model_path: "/nvme1/hungdx/Lightning-hydra/best_model_interspeech_6.pth"
   

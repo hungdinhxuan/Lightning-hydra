@@ -35,4 +35,4 @@ class MyConformer(nn.Module):
             list_attn_weight.append(attn_weight)
     embedding=x[:,0,:] #[bs, emb_size]
     out=self.fc5(embedding) #[bs,2]
-    return out, list_attn_weight
+    return out, embedding

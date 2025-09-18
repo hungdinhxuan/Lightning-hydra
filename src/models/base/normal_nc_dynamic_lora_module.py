@@ -12,7 +12,8 @@ from src.models.components.xlsr_conformertcm_baseline import Model as XLSRConfor
 from src.models.base.adapter_module import AdapterLitModule
 from src.utils import load_ln_model_weights
 from src.models.components.noise_classifier import FusionNet as NoiseClassifier
-
+import os
+import numpy as np
 def extract_features(wav_np, sr=16000):
     import numpy as np
     n_fft = 2048
@@ -385,6 +386,43 @@ class NormalNCDynamicLoRaLitModule(AdapterLitModule):
         # Flush buffer when it reaches the specified size
         if len(self._write_buffer) >= self._buffer_size * len(batch_lines):
             self._flush_buffer()
+    
+    def _export_embedding_file(self, batch: Tuple[torch.Tensor, torch.Tensor]) -> None:
+        """ Get the embedding file for the batch of data.
+        :param batch: A batch of data (a tuple) containing the input tensor of images and target
+            labels.
+        """
+        batch_x, utt_id = batch
+        #batch_emb = self.net(batch_x, last_emb=True)
+        
+        noise_result = self.decision_nc.making_decision(batch_x[-1].detach().cpu().numpy())
+        noise_type = noise_result["noise_type"]
+        lora_group = self.route_decision(noise_type)
+        self.set_group(lora_group)
+        disable_adapter = False
+        if self.group != "g0":
+            # print(f"set LoRA adapter for model:")
+            # self.net.enable_adapters()
+            self.set_lora_adapter(self.group)
+        else:
+            disable_adapter = True
+        
+        if disable_adapter:
+            with self.net.disable_adapter():
+                batch_emb = self.net(batch_x, last_emb=True)
+        else:
+            batch_emb = self.net(batch_x, last_emb=True)
+        
+        # import sys
+        # print(f"Batch emb shape: {batch_emb.shape}")
+        # sys.exit()
+        fname_list = list(utt_id)
+
+        for f, emb in zip(fname_list, batch_emb):
+            f = f.split('/')[-1].split('.')[0]  # utt id only
+            save_path_utt = os.path.join(self.emb_save_path, f)
+            np.save(save_path_utt, emb.data.cpu().numpy())
+
     def on_validation_epoch_end(self) -> None:
         "Lightning hook that is called when a validation epoch ends."
         acc = self.val_acc.compute()  # get current val acc

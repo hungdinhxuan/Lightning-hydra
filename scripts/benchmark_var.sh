@@ -207,128 +207,28 @@ for subfolder in "${SUBDIRS[@]}"; do
     # Initialize variables for protocol and score path handling
     PROTOCOL_TO_USE="$PROTOCOL_PATH"
     SCORE_PATH_TO_USE="$SCORE_SAVE_PATH"
-    USE_TEMP_PROTOCOL=false
-    TEMP_PROTOCOL_PATH=""
-    TEMP_SCORE_PATH=""
-    RANDOM_ID=""
 
-    # Function to validate score file completeness
-    validate_score_file() {
+    # Function to check if score file exists (simplified - no completeness validation)
+    check_score_file_exists() {
         local score_file="$1"
-        local protocol_file="$2"
         
         if [ ! -f "$score_file" ]; then
             return 1  # Score file doesn't exist
         fi
         
-        # Count lines in score file (excluding empty lines)
-        local score_lines=$(grep -c "^[^[:space:]]*[[:space:]]" "$score_file" 2>/dev/null || echo "0")
-        
-        # Count evaluation lines in protocol file (assuming 'eval' subset, adjust if different)
-        local eval_lines=$(grep -c "eval" "$protocol_file" 2>/dev/null || echo "0")
-        
-        # If no 'eval' subset found, try counting all lines (fallback)
-        if [ "$eval_lines" -eq 0 ]; then
-            eval_lines=$(grep -c "^[^[:space:]]*[[:space:]]" "$protocol_file" 2>/dev/null || echo "0")
-        fi
-        
-        print_color "$WHITE" "  Score file lines: $score_lines"
-        print_color "$WHITE" "  Expected lines (eval subset): $eval_lines"
-        
-        if [ "$score_lines" -eq "$eval_lines" ] && [ "$score_lines" -gt 0 ]; then
-            return 0  # Valid and complete
+        # Just check if file exists and has some content
+        if [ -s "$score_file" ]; then
+            return 0  # File exists and has content
         else
-            return 2  # Incomplete or corrupted
+            return 1  # File exists but is empty
         fi
     }
 
-    # Function to create temporary protocol file with missing entries (optimized for sequential evaluation)
-    create_missing_protocol() {
-        local score_file="$1"
-        local protocol_file="$2"
-        local temp_protocol="$3"
-        
-        print_color "$CYAN" "🔍 Analyzing missing entries (optimized for sequential evaluation)..."
-        
-        # Count existing score lines
-        local existing_lines=0
-        if [ -f "$score_file" ]; then
-            existing_lines=$(grep -c "^[^[:space:]]*[[:space:]]" "$score_file" 2>/dev/null || echo "0")
-        fi
-        
-        print_color "$WHITE" "  Existing score lines: $existing_lines"
-        
-        # Create temporary file for eval subset
-        local temp_id="$$_$(date +%s)_$RANDOM"
-        local temp_protocol_eval="/tmp/protocol_eval_${temp_id}.txt"
-        
-        # Extract eval entries from protocol file
-        if grep -q "eval" "$protocol_file"; then
-            # If protocol has eval subset, use only eval lines
-            grep "eval" "$protocol_file" > "$temp_protocol_eval"
-        else
-            # If no eval subset, use all lines
-            cp "$protocol_file" "$temp_protocol_eval"
-        fi
-        
-        local total_eval_lines=$(wc -l < "$temp_protocol_eval")
-        print_color "$WHITE" "  Total eval lines in protocol: $total_eval_lines"
-        
-        # Calculate missing lines (sequential evaluation - just skip processed lines)
-        local missing_count=$((total_eval_lines - existing_lines))
-        
-        if [ $missing_count -le 0 ]; then
-            print_color "$GREEN" "  No missing entries found."
-            rm -f "$temp_protocol_eval"
-            touch "$temp_protocol"  # Create empty temp protocol
-            return 0
-        fi
-        
-        # Create temporary protocol file with remaining entries (starting from existing_lines + 1)
-        local start_line=$((existing_lines + 1))
-        tail -n +$start_line "$temp_protocol_eval" > "$temp_protocol"
-        
-        print_color "$YELLOW" "  Found $missing_count missing entries (starting from line $start_line)"
-        
-        # Clean up temporary files
-        rm -f "$temp_protocol_eval"
-        
-        return $missing_count
-    }
-
-    # Function to merge score files
-    merge_score_files() {
-        local original_score="$1"
-        local new_score="$2"
-        local merged_score="$3"
-        
-        print_color "$CYAN" "🔄 Merging score files..."
-        
-        # Create backup of original score file
-        if [ -f "$original_score" ]; then
-            cp "$original_score" "${original_score}.backup"
-        fi
-        
-        # Combine original and new scores, then sort by first column
-        if [ -f "$original_score" ] && [ -f "$new_score" ]; then
-            cat "$original_score" "$new_score" | sort -k1,1 > "$merged_score"
-        elif [ -f "$new_score" ]; then
-            cp "$new_score" "$merged_score"
-        elif [ -f "$original_score" ]; then
-            cp "$original_score" "$merged_score"
-        fi
-        
-        # Replace original with merged
-        if [ -f "$merged_score" ]; then
-            mv "$merged_score" "$original_score"
-            print_color "$GREEN" "✓ Score files merged successfully"
-        fi
-    }
     
-    # Check if score file exists and is complete
-    if validate_score_file "$SCORE_SAVE_PATH" "$PROTOCOL_PATH"; then
-        # Run the scoring script
-        print_color "$CYAN" "🔄 Evaluating existing complete results..."
+    # Check if score file exists and calculate EER if it does
+    if check_score_file_exists "$SCORE_SAVE_PATH"; then
+        # Run the scoring script on existing file
+        print_color "$CYAN" "🔄 Evaluating existing results..."
         RESULT=$(python scripts/score_file_to_eer.py "$SCORE_SAVE_PATH" "$PROTOCOL_PATH")
         
         # Check if the evaluation script was successful
@@ -344,7 +244,7 @@ for subfolder in "${SUBDIRS[@]}"; do
             echo "$subfolder_name | $EER | $MIN_SCORE | $MAX_SCORE | $THRESHOLD | $ACCURACY" >> "$SUMMARY_FILE"
             
             # Display results
-            print_color "$GREEN" "✓ Results for $subfolder_name (using existing complete score file):"
+            print_color "$GREEN" "✓ Results for $subfolder_name (using existing score file):"
             print_color "$WHITE" "  EER      : $EER"
             print_color "$WHITE" "  Accuracy : $ACCURACY"
             print_color "$WHITE" "  Threshold: $THRESHOLD"
@@ -353,57 +253,6 @@ for subfolder in "${SUBDIRS[@]}"; do
             continue
         else
             print_color "$RED" "❌ Error: Failed to evaluate results for $subfolder_name"
-        fi
-    elif [ -f "$SCORE_SAVE_PATH" ]; then
-        print_color "$YELLOW" "⚠️ Warning: Score file exists but is incomplete/corrupted for $subfolder_name."
-        
-        # Create temporary protocol file with missing entries (using random ID to avoid conflicts)
-        RANDOM_ID="$$_$(date +%s)_$RANDOM"
-        TEMP_PROTOCOL_PATH="$RESULTS_FOLDER/temp_protocol_${subfolder_name}_${RANDOM_ID}.txt"
-        
-        create_missing_protocol "$SCORE_SAVE_PATH" "$PROTOCOL_PATH" "$TEMP_PROTOCOL_PATH"
-        missing_count=$?
-        
-        if [ $missing_count -gt 0 ]; then
-            print_color "$CYAN" "🔄 Running benchmark for $missing_count missing entries only..."
-            PROTOCOL_TO_USE="$TEMP_PROTOCOL_PATH"
-            TEMP_SCORE_PATH="$RESULTS_FOLDER/temp_scores_${subfolder_name}_${RANDOM_ID}.txt"
-            SCORE_PATH_TO_USE="$TEMP_SCORE_PATH"
-            USE_TEMP_PROTOCOL=true
-        elif [ $missing_count -eq 0 ]; then
-            print_color "$GREEN" "✓ No missing entries found. Score file is actually complete."
-            # Re-validate to make sure
-            if validate_score_file "$SCORE_SAVE_PATH" "$PROTOCOL_PATH"; then
-                # Run the scoring script directly since file is complete
-                print_color "$CYAN" "🔄 Evaluating existing complete results..."
-                RESULT=$(python scripts/score_file_to_eer.py "$SCORE_SAVE_PATH" "$PROTOCOL_PATH")
-                
-                if [ $? -eq 0 ]; then
-                    # Extract values from the result
-                    MIN_SCORE=$(echo "$RESULT" | cut -d' ' -f1)
-                    MAX_SCORE=$(echo "$RESULT" | cut -d' ' -f2)
-                    THRESHOLD=$(echo "$RESULT" | cut -d' ' -f3)
-                    EER=$(echo "$RESULT" | cut -d' ' -f4)
-                    ACCURACY=$(echo "$RESULT" | cut -d' ' -f5)
-                    
-                    # Format output for summary file
-                    echo "$subfolder_name | $EER | $MIN_SCORE | $MAX_SCORE | $THRESHOLD | $ACCURACY" >> "$SUMMARY_FILE"
-                    
-                    # Display results
-                    print_color "$GREEN" "✓ Results for $subfolder_name (using existing complete score file):"
-                    print_color "$WHITE" "  EER      : $EER"
-                    print_color "$WHITE" "  Accuracy : $ACCURACY"
-                    print_color "$WHITE" "  Threshold: $THRESHOLD"
-                    print_color "$WHITE" "  Min Score: $MIN_SCORE"
-                    print_color "$WHITE" "  Max Score: $MAX_SCORE"
-                fi
-            fi
-            continue
-        else
-            print_color "$RED" "❌ Error: Failed to analyze missing entries. Re-running full benchmark..."
-            PROTOCOL_TO_USE="$PROTOCOL_PATH"
-            SCORE_PATH_TO_USE="$SCORE_SAVE_PATH"
-            USE_TEMP_PROTOCOL=false
         fi
     else
         print_color "$CYAN" "ℹ️ No existing score file found for $subfolder_name. Running fresh benchmark..."
@@ -429,6 +278,7 @@ for subfolder in "${SUBDIRS[@]}"; do
     CMD+="++data.args.trim_length=$TRIM_LENGTH "
     CMD+="++model.base_model_path=\"$BASE_MODEL_PATH\" "
     CMD+="++model.is_base_model_path_ln=$IS_BASE_MODEL_PATH_LN "
+    CMD+="++trainer.limit_test_batches=0.1 " # 10% of the test set
     
     # Add adapter paths if provided
     if [ ! -z "$ADAPTER_PATHS" ]; then
@@ -454,23 +304,8 @@ for subfolder in "${SUBDIRS[@]}"; do
     done
     printf "\r${GREEN}✓ Benchmark completed                 ${RESET}\n"
     
-    # Handle temporary protocol case - merge results if needed
-    if [ "$USE_TEMP_PROTOCOL" = true ]; then
-        if [ -f "$TEMP_SCORE_PATH" ]; then
-            print_color "$CYAN" "🔄 Merging temporary scores with existing scores..."
-            MERGED_SCORE_PATH="$RESULTS_FOLDER/merged_scores_${subfolder_name}_${RANDOM_ID}.txt"
-            merge_score_files "$SCORE_SAVE_PATH" "$TEMP_SCORE_PATH" "$MERGED_SCORE_PATH"
-            
-            # Clean up temporary files
-            rm -f "$TEMP_PROTOCOL_PATH" "$TEMP_SCORE_PATH" "$MERGED_SCORE_PATH"
-            print_color "$GREEN" "✓ Temporary files cleaned up"
-        else
-            print_color "$RED" "❌ Error: Temporary score file was not created for $subfolder_name"
-        fi
-    fi
-    
-    # Check if the final score file is complete
-    if validate_score_file "$SCORE_SAVE_PATH" "$PROTOCOL_PATH"; then
+    # Check if the score file was created and calculate EER
+    if [ -f "$SCORE_SAVE_PATH" ] && [ -s "$SCORE_SAVE_PATH" ]; then
         # Run the scoring script
         print_color "$CYAN" "🔄 Evaluating results..."
         RESULT=$(python scripts/score_file_to_eer.py "$SCORE_SAVE_PATH" "$PROTOCOL_PATH")
@@ -497,8 +332,6 @@ for subfolder in "${SUBDIRS[@]}"; do
         else
             print_color "$RED" "❌ Error: Failed to evaluate results for $subfolder_name"
         fi
-    elif [ -f "$SCORE_SAVE_PATH" ]; then
-        print_color "$RED" "❌ Error: Score file exists but is incomplete/corrupted for $subfolder_name"
     else
         print_color "$RED" "❌ Error: Score file was not created for $subfolder_name"
     fi

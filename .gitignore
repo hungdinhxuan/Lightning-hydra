@@ -169,3 +169,4 @@ notebooks/**/*.csv
 *.ogg
 
 .cache/
+pretrained/

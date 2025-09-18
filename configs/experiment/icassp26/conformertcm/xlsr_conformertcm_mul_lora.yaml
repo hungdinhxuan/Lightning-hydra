@@ -40,7 +40,7 @@ model:
   adapter_type: lora
 
   ## Adapter names and paths
-  adapter_paths: "/home/hungdx/logs/train/runs/2025-09-11_05-38-35/checkpoints/epoch_008.ckpt,/home/hungdx/logs/train/runs/2025-09-11_05-38-53/checkpoints/epoch_029.ckpt,/home/hungdx/logs/train/runs/2025-09-11_06-02-37/checkpoints/epoch_011.ckpt,/home/hungdx/logs/train/runs/2025-09-11_06-07-41/checkpoints/epoch_029.ckpt,/home/hungdx/logs/train/runs/2025-09-11_06-29-53/checkpoints/epoch_017.ckpt,/home/hungdx/logs/train/runs/2025-09-11_06-36-06/checkpoints/epoch_019.ckpt,/home/hungdx/logs/train/runs/2025-09-11_07-05-42/checkpoints/epoch_021.ckpt"
+  adapter_paths: "/home/hungdx/logs/train/runs/2025-09-12_14-09-27/checkpoints/epoch_019.ckpt,/home/hungdx/logs/train/runs/2025-09-11_05-38-53/checkpoints/epoch_029.ckpt,/home/hungdx/logs/train/runs/2025-09-11_06-02-37/checkpoints/epoch_011.ckpt,/home/hungdx/logs/train/runs/2025-09-13_04-26-58/checkpoints/epoch_014.ckpt,/home/hungdx/logs/train/runs/2025-09-13_03-16-14/checkpoints/epoch_014.ckpt,/home/hungdx/logs/train/runs/2025-09-11_06-36-06/checkpoints/epoch_019.ckpt,/home/hungdx/logs/train/runs/2025-09-13_09-54-51/checkpoints/epoch_008.ckpt"
   adapter_names: "g1,g2,g3,g4,g5,g6,g7"
   noise_model_path: "/nvme1/hungdx/Lightning-hydra/best_model_interspeech_6.pth"
 

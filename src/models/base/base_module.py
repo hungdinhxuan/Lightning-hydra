@@ -226,7 +226,9 @@ class BaseLitModule(LightningModule):
         """
         batch_x, utt_id = batch
         batch_emb = self.net(batch_x, last_emb=True)
-        
+        # import sys
+        # print(f"Batch emb shape: {batch_emb.shape}")
+        # sys.exit()
         fname_list = list(utt_id)
 
         for f, emb in zip(fname_list, batch_emb):

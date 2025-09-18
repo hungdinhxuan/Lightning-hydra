@@ -224,3 +224,34 @@ bash scripts/benchmark_mdt_paper.sh -g 3 -c huggingface_benchmark/xlsr_conformer
 ```bash
 bash scripts/benchmark_mdt_paper.sh -g 2 -c huggingface_benchmark/xlsr_aasist_mdt_paper -b data/mdt_paper_benchmark -m /nvme1/hungdx/Lightning-hydra/logs/train/runs/2024-10-16_21-04-31-conf-2/checkpoints/averaged_top5.ckpt -r results/aasistssl_mdt_paper --random_start False -l True
 ```
+
+
+# Benhmark (check Accuracy & EER)
+
+## To calculate EER ensure that dataset has bonafile & spoof 
+
+-g: indicate for gpu number should be use
+-b: indicate for datasets location. For example if you want to benchmark 5 datasets then point out to their parent directory
+-m: indicate for pretrained model 
+-a: indicate for lora adapter 
+
+-r: location results will be saved
+-n: comment
+
+=> Folder resulst will be create for example: 
+/nvme1/hungdx/Lightning-hydra/logs/results/TTA_benchmark_2_specs (parent directory which argument from -b option)
+├── ToP_DF_s_1 (comment)
+│   ├── ASVspoof2021_DF_eval_cnsl_xlsr_vib_paper_ToP_DF_s_1.txt (dataset order)
+│   ├── merged_protocol_cnsl_xlsr_vib_paper_ToP_DF_s_1.txt
+│   ├── merged_scores_cnsl_xlsr_vib_paper_ToP_DF_s_1.txt
+│   ├── pooled_merged_protocol_cnsl_xlsr_vib_paper_ToP_DF_s_1.txt
+│   └── summary_results.txt (final result, show EER, accuracy seperated by '|')
+└── ToP_DF_s_2
+    ├── ASVspoof2021_DF_eval_cnsl_xlsr_vib_paper_ToP_DF_s_2.txt
+    ├── merged_protocol_cnsl_xlsr_vib_paper_ToP_DF_s_2.txt
+    ├── merged_scores_cnsl_xlsr_vib_paper_ToP_DF_s_2.txt
+    ├── pooled_merged_protocol_cnsl_xlsr_vib_paper_ToP_DF_s_2.txt
+    └── summary_results.txt
+
+
+./scripts/benchmark.sh -g 3 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_more_elevenlabs -b data/wildspoof_challenge_benchmark -m /nvme1/hungdx/Lightning-hydra/logs/train/runs/2024-12-14_08-35-06-large-corpus-conf-1/checkpoints/averaged_top5.ckpt -a pretrained/MDT_241214_lora_250501 -r logs/results/wildspoof_challenge_benchmark -n "ConformerTCM_MDT_LoRA_LargeCorpus_MoreElevenlabs" 
