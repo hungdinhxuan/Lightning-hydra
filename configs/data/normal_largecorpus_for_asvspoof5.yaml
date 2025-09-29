@@ -9,7 +9,7 @@ args:
   protocol_path: ${oc.env:LARGE_CORPUS_FOR_CNSL_PROTOCOLS}
   # Cache settings
   cache_dir: ${oc.env:CACHE_DIR}  # Directory for cache
-  enable_cache: true  # Whether to enable caching in args
+  enable_cache: True  # Whether to enable caching in args
   nBands: 5
   minF: 20
   maxF: 8000

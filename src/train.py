@@ -39,6 +39,14 @@ from src.utils import (
 log = RankedLogger(__name__, rank_zero_only=True)
 import warnings
 warnings.filterwarnings('ignore')
+orig_torch_load = torch.load
+def torch_wrapper(*args, **kwargs):
+    log.warning("[unsafe-torch] I have unsafely patched `torch.load`.  The `weights_only` option of `torch.load` is forcibly disabled.")
+    kwargs['weights_only'] = False
+
+    return orig_torch_load(*args, **kwargs)
+
+torch.load = torch_wrapper
 
 @task_wrapper
 def train(cfg: DictConfig) -> Tuple[Dict[str, Any], Dict[str, Any]]:

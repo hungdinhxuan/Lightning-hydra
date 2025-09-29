@@ -61,6 +61,7 @@ class XLSRConformerTCMLitModule(LightningModule):
         use_lora: bool = False,
         last_emb: bool = False,
         emb_save_path: str = None,
+        **kwargs: Any,
     ) -> None:
         """Initialize a `MNISTLitModule`.
 

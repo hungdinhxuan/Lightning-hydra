@@ -424,11 +424,10 @@ for subfolder in "${SUBDIRS[@]}"; do
     CMD+="++model.score_save_path=\"$SCORE_PATH_TO_USE\" "
     CMD+="++data.data_dir=\"$DATA_DIR\" "
     CMD+="++data.args.protocol_path=\"$PROTOCOL_TO_USE\" "
-    CMD+="++train=False ++test=True ++model.spec_eval=True ++data.batch_size=1024 "
+    CMD+="++train=False ++test=True ++model.spec_eval=True ++data.batch_size=512 "
     CMD+="++data.args.random_start=$IS_RANDOM_START "
     CMD+="++data.args.trim_length=$TRIM_LENGTH "
-    CMD+="++model.base_model_path=\"$BASE_MODEL_PATH\" "
-    CMD+="++model.is_base_model_path_ln=$IS_BASE_MODEL_PATH_LN "
+    CMD+="ckpt_path=\"$BASE_MODEL_PATH\" "
     
     # Add adapter paths if provided
     if [ ! -z "$ADAPTER_PATHS" ]; then
