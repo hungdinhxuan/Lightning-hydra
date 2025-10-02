@@ -51,4 +51,5 @@ dependencies = [
     "sentencepiece==0.2.0",
     "tokenizers==0.21.1",
     "triton==3.2.0",
+    "espnet>=202506",
 ]
