@@ -8,7 +8,6 @@ from torchmetrics.classification.accuracy import BinaryAccuracy
 from typing import Union
 
 import torch
-from src.models.components.xlsr_conformertcm_baseline import Model as XLSRConformerTCM
 from src.models.base.adapter_module import AdapterLitModule
 
 class NormalLitModule(AdapterLitModule):

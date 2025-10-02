@@ -1,0 +1,63 @@
+# @package _global_
+
+# to execute this experiment run:
+# python train.py experiment=example
+
+defaults:
+  - override /data: normal_largecorpus_multiview_cnsl
+  - override /model: v2/xlsr_mamba_hoanmytran_paper
+  - override /callbacks: default_loss_earlystop
+  - override /trainer: default
+
+# all parameters below will be merged with parameters from default configurations set above
+# this allows you to overwrite only specified parameters
+
+tags: ["normal_largecorpus_multiview_cnsl", "v2/xlsr_mamba_hoanmytran_paper"]
+
+seed: 1234
+
+trainer:
+  max_epochs: 100
+  gradient_clip_val: 0.0
+  accelerator: cuda
+
+model:
+  optimizer:
+    lr: 0.000001
+    weight_decay: 0.0001
+  net: null
+  scheduler: null
+  compile: true
+  cross_entropy_weight: [0.7, 0.3] # Balanced weights for cross entropy loss
+
+data:
+  batch_size: 32
+  data_dir: ${oc.env:WILD_SPOOF_PATH}
+  num_workers: 8
+  pin_memory: true
+  args:
+    augmentation_methods: ["RawBoostdf", "none"]
+    protocol_path: ${oc.env:WILD_SPOOF_PROTOCOL_PATH}
+    padding_type: zero
+    random_start: True
+    view_padding_configs:
+      '1':
+        padding_type: repeat
+        random_start: True
+      '2':
+        padding_type: repeat
+        random_start: True
+      '3':
+        padding_type: repeat
+        random_start: True
+      '4':
+        padding_type: repeat
+        random_start: True
+
+
+logger:
+  wandb:
+    tags: ${tags}
+    group: "normal_largecorpus_multiview_cnsl"
+  aim:
+    experiment: "normal_largecorpus_multiview_cnsl"

@@ -424,7 +424,7 @@ for subfolder in "${SUBDIRS[@]}"; do
     CMD+="++model.score_save_path=\"$SCORE_PATH_TO_USE\" "
     CMD+="++data.data_dir=\"$DATA_DIR\" "
     CMD+="++data.args.protocol_path=\"$PROTOCOL_TO_USE\" "
-    CMD+="++train=False ++test=True ++model.spec_eval=True ++data.batch_size=1024 "
+    CMD+="++train=False ++test=True ++model.spec_eval=True ++data.batch_size=196 "
     CMD+="++data.args.random_start=$IS_RANDOM_START "
     CMD+="++data.args.trim_length=$TRIM_LENGTH "
     CMD+="++model.base_model_path=\"$BASE_MODEL_PATH\" "

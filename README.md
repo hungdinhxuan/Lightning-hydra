@@ -254,4 +254,15 @@ bash scripts/benchmark_mdt_paper.sh -g 2 -c huggingface_benchmark/xlsr_aasist_md
     └── summary_results.txt
 
 
+# Challenge
 ./scripts/benchmark.sh -g 3 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_more_elevenlabs -b data/wildspoof_challenge_benchmark -m /nvme1/hungdx/Lightning-hydra/logs/train/runs/2024-12-14_08-35-06-large-corpus-conf-1/checkpoints/averaged_top5.ckpt -a pretrained/MDT_241214_lora_250501 -r logs/results/wildspoof_challenge_benchmark -n "ConformerTCM_MDT_LoRA_LargeCorpus_MoreElevenlabs" 
+
+# Baseline
+./scripts/benchmark.sh -g 3 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b data/wildspoof_challenge_benchmark -m /nvme1/hungdx/Lightning-hydra/logs/train/runs/2024-12-14_08-35-06-large-corpus-conf-1/checkpoints/averaged_top5.ckpt -r logs/results/wildspoof_challenge_benchmark -n "Conformer_MDT_DEC2024_correct"
+
+
+
+## Mamba install
+uv pip install https://github.com/Dao-AILab/causal-conv1d/releases/download/v1.4.0/causal_conv1d-1.4.0+cu122torch2.4cxx11abiFALSE-cp39-cp39-linux_x86_64.whl
+
+uv pip install https://github.com/state-spaces/mamba/releases/download/v2.2.2/mamba_ssm-2.2.2+cu122torch2.4cxx11abiFALSE-cp39-cp39-linux_x86_64.whl   
