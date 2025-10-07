@@ -28,15 +28,15 @@ model:
   net: null
   scheduler: null
   compile: true
-  cross_entropy_weight: [0.7, 0.3] # Balanced weights for cross entropy loss
+  cross_entropy_weight: [0.5, 0.5] # Balanced weights for cross entropy loss
 
 data:
-  batch_size: 32
+  batch_size: 16
   data_dir: ${oc.env:WILD_SPOOF_PATH}
   num_workers: 8
   pin_memory: true
   args:
-    augmentation_methods: ["RawBoostdf", "none"]
+    augmentation_methods: ["RawBoostFull", "none"]
     protocol_path: ${oc.env:WILD_SPOOF_PROTOCOL_PATH}
     padding_type: repeat
     random_start: True
