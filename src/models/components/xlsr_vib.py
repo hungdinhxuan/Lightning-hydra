@@ -9,7 +9,7 @@ from torch import Tensor
 import fairseq
 import os
 import torch.nn.functional as F
-
+from src.models.components.loss_metrics import supcon_loss
 class SSLModel(nn.Module):
     def __init__(self, cp_path):
         super(SSLModel, self).__init__()
@@ -202,3 +202,71 @@ class Model(nn.Module):
     def forward(self, x_big):
         return self._forward(x_big)
 
+    def loss(self, output, feats, emb, labels, config, info=None):
+        '''
+        output: tensor, (batch, num_output_class)
+        feats: tuple: feats[0] decoded (batch, frame_num, feat_feat_dim)
+                      feats[1] mu (batch, frame_num, feat_feat_dim)
+                      feats[2] logvar (batch, frame_num, feat_feat_dim)
+                      feats[3] wav2vec feats (batch, frame_num, feat_feat_dim)
+        emb: tensor, (batch, emb_dim)
+        '''
+        
+        # get loss weights from config, default is 1.0
+        weight_CE = config['model']['weight_CE'] if 'weight_CE' in config['model'] else 1.0
+        weight_CF1 = config['model']['weight_CF1'] if 'weight_CF1' in config['model'] else 1.0
+        weight_CF2 = config['model']['weight_CF2'] if 'weight_CF2' in config['model'] else 1.0
+        recon_weight_l = config['model']['recon_weight_l'] if 'recon_weight_l' in config['model'] else 0.000001
+        recon_weight_b = config['model']['recon_weight_b'] if 'recon_weight_b' in config['model'] else 0.05
+        
+        real_bzs = output.shape[0]
+        n_views = 1.0
+        loss_CE = torch.nn.CrossEntropyLoss()
+        if config['model']['loss_type'] == 4:
+            L_CE = weight_CE * 1/real_bzs *loss_CE(output, labels)
+            return {'L_CE':L_CE}
+        decoded, mu, logvar, feats_w2v = feats
+        
+        sim_metric_seq = lambda mat1, mat2: torch.bmm(
+            mat1.permute(1, 0, 2), mat2.permute(1, 2, 0)).mean(0)
+        
+        # print("output.shape", output.shape)
+        # print("labels.shape", labels.shape)        
+        L_CE = weight_CE * 1/real_bzs * loss_CE(output, labels)
+        
+        # Recon loss
+        # print("decoded: ", decoded.shape)
+        # print("feats_w2v: ", feats_w2v.shape)
+        # print("mu: ", mu.shape)
+        # print("logvar: ", logvar.shape)
+
+        BCE = F.binary_cross_entropy(torch.sigmoid(decoded), torch.sigmoid(feats_w2v), reduction='sum')
+        # print("BCE: ", BCE)
+        KLD = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
+        # print("KLD: ", KLD)
+        # Recon_loss = 0.000001*(BCE + 0.05*KLD) / real_bzs
+        Recon_loss = recon_weight_l*(BCE + recon_weight_b*KLD) / real_bzs
+        # reshape the feats_w2v to match the supcon loss format
+        feats_w2v = feats_w2v.unsqueeze(1)
+        # print("feats_w2v.shape", feats_w2v.shape)
+        L_CF1 = weight_CF1 * 1/real_bzs * supcon_loss(feats_w2v, labels=labels, contra_mode=config['model']['contra_mode'], sim_metric=sim_metric_seq)
+        
+        # reshape the emb to match the supcon loss format
+        emb = emb.unsqueeze(1)
+        emb = emb.unsqueeze(-1)
+        # print("emb.shape", emb.shape)
+        L_CF2 = weight_CF2 * 1/real_bzs *supcon_loss(emb, labels=labels, contra_mode=config['model']['contra_mode'], sim_metric=sim_metric_seq)
+        
+        if config['model']['loss_type'] == 1:
+            return {'L_CE':L_CE, 'L_CF1':L_CF1, 'L_CF2':L_CF2, 'Recon_loss':Recon_loss}
+        # if config['model']['loss_type'] == 1:
+        #     return {'L_CE':L_CE, 'L_CF2':L_CF2, 'Recon_loss':Recon_loss}
+        elif config['model']['loss_type'] == 2:
+            return {'L_CE':L_CE, 'L_CF1':L_CF1}
+        elif config['model']['loss_type'] == 3:
+            return {'L_CE':L_CE, 'L_CF2':L_CF2}
+        # ablation study
+        elif config['model']['loss_type'] == 4:
+            return {'L_CE':L_CE, 'Recon_loss':Recon_loss}
+        elif config['model']['loss_type'] == 5:
+            return {'L_CF1':L_CF1, 'L_CF2':L_CF2}
