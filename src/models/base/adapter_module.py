@@ -52,10 +52,14 @@ class AdapterLitModule(BaseLitModule):
             if is_base_model_path_ln:
                 self.net = load_ln_model_weights(self.net, ckpt['state_dict'])  
             else:
-                # Remove the prefix "module." from the keys
-                ckpt = {key.replace("module.", ""): value for key, value in ckpt.items()}
-                ckpt = {key.replace("_orig_mod.", ""): value for key, value in ckpt.items()}
-                self.net.load_state_dict(ckpt)
+                is_jit_model = self.kwargs.get("is_jit_model", False)
+                if is_jit_model:
+                    self.net = torch.jit.load(self.base_model_path)
+                else:
+                    # Remove the prefix "module." from the keys
+                    ckpt = {key.replace("module.", ""): value for key, value in ckpt.items()}
+                    ckpt = {key.replace("_orig_mod.", ""): value for key, value in ckpt.items()}
+                    self.net.load_state_dict(ckpt)
             print("Loaded baseline model from:", self.base_model_path)
 
         # Apply adapter method
@@ -65,7 +69,6 @@ class AdapterLitModule(BaseLitModule):
         # Load adapters if provided
         if self.adapter_paths:
             self._configure_and_load_adapters()
-
     def _load_base_model(self):
         """Load the base model from checkpoint."""
         is_base_model_path_ln = self.kwargs.get("is_base_model_path_ln", True)

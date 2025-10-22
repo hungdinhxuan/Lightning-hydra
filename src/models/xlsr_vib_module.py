@@ -246,7 +246,7 @@ class XLSRVIBLitModule(LightningModule):
         fname_list = list(utt_id)
         score_list = batch_out.data.cpu().numpy().tolist()
             
-        with open(self.score_save_path, 'a+') as fh:
+        with open(self.score_save_path, 'a+', encoding='utf-8') as fh:
             for f, cm in zip(fname_list, score_list):
                 fh.write('{} {} {}\n'.format(f, cm[0], cm[1]))
 
