@@ -14,7 +14,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch import Tensor
 import fairseq
-from src.models.components.wavlmbase_vib import Model as WavlmBaseVIB
 from src.utils.debug import NaNErrorMode
 from src.models.components.xlsr_vib import Model as XLSRVIB
 from src.metrics.eer import EERMetric

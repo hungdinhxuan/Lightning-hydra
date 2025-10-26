@@ -46,12 +46,16 @@ class XLSRVIBMultiViewLitModule(AdapterLitModule):
         :param score_save_path: Path to save test scores.
         :param kwargs: Additional keyword arguments including weighted_views, adaptive_weights, etc.
         """
-        super().__init__(optimizer, scheduler, args, **kwargs)
+        #print("cp_path", cp_path)
         
-        # Initialize XLSR VIB specific attributes
+        # Initialize XLSR VIB specific attributes BEFORE calling super().__init__()
+        # because init_model() will be called during super().__init__() and needs these attributes
         self.cp_path = cp_path
         self.is_train = is_train
         self.args = args
+        
+        super().__init__(optimizer, scheduler, args, **kwargs)
+        print("args", args)
         
         # Initialize multi-view specific attributes from kwargs
         weighted_views = kwargs.get("weighted_views", {})
@@ -87,7 +91,7 @@ class XLSRVIBMultiViewLitModule(AdapterLitModule):
 
     def init_model(self, **kwargs) -> nn.Module:
         """Initialize the XLSR VIB model."""
-        return XLSRVIB(self.args, self.cp_path, self.is_train)
+        return XLSRVIB(self.cp_path)
 
     def init_criteria(self, **kwargs) -> torch.nn.Module:
         """Initialize the loss function.
@@ -100,6 +104,9 @@ class XLSRVIBMultiViewLitModule(AdapterLitModule):
             cross_entropy_weight = torch.tensor([1.0, 1.0])
         else:
             cross_entropy_weight = torch.tensor(cross_entropy_weight)
+        
+        # Ensure weights are positive to avoid CUDA assertion errors
+        cross_entropy_weight = torch.clamp(cross_entropy_weight, min=1e-7)
         self.criterion = torch.nn.CrossEntropyLoss(cross_entropy_weight)
         return self.criterion
 
@@ -153,7 +160,7 @@ class XLSRVIBMultiViewLitModule(AdapterLitModule):
             - view: view identifier (e.g., 1, 2, 3...)
             - info_x_y: tuple containing (info, batch_x, batch_y)
             """
-            info, batch_x, batch_y = info_x_y
+            batch_x, batch_y = info_x_y
             
             # Update batch size calculation
             self.batch_size = batch_x.size(0) * len(self.weighted_views.keys())
@@ -168,6 +175,12 @@ class XLSRVIBMultiViewLitModule(AdapterLitModule):
             batch_y = batch_y.view(-1).type(torch.int64)
             self.num_total += batch_y.shape[0]
             
+            # Validate labels to prevent CUDA assertion errors
+            if not torch.all((batch_y == 0) | (batch_y == 1)):
+                print(f"Warning: Invalid labels detected at view {view}. Labels: {batch_y}")
+                # Clamp labels to valid range
+                batch_y = torch.clamp(batch_y, 0, 1)
+            
             # Ensure input tensor is float
             batch_x = batch_x.float()
 
@@ -176,6 +189,15 @@ class XLSRVIBMultiViewLitModule(AdapterLitModule):
                 enabled=False, raise_error=False, print_stats=True, print_nan_index=False
             ):
                 batch_out, batch_feat, batch_emb = self.net(batch_x)
+                
+                # Validate outputs to prevent CUDA assertion errors
+                if torch.isnan(batch_out).any() or torch.isinf(batch_out).any():
+                    print(f"Warning: NaN or Inf detected in batch_out at view {view}")
+                    batch_out = torch.nan_to_num(batch_out, nan=0.0, posinf=1e6, neginf=-1e6)
+                
+                if torch.isnan(batch_emb).any() or torch.isinf(batch_emb).any():
+                    print(f"Warning: NaN or Inf detected in batch_emb at view {view}")
+                    batch_emb = torch.nan_to_num(batch_emb, nan=0.0, posinf=1e6, neginf=-1e6)
                 
                 # Calculate XLSR VIB losses
                 losses = self.net.loss(batch_out, batch_feat,
@@ -187,7 +209,7 @@ class XLSRVIBMultiViewLitModule(AdapterLitModule):
                     view_loss += value
                     # Track detailed losses
                     loss_key = f"{view}_{key}"
-                    self.train_loss_detail[loss_key] = self.train_loss_detail.get(
+                    loss_detail[loss_key] = loss_detail.get(
                         loss_key, 0) + value.item()
                 
                 # Apply view weighting

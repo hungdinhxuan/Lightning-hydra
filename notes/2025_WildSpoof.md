@@ -32,3 +32,8 @@ Average checkpoint: /home/hungdx/logs/train/runs/2025-10-04_18-08-07/checkpoints
 ```bash
 ./scripts/benchmark_old.sh -g 0 -c wildspoof/xlsr_conformertcm_mdt -b data/benchmark_kd -m /home/hungdx/logs/train/runs/2025-10-04_18-08-07/checkpoints/averaged_top5.ckpt -r logs/results/benchmark_wildspoof -n "xlsr_conformertcm_mdt"
 ```
+
+# Standard training (no rawboost)
+```bash
+CUDA_VISIBLE_DEVICES=0 OMP_NUM_THREADS=5 python src/train.py experiment=wildspoof/xlsr_conformertcm_wo_rawboost ++model_averaging=True +model.score_save_path="logs/eval/wildspoof/spoofceleb_eval_xlsr_conformertcm_wo_rawboost_large_corpus_clean_4s.txt"
+```

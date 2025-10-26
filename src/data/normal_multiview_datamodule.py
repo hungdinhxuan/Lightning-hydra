@@ -110,6 +110,10 @@ class Dataset_for_eval(Dataset_base):
                                                aug_dir, online_aug, repeat_pad, is_train, random_start)
         self.enable_chunking = enable_chunking
         self.padding_type = "repeat" if repeat_pad else "zero"
+        self.eval_augment = args.get('eval_augment', None)
+        if self.eval_augment is not None:
+            print("Eval augmentation is enabled")
+
         # Use consistent caching
         self.cache_dir = kwargs.get('cache_dir')
         # print("Chunking enabled:", self.enable_chunking)

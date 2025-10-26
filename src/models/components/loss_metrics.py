@@ -195,12 +195,18 @@ def supcon_loss(input_feat,
     logits_mat_ = logits_mat - logits_max.detach()
     # compute log_prob
     exp_logits = torch.exp(logits_mat_ * self_mask) * self_mask
-    log_prob = logits_mat_ - torch.log(exp_logits.sum(1, keepdim=True))
+    exp_sum = exp_logits.sum(1, keepdim=True)
+    # Avoid log(0) - add small epsilon for numerical stability
+    exp_sum = torch.clamp(exp_sum, min=1e-8)
+    log_prob = logits_mat_ - torch.log(exp_sum)
 
     # print("log_prob.shape", log_prob.shape)
     # compute mean of log-likelihood over positive
     # print(mask_ * log_prob)
-    mean_log_prob_pos = (mask_ * log_prob).sum(1) / mask_.sum(1)
+    mask_sum = mask_.sum(1)
+    # Avoid division by zero - add small epsilon for numerical stability
+    mask_sum = torch.clamp(mask_sum, min=1e-8)
+    mean_log_prob_pos = (mask_ * log_prob).sum(1) / mask_sum
     # print("mean_log_prob_pos.shape", mean_log_prob_pos.shape)
     # print(mean_log_prob_pos)
     # loss

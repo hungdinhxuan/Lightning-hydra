@@ -28,7 +28,15 @@ model:
   net: null
   scheduler: null
   compile: true
-  cross_entropy_weight: [0.5, 0.5] # Balanced weights for cross entropy loss
+  cross_entropy_weight: [0.1, 0.9] # Balanced weights for cross entropy loss
+  args:
+    conformer:
+      emb_size: 144
+      heads: 4
+      kernel_size: 31
+      n_encoders: 4
+      type: "conv_res2net_seblock" # conv_res2net, conv_seblock, conv_res2net_seblock
+      pooling: "first"
 
 data:
   batch_size: 16
@@ -36,7 +44,7 @@ data:
   num_workers: 8
   pin_memory: true
   args:
-    augmentation_methods: ["RawBoostdf", "none"]
+    augmentation_methods: ["RawBoostdf", "none", "ssboll79"]
     protocol_path: ${oc.env:WILD_SPOOF_PROTOCOL_PATH}
     padding_type: repeat
     random_start: True

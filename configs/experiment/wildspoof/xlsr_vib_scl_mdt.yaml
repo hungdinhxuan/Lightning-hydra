@@ -23,20 +23,30 @@ trainer:
 
 model:
   optimizer:
-    lr: 0.000001
+    lr: 0.0001
     weight_decay: 0.0001
   net: null
-  scheduler: null
   compile: true
   cross_entropy_weight: [0.5, 0.5] # Balanced weights for cross entropy loss
-
+  weighted_views:
+    '1': 1.0
+    '2': 1.0
+    '3': 1.0
+    '4': 1.0
+  scheduler:
+    _target_: torch.optim.lr_scheduler.MultiStepLR
+    _partial_: true
+    milestones:
+      - 5
+      - 20
+    gamma : 0.1 # Multiplicative factor of learning rate decay.
 data:
   batch_size: 16
   data_dir: ${oc.env:WILD_SPOOF_PATH}
   num_workers: 8
   pin_memory: true
   args:
-    augmentation_methods: ["RawBoostFull", "none"]
+    augmentation_methods: ["none"]
     protocol_path: ${oc.env:WILD_SPOOF_PROTOCOL_PATH}
     padding_type: repeat
     random_start: True

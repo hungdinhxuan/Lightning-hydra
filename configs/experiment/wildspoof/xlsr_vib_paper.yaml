@@ -5,14 +5,14 @@
 
 defaults:
   - override /data: normal_largecorpus_multiview_cnsl
-  - override /model: xlsr_conformertcm_baseline_multiview
+  - override /model: v2/xlsr_vib_paper
   - override /callbacks: default_loss_earlystop
   - override /trainer: default
 
 # all parameters below will be merged with parameters from default configurations set above
 # this allows you to overwrite only specified parameters
 
-tags: ["normal_largecorpus_multiview_cnsl", "xlsr_conformertcm_baseline_multiview"]
+tags: ["normal_largecorpus_multiview_cnsl", "xlsr_vib_paper"]
 
 seed: 1234
 
@@ -29,15 +29,18 @@ model:
   scheduler: null
   compile: true
   cross_entropy_weight: [0.5, 0.5] # Balanced weights for cross entropy loss
+  weighted_views:
+    '1': 1.0
+    '2': 1.0
+    '3': 1.0
+    '4': 1.0
 
 data:
-  batch_size: 16
-  data_dir: ${oc.env:WILD_SPOOF_PATH}
+  batch_size: 14
   num_workers: 8
   pin_memory: true
   args:
-    augmentation_methods: ["RawBoostdf", "none"]
-    protocol_path: ${oc.env:WILD_SPOOF_PROTOCOL_PATH}
+    augmentation_methods: ["RawBoostdf", "none"] # "none" is the original data
     padding_type: repeat
     random_start: True
     view_padding_configs:
@@ -53,6 +56,9 @@ data:
       '4':
         padding_type: repeat
         random_start: True
+    
+    num_additional_real: 2
+    num_additional_spoof: 3
 
 
 logger:

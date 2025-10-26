@@ -36,7 +36,7 @@ data:
   num_workers: 8
   pin_memory: true
   args:
-    augmentation_methods: ["RawBoostdf", "none"]
+    augmentation_methods: ["none"]
     protocol_path: ${oc.env:WILD_SPOOF_PROTOCOL_PATH}
     padding_type: repeat
     random_start: True

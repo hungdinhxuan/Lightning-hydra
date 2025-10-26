@@ -180,6 +180,10 @@ class Model(nn.Module):
         self.sim_metric_seq = lambda mat1, mat2: torch.bmm(
             mat1.permute(1, 0, 2), mat2.permute(1, 2, 0)).mean(0)
         # Post-processing
+        
+        # Initialize model parameters from kwargs
+        self.contra_mode = kwargs.get('contra_mode', 'all')
+        self.loss_type = kwargs.get('loss_type', 1)
 
     def _forward(self, x):
         x.requires_grad = True
@@ -240,7 +244,10 @@ class Model(nn.Module):
         # print("mu: ", mu.shape)
         # print("logvar: ", logvar.shape)
 
-        BCE = F.binary_cross_entropy(torch.sigmoid(decoded), torch.sigmoid(feats_w2v), reduction='sum')
+        # Clamp sigmoid outputs to avoid CUDA assertion errors
+        decoded_sigmoid = torch.clamp(torch.sigmoid(decoded), min=1e-7, max=1-1e-7)
+        feats_sigmoid = torch.clamp(torch.sigmoid(feats_w2v), min=1e-7, max=1-1e-7)
+        BCE = F.binary_cross_entropy(decoded_sigmoid, feats_sigmoid, reduction='sum')
         # print("BCE: ", BCE)
         KLD = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
         # print("KLD: ", KLD)

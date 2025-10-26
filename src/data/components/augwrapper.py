@@ -3,7 +3,7 @@ import numpy as np
 import librosa
 
 from src.data.components.RawBoost import ISD_additive_noise, LnL_convolutive_noise, SSI_additive_noise, normWav
-from src.data.components.audio_augmentor import BackgroundNoiseAugmentor, PitchAugmentor, ReverbAugmentor, SpeedAugmentor, VolumeAugmentor, TelephoneEncodingAugmentor, GaussianAugmentor, CopyPasteAugmentor, BaseAugmentor, TimeMaskingAugmentor, FrequencyMaskingAugmentor, MaskingAugmentor, TimeSwapAugmentor, FrequencySwapAugmentor, SwappingAugmentor, LinearFilterAugmentor, BandpassAugmentor, TimeStretchAugmentor, HighPassFilterAugmentor, LowPassFilterAugmentor, AutoTuneAugmentor, EchoAugmentor, AmplitudeModulationAugmentor, GaussianAugmentorV1, BackgroundMusicAugmentorDeepen, BackgroundNoiseAugmentorDeepen, BackgroundMusicAugmentorDeepen, FrequencyOperationAugmentorDeepen, ResampleAugmentor, BackgroundNoiseAugmentorAudiomentations, EchoAugmentorDeepen
+from src.data.components.audio_augmentor import BackgroundNoiseAugmentor, PitchAugmentor, ReverbAugmentor, SpeedAugmentor, VolumeAugmentor, TelephoneEncodingAugmentor, GaussianAugmentor, CopyPasteAugmentor, BaseAugmentor, TimeMaskingAugmentor, FrequencyMaskingAugmentor, MaskingAugmentor, TimeSwapAugmentor, FrequencySwapAugmentor, SwappingAugmentor, LinearFilterAugmentor, BandpassAugmentor, TimeStretchAugmentor, HighPassFilterAugmentor, LowPassFilterAugmentor, AutoTuneAugmentor, EchoAugmentor, AmplitudeModulationAugmentor, GaussianAugmentorV1, BackgroundMusicAugmentorDeepen, BackgroundNoiseAugmentorDeepen, BackgroundMusicAugmentorDeepen, FrequencyOperationAugmentorDeepen, ResampleAugmentor, BackgroundNoiseAugmentorAudiomentations, EchoAugmentorDeepen, SSBoll79Augmentor
 from src.data.components.audio_augmentor.utils import pydub_to_librosa, librosa_to_pydub
 
 import soundfile as sf
@@ -14,7 +14,7 @@ SUPPORTED_AUGMENTATION = [
     'RawBoostdf', 'RawBoost12', 'RawBoostFull', 'copy_paste_80', 'copy_paste_r', 'time_masking', 'masking', 'time_swap', 'time_stretch_v1', 'pitch_v1', 'background_noise_v1', 'highpass_filter_v1',
     'freq_swap', 'swapping', 'frequency_masking', 'linear_filter', 'mp32flac', 'ogg2flac', 'nonspeechtrim',
     'bandpass_0_4000', 'griffinlim_downsample', 'lowpass_hifigan_asvspoof5', 'lowpass_hifigan', 'librosa_downsample', 'none',
-    'autotune_v1', 'amplitude_modulation_v1', 'echo_v1', 'gaussian_v1', 'autotune_deepen', 'background_music_deepen', 'background_noise_deepen', 'background_music_deepen', 'freq_operation_deepen', 'lowpass_filter_v1', 'resample_v1', 'background_noise_audiomentations']
+    'autotune_v1', 'amplitude_modulation_v1', 'echo_v1', 'gaussian_v1', 'autotune_deepen', 'background_music_deepen', 'background_noise_deepen', 'background_music_deepen', 'freq_operation_deepen', 'lowpass_filter_v1', 'resample_v1', 'background_noise_audiomentations', 'ssboll79']
 
 
 def audio_transform(filepath: str, aug_type: BaseAugmentor, config: dict, online: bool = False, lrs=False):
@@ -479,6 +479,45 @@ def background_music_deepen(x, args, sr=16000, audio_path=None):
             os.makedirs(os.path.dirname(aug_audio_path), exist_ok=True)
             audio_transform(
                 filepath=audio_path, aug_type=BackgroundMusicAugmentorDeepen, config=config, online=False)
+            waveform, _ = librosa.load(aug_audio_path, sr=sr, mono=True)
+            return waveform
+
+def ssboll79(x, args, sr=16000, audio_path=None):
+    """
+    Apply SSBoll79 spectral subtraction denoising to the audio.
+    This augmentation applies spectral subtraction based on the Boll 1979 paper
+    for noise reduction in speech signals.
+    """
+    aug_dir = args.aug_dir
+    utt_id = os.path.basename(audio_path).split('.')[0]
+    args.input_path = os.path.dirname(audio_path)
+    aug_audio_path = os.path.join(aug_dir, 'ssboll79', utt_id + '.wav')
+    args.output_path = os.path.join(aug_dir, 'ssboll79')
+    args.out_format = 'wav'
+    
+    config = {
+        "aug_type": "ssboll79",
+        "output_path": args.output_path,
+        "out_format": args.out_format,
+        "initial_silence": 0.25  # Initial silence length in seconds for noise estimation
+    }
+
+    # print("Applying SSBoll79 augmentation")
+    # import sys
+    # sys.exit()
+    
+    if (args.online_aug):
+        waveform = audio_transform(
+            filepath=audio_path, aug_type=SSBoll79Augmentor, config=config, online=True)
+        return waveform
+    else:
+        if os.path.exists(aug_audio_path):
+            waveform, _ = librosa.load(aug_audio_path, sr=sr, mono=True)
+            return waveform
+        else:
+            os.makedirs(os.path.dirname(aug_audio_path), exist_ok=True)
+            audio_transform(
+                filepath=audio_path, aug_type=SSBoll79Augmentor, config=config, online=False)
             waveform, _ = librosa.load(aug_audio_path, sr=sr, mono=True)
             return waveform
 
