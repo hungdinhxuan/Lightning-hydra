@@ -39,6 +39,13 @@ class Dataset_for(Dataset_base):
         self.aug_method_count = len(self.augmentation_methods)
         self.use_augmentation = self.aug_method_count > 0
 
+        self.use_pre_process = args.get('use_pre_process', False)
+        if self.use_pre_process:
+            print("Using pre-process")
+            self.pre_process_fn = list(set(args.get('pre_process_fn', [])))
+            self.pre_process_fn_count = len(self.pre_process_fn)
+        
+
     def __getitem__(self, idx):
         utt_id = self.list_IDs[idx]
         filepath = os.path.join(self.base_dir, utt_id)
@@ -51,7 +58,11 @@ class Dataset_for(Dataset_base):
             # print("Augmenting with", self.augmentation_methods[augmethod_index])
             X = globals()[self.augmentation_methods[augmethod_index]](X, self.args, self.sample_rate,
                                                                       audio_path=filepath)
-
+        if self.use_pre_process:
+            #X = self.pre_process_fn(X)
+            pre_processed_index = random.randrange(self.pre_process_fn_count)
+            X = globals()[self.pre_process_fn[pre_processed_index]](X, self.args, self.sample_rate,
+                                                                      audio_path=filepath)
         x_inp = Tensor(X)
         target = self.labels[utt_id]
         return x_inp, target
@@ -75,6 +86,12 @@ class Dataset_for_dev(Dataset_base):
         # Pre-compute augmentation indices for efficiency
         self.aug_method_count = len(self.augmentation_methods)
         self.use_augmentation = self.is_dev_aug and self.aug_method_count > 0
+
+        self.use_pre_process = args.get('use_pre_process', False)
+        if self.use_pre_process:
+            print("Using pre-process")
+            self.pre_process_fn = list(set(args.get('pre_process_fn', [])))
+            self.pre_process_fn_count = len(self.pre_process_fn)
         
         if self.is_dev_aug:
             print("Dev aug is enabled")
@@ -93,6 +110,11 @@ class Dataset_for_dev(Dataset_base):
             # print("Augmenting with", self.augmentation_methods[augmethod_index])
             X = globals()[self.augmentation_methods[augmethod_index]](X, self.args, self.sample_rate,
                                                                     audio_path=filepath)
+        if self.use_pre_process:
+            #X = self.pre_process_fn(X)
+            pre_processed_index = random.randrange(self.pre_process_fn_count)
+            X = globals()[self.pre_process_fn[pre_processed_index]](X, self.args, self.sample_rate,
+                                                                      audio_path=filepath)
         x_inp = Tensor(X)
         target = self.labels[utt_id]
         return x_inp, target

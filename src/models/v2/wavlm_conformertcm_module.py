@@ -1,5 +1,4 @@
 import torch
-from src.models.components.xlsr_vib import Model as XLSRVIB
 from src.models.base.normal_module import NormalLitModule
 from typing import Any, Dict, Tuple, Union
 from torch import nn
@@ -24,6 +23,6 @@ class WavLMConformertcmNormalLitModule(NormalLitModule):
         ssl_pretrained_path = kwargs.get("ssl_pretrained_path", None)
         if ssl_pretrained_path is None:
             raise ValueError("ssl_pretrained_path is required for XLSRVIBNormalLitModule")
-        return WavlmConformerTCM(self.args, ssl_pretrained_path, n_layers=self.args.get("n_layers", None))
+        return WavlmConformerTCM(self.args['conformer'], ssl_pretrained_path, n_layers=self.args.get("n_layers", None))
     
     

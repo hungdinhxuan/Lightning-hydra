@@ -1,5 +1,5 @@
 import torch.nn as nn
-from src.models.components.conformer_tcm_reproduce.model import MyConformer
+from src.models.components.conformer_tcm.model import MyConformer
 #from src.models.components.xlsr_aasist_layerwise import SSLModel
 from src.models.components.WavLM_layerwise.model import SSLModelWavlm
 import torch
@@ -10,8 +10,8 @@ class Model(nn.Module):
     def __init__(self, args, ssl_pretrained_path, n_layers):
         super().__init__()
         self.ssl_model = SSLModelWavlm(ssl_pretrained_path, n_layers)
-        self.layer_norm = nn.BatchNorm2d(num_features=n_layers)
-        self.weight_hidd = nn.Parameter(torch.ones(n_layers))
+        self.layer_norm = nn.BatchNorm2d(num_features=self.ssl_model.n_layers)
+        self.weight_hidd = nn.Parameter(torch.ones(self.ssl_model.n_layers))
         self.LL = nn.Linear(self.ssl_model.out_dim, args['emb_size'])
         self.first_bn = nn.BatchNorm2d(num_features=1)
         self.selu = nn.SELU(inplace=True)
