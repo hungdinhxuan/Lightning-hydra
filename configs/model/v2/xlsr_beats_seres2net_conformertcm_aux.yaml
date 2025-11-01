@@ -1,0 +1,23 @@
+_target_: src.models.v2.xlsr_beats_conformertcm_aux_module.XLSRBeatsConformertcmAuxLitModule
+
+optimizer:
+  _target_: torch.optim.Adam
+  _partial_: true
+  lr: 0.000001
+  weight_decay: 0.0001
+
+scheduler: null
+
+args:
+  conformer:
+    emb_size: 144
+    heads: 4
+    kernel_size: 31
+    n_encoders: 4
+    type: "conv_res2net_seblock" # conv_res2net, conv_seblock, conv_res2net_seblock
+    pooling: "first"
+
+ssl_pretrained_path: ${oc.env:XLSR_PRETRAINED_MODEL_PATH}
+beats_pretrained_path: ${oc.env:BEATS_PRETRAINED_MODEL_PATH}
+cross_entropy_weight: [0.1, 0.9] # weight for cross entropy loss 0.1 for spoof and 0.9 for bonafide
+adapter_type: none

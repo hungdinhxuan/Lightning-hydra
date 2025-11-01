@@ -62,6 +62,62 @@ def multi_view_collate_fn(batch, views=[1, 2, 3, 4], sample_rate=16000, padding_
     return view_batches
 
 
+def multi_view_aux_collate_fn(batch, views=[1, 2, 3, 4], sample_rate=16000, padding_type='repeat', random_start=False, view_padding_configs: Dict[str, Dict[str, bool]] = None):
+    '''
+    Collate function to pad each sample in a batch to multiple views
+    :param batch: list of tuples (x, label)
+    :param views: list of views to pad each sample to
+    :param sample_rate: sample rate of the audio
+    :param padding_type: padding type to use
+    :param random_start: whether to randomly start the sample
+    :return: dictionary with keys as views and values as tuples of padded sequences and labels
+
+    Example:
+    batch = [([1, 2, 3], 0), ([1, 2, 3, 4], 1)]
+    multi_view_collate_fn(batch, views=[1, 2], sample_rate=16000)
+    Output:
+    {
+        1: (tensor([[1, 2, 3], [1, 2, 3, 4]]), tensor([0, 1])),
+        2: (tensor([[1, 2, 3, 0], [1, 2, 3, 4]]), tensor([0, 1]))
+    }
+    '''
+    # Set default configurations if none provided
+    if view_padding_configs is None:
+        view_padding_configs = {
+            str(i): {'padding_type': 'repeat', 'random_start': False}
+            for i in range(1, 5)
+        }
+
+    # Extract views from config and convert to integers
+    views = [int(view) for view in view_padding_configs]
+
+    view_batches = {view: [] for view in views}
+    # Warning: padding_type and random_start are not used in this function
+    # print("Warning: padding_type and random_start are not used in this function. Please use view_padding_configs instead")
+
+    # Process each sample in the batch
+    for x, label, aux_label in batch:
+        # Pad each sample for each view
+        for view in views:
+            view_length = view * sample_rate
+            x_view = pad(x, padding_type=view_padding_configs[str(view)]['padding_type'],
+                         max_len=view_length, random_start=view_padding_configs[str(view)]['random_start'])
+            # Check if x_view is Tensor or numpy array and convert to Tensor if necessary
+            if not torch.is_tensor(x_view):
+
+                x_view = torch.from_numpy(x_view)
+            view_batches[view].append((x_view, label, aux_label))
+
+    # Convert lists to tensors
+    for view in views:
+        sequences, labels, aux_labels = zip(*view_batches[view])
+        padded_sequences = torch.stack(sequences)
+        labels = torch.tensor(labels, dtype=torch.long)
+        aux_labels = torch.tensor(aux_labels, dtype=torch.long)
+        view_batches[view] = (padded_sequences, labels, aux_labels)
+
+    return view_batches
+
 # def multi_view_collate_fn_for_scl(batch: List[Tuple[List[np.ndarray], Tensor]],
 #                                   views: List[int] = [1, 2, 3, 4],
 #                                   sample_rate: int = 16000,

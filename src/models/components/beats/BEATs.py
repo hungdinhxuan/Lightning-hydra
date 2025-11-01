@@ -201,7 +201,11 @@ class BEATsModel(nn.Module):
     def forward(self, x):
         features = self.model.extract_features(x)[0]
         return features
-
+    
+    def freeze_model(self):
+        print("Freezing BEATs model parameters")
+        for param in self.model.parameters():
+            param.requires_grad = False
 if __name__ == "__main__":
     model = BEATsModel("/home/hungdx/code/Lightning-hydra/pretrained/BEATs_iter3_plus_AS2M.pt")
     x = torch.randn(1,64000)
