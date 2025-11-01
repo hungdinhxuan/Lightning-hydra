@@ -210,6 +210,43 @@ class AuxNormalLitModule(AdapterLitModule):
         self.val_total_loss(total_loss)
         self.log("val/total_loss", self.val_total_loss, on_step=False, on_epoch=True, prog_bar=True)
 
+    def _export_score_file(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int, inference_mode=True) -> None:
+        """Get the score file for the batch of data.
+
+        :param batch: A batch of data (a tuple) containing the input tensor of images and target
+            labels.
+        :param batch_idx: The index of the current batch.
+        """
+        batch_x, utt_id, aux_y = batch
+        
+        # Forward pass
+        is_jit_model = self.kwargs.get("is_jit_model", False)
+        if is_jit_model:
+            batch_out = self.net(batch_x)
+        else:
+            batch_out = self.forward(batch_x, inference_mode=inference_mode)
+        
+        # Optimized tensor to numpy conversion (avoid .data and .tolist())
+        if batch_out.is_cuda:
+            scores_np = batch_out.detach().cpu().numpy()
+        else:
+            scores_np = batch_out.detach().numpy()
+        
+        # Pre-build all lines for batch writing (much faster than line-by-line)
+        if self.spec_eval:
+            batch_lines = [f'{fname} {scores[0]} {scores[1]}\n' 
+                        for fname, scores in zip(utt_id, scores_np)]
+        else:
+            batch_lines = [f'{fname} {scores[1]}\n' 
+                        for fname, scores in zip(utt_id, scores_np)]
+        
+        # Use buffered writing for maximum performance
+        self._write_buffer.extend(batch_lines)
+        
+        # Flush buffer when it reaches the specified size
+        if len(self._write_buffer) >= self._buffer_size * len(batch_lines):
+            self._flush_buffer()
+                
     def on_validation_epoch_end(self) -> None:
         "Lightning hook that is called when a validation epoch ends."
         acc = self.val_acc.compute()  # get current val acc
