@@ -104,7 +104,7 @@ class Model(nn.Module):
             x_beats_feat = self.beats_model(x)
         else:
             with torch.no_grad():
-                x_beats_feat = self.beats_model.model(x)
+                x_beats_feat = self.beats_model(x)
 
         x_beats_feat = self.LL_beats(x_beats_feat) #(bs,frame_number,feat_out_dim) (bs, 208, 256)
 

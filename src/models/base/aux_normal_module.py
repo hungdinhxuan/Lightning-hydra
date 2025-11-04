@@ -9,6 +9,7 @@ from typing import Union
 
 import torch
 from src.models.base.adapter_module import AdapterLitModule
+from src.utils import load_ln_model_weights_with_ignore   
 
 class AuxNormalLitModule(AdapterLitModule):
     """Example of a `LightningModule` for MNIST classification.
@@ -117,6 +118,39 @@ class AuxNormalLitModule(AdapterLitModule):
         self.val_aux_loss.reset()
         self.val_aux_acc_best.reset()
 
+    def init_adapter(self):
+        """Initializes the adapter type.
+            This method should be called after the model is initialized.
+            This method should be override the parent class.
+        """
+        is_base_model_path_ln = self.kwargs.get("is_base_model_path_ln", True)
+        # Load base model if provided
+        if self.base_model_path:
+            ckpt = torch.load(self.base_model_path, weights_only=False)
+            #print(ckpt)
+            #print("is_base_model_path_ln", is_base_model_path_ln)
+            if is_base_model_path_ln:
+                print("Loading with strict=False")
+                self.net = load_ln_model_weights_with_ignore(self.net, ckpt['state_dict'], strict=False)  
+            else:
+                is_jit_model = self.kwargs.get("is_jit_model", False)
+                if is_jit_model:
+                    self.net = torch.jit.load(self.base_model_path)
+                else:
+                    # Remove the prefix "module." from the keys
+                    ckpt = {key.replace("module.", ""): value for key, value in ckpt.items()}
+                    ckpt = {key.replace("_orig_mod.", ""): value for key, value in ckpt.items()}
+                    self.net.load_state_dict(ckpt)
+            print("Loaded baseline model from:", self.base_model_path)
+
+        # Apply adapter method
+        if self.use_adapter:
+            self.apply_adapter()
+
+        # Load adapters if provided
+        if self.adapter_paths:
+            self._configure_and_load_adapters()
+            
     def model_step(
         self, batch: Tuple[torch.Tensor, torch.Tensor, torch.Tensor]
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
@@ -217,7 +251,7 @@ class AuxNormalLitModule(AdapterLitModule):
             labels.
         :param batch_idx: The index of the current batch.
         """
-        batch_x, utt_id, aux_y = batch
+        batch_x, utt_id = batch
         
         # Forward pass
         is_jit_model = self.kwargs.get("is_jit_model", False)
