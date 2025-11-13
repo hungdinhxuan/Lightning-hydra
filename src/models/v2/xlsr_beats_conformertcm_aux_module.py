@@ -18,6 +18,10 @@ class XLSRBeatsConformertcmAuxLitModule(AuxNormalLitModule):
         :param optimizer: The optimizer to use for training.
         :param scheduler: The learning rate scheduler to use for training.
         """
+        # Extract aux_num_classes from args.conformer and pass to parent
+        if args and 'conformer' in args and 'aux_num_classes' in args['conformer']:
+            kwargs['aux_num_classes'] = args['conformer']['aux_num_classes']
+        
         super().__init__(optimizer, scheduler, args, **kwargs)
         self.net = self.init_model(**kwargs)
         self.init_adapter()

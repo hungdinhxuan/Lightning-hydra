@@ -86,6 +86,7 @@ class Model(nn.Module):
         
         # Auxiliary branch: Noise prediction
         aux_num_classes = args.get('aux_num_classes', 11)# 11 classes: 0-10
+        print(f"Auxiliary branch: {aux_num_classes} classes")
         self.auxiliary_branch = AuxiliaryBranch(args['emb_size'], args['emb_size'], aux_num_classes, 0.5)
         
     def feature_fusion(self, x_ssl_feat, x_beats_feat):
