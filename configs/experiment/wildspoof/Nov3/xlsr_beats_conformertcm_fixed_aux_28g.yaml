@@ -51,7 +51,7 @@ model:
 
   args:
     conformer:
-      is_beats_fixed: False
+      is_beats_fixed: True
       aux_num_classes: 28
   weighted_views:
     '1': 1.0

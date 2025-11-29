@@ -33,7 +33,7 @@ model:
       - 5
     gamma : 0.1 # Multiplicative factor of learning rate decay.
   compile: true
-  cross_entropy_weight: [0.1, 0.9] # Balanced weights for cross entropy loss
+  cross_entropy_weight: [0.5, 0.5] # Balanced weights for cross entropy loss
 
 data:
   batch_size: 16
@@ -46,6 +46,7 @@ data:
     padding_type: repeat
     random_start: True
     #is_dev_aug: True # Use dev augmentation to verify the augmentation process
+    enable_cache: True
 
 
 logger:
