@@ -21,6 +21,9 @@ class XLSRConformertcmNormalLitModule(NormalLitModule):
         super().__init__(optimizer, scheduler, args, **kwargs)
         self.net = self.init_model(**kwargs)
         self.init_adapter()
+    
+    def forward(self, x: torch.Tensor, inference_mode=False) -> torch.Tensor:
+        return self.net(x)
         
     def init_model(self, **kwargs) -> nn.Module:
         ssl_pretrained_path = kwargs.get("ssl_pretrained_path", None)
