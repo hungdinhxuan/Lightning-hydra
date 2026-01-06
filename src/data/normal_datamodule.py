@@ -14,7 +14,7 @@ from src.core_scripts.data_io import wav_augmentation as nii_wav_aug
 from src.core_scripts.data_io import wav_tools as nii_wav_tools
 from src.data.components.dataio import load_audio, pad
 from src.data.components.baseloader import Dataset_base
-
+import shlex
 # augwrapper
 from src.data.components.augwrapper import SUPPORTED_AUGMENTATION
 
@@ -346,45 +346,37 @@ class NormalDataModule(LightningDataModule):
         """
             This function generates the list of files and their corresponding labels
             Specifically for the standard CNSL dataset
+            Optimized to read protocol file only once
         """
         # bonafide: 1, spoof: 0
         d_meta = {}
         file_list = []
 
-        if (is_train):
-            with open(self.protocol_path, 'r') as f:
-                l_meta = f.readlines()
-            for line in l_meta:
-                utt, subset, label = line.strip().split()
-                if subset == 'train':
-                    file_list.append(utt)
-                    d_meta[utt] = 1 if label == 'bonafide' else 0
+        # Read protocol file only once - major optimization!
+        with open(self.protocol_path, 'r') as f:
+            l_meta = f.readlines()
+        
+        # Parse all data in single pass
+        for line in l_meta:
+            # Use shlex.split to handle quoted paths correctly
+            # Handles both: "quoted path" and unquoted path
+            parts = shlex.split(line.strip())
+            if len(parts) < 3:
+                continue  # Skip malformed lines
+            utt, subset, label = parts[0], parts[1], parts[2]
+            label_val = 1 if label == 'bonafide' else 0
+            
+            if is_train and subset == 'train':
+                file_list.append(utt)
+                d_meta[utt] = label_val
+            elif is_dev and subset == 'dev':
+                file_list.append(utt)
+                d_meta[utt] = label_val
+            elif is_eval and (subset == 'eval' or subset == 'test'):
+                file_list.append(utt)
+                d_meta[utt] = label_val
 
-            return d_meta, file_list
-        if (is_dev):
-            with open(self.protocol_path, 'r') as f:
-                l_meta = f.readlines()
-            for line in l_meta:
-                utt, subset, label = line.strip().split()
-                if subset == 'dev':
-                    file_list.append(utt)
-                    d_meta[utt] = 1 if label == 'bonafide' else 0
-            return d_meta, file_list
-
-        if (is_eval):
-            # no eval self.protocol_path yet
-            with open(self.protocol_path, 'r') as f:
-                l_meta = f.readlines()
-            for line in l_meta:
-                utt, subset, label = line.strip().split()
-                if subset == 'eval' or subset == 'test':
-                    file_list.append(utt)
-                    d_meta[utt] = 1 if label == 'bonafide' else 0
-
-                # file_list.append(utt)
-                # d_meta[utt] = 1 if label == 'bonafide' else 0
-            # return d_meta, file_list
-            return d_meta, file_list
+        return d_meta, file_list
 
 
 if __name__ == "__main__":

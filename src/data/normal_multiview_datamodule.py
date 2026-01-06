@@ -10,6 +10,7 @@ import os
 from scipy import signal
 import copy
 import random
+import shlex
 from src.core_scripts.data_io import wav_augmentation as nii_wav_aug
 from src.core_scripts.data_io import wav_tools as nii_wav_tools
 from src.data.components.dataio import load_audio, pad
@@ -436,7 +437,12 @@ class NormalDataModule(LightningDataModule):
         
         # Parse all data in single pass
         for line in l_meta:
-            utt, subset, label = line.strip().split()
+            # Use shlex.split to handle quoted paths correctly
+            # Handles both: "quoted path" and unquoted path
+            parts = shlex.split(line.strip())
+            if len(parts) < 3:
+                continue  # Skip malformed lines
+            utt, subset, label = parts[0], parts[1], parts[2]
             label_val = 1 if label == 'bonafide' else 0
             
             if is_train and subset == 'train':

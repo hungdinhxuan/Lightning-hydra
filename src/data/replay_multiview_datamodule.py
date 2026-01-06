@@ -14,6 +14,7 @@ from src.core_scripts.data_io import wav_tools as nii_wav_tools
 from src.data.components.dataio import load_audio, pad
 from src.data.components.baseloader import Dataset_base
 from src.data.components.collate_fn import multi_view_collate_fn, variable_multi_view_collate_fn, ChunkingCollator
+import shlex
 # augwrapper
 from src.data.components.augwrapper import SUPPORTED_AUGMENTATION
 
@@ -456,10 +457,10 @@ class ReplayDataModule(LightningDataModule):
 
         # Parse all data in single pass
         for line in l_meta:
-            parts = line.strip().split()
+            parts = shlex.split(line.strip())
             if len(parts) < 3:
                 continue
-            utt, subset, label = parts[:3]
+            utt, subset, label = parts[0], parts[1], parts[2]
             label_val = 1 if label == 'bonafide' else 0
             
             if (is_train and subset == 'train') or \
