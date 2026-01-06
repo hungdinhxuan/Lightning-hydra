@@ -30,4 +30,9 @@ class SpeedAugmentor(BaseAugmentor):
         """
         Speed up or down the audio using pydub `AudioSegment.speedup` method
         """
-        self.augmented_audio = self.audio_data.speedup(self.speed_factor)
+        try:
+            self.augmented_audio = self.audio_data.speedup(self.speed_factor)
+        except Exception as e:
+            logger.error(f"Error in speed augmentor: {e}")
+            self.augmented_audio = self.audio_data
+        #return self.augmented_audio
