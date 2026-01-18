@@ -309,9 +309,67 @@ for subfolder in "${SUBDIRS[@]}"; do
             cp "$original_score" "${original_score}.backup"
         fi
         
-        # Combine original and new scores, then sort by first column
+        # Combine original and new scores, then sort by filename (handles paths with spaces)
+        # Use Python to properly parse and merge files with paths containing spaces
         if [ -f "$original_score" ] && [ -f "$new_score" ]; then
-            cat "$original_score" "$new_score" | sort -k1,1 > "$merged_score"
+            python3 << PYTHON_EOF
+import sys
+
+def parse_score_line(line):
+    line = line.strip()
+    if not line:
+        return None
+    parts = line.split()
+    if len(parts) >= 3:
+        try:
+            filename = ' '.join(parts[:-2])
+            score1 = float(parts[-2])
+            score2 = float(parts[-1])
+            return (filename, score1, score2, line)
+        except ValueError:
+            return None
+    elif len(parts) >= 2:
+        try:
+            filename = ' '.join(parts[:-1])
+            score = float(parts[-1])
+            return (filename, score, score, line)
+        except ValueError:
+            return None
+    return None
+
+# Read original scores
+original_lines = []
+try:
+    with open('$original_score', 'r') as f:
+        for line in f:
+            parsed = parse_score_line(line)
+            if parsed:
+                original_lines.append(parsed)
+except FileNotFoundError:
+    pass
+
+# Read new scores
+new_lines = []
+try:
+    with open('$new_score', 'r') as f:
+        for line in f:
+            parsed = parse_score_line(line)
+            if parsed:
+                new_lines.append(parsed)
+except FileNotFoundError:
+    pass
+
+# Combine and deduplicate (keep new scores if duplicate)
+score_dict = {}
+for filename, score1, score2, line in original_lines + new_lines:
+    score_dict[filename] = (score1, score2, line)
+
+# Sort by filename and write
+with open('$merged_score', 'w') as f:
+    for filename in sorted(score_dict.keys()):
+        _, _, line = score_dict[filename]
+        f.write(line + '\n')
+PYTHON_EOF
         elif [ -f "$new_score" ]; then
             cp "$new_score" "$merged_score"
         elif [ -f "$original_score" ]; then
@@ -424,7 +482,7 @@ for subfolder in "${SUBDIRS[@]}"; do
     CMD+="++model.score_save_path=\"$SCORE_PATH_TO_USE\" "
     CMD+="++data.data_dir=\"$DATA_DIR\" "
     CMD+="++data.args.protocol_path=\"$PROTOCOL_TO_USE\" "
-    CMD+="++train=False ++test=True ++model.spec_eval=True ++data.batch_size=512 "
+    CMD+="++train=False ++test=True ++model.spec_eval=True ++data.batch_size=400 "
     CMD+="++data.args.random_start=$IS_RANDOM_START "
     CMD+="++data.args.trim_length=$TRIM_LENGTH "
     CMD+="++model.base_model_path=\"$BASE_MODEL_PATH\" "

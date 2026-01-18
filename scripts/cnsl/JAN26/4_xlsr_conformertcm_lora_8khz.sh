@@ -16,9 +16,11 @@ CUDA_DEVICE=${CUDA_DEVICE:-"MIG-57de94a5-be15-5b5a-b67e-e118352d8a59"}
 
 # Run the training command
 CUDA_VISIBLE_DEVICES=$CUDA_DEVICE OMP_NUM_THREADS=5 python src/train.py \
-    experiment=cnsl/Jan2026/xlsr_conformertcm_mdt \
+    experiment=cnsl/Jan2026/xlsr_conformertcm_mdt_lora \
     ++data.data_dir="data/DVC_DSD-Large-Corpus/raw/0_large-corpus_toys" \
-    ++data.args.protocol_path="data/DVC_DSD-Large-Corpus/metadata/2026_JAN_14_23H_09M_DSD_protocol.txt" logger=wandb \
+    ++data.args.protocol_path="data/protocols/cnsl/new_protocol_trim_vocoded_cleaned_v4_corrected.txt" logger=wandb \
     ++model.is_base_model_path_ln=False \
     ++model.base_model_path="pretrained/S_241214_conf-1.pth" \
+    ++data.args.wav_samp_rate=8000 \
+    ++data.args.enable_cache=false \
     ++model_averaging=True

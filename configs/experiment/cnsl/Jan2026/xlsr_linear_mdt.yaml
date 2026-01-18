@@ -5,14 +5,14 @@
 
 defaults:
   - override /data: normal_largecorpus_multiview_cnsl
-  - override /model: xlsr_conformertcm_baseline_multiview
+  - override /model: v2/xlsr_linear_mdt
   - override /callbacks: default_loss_earlystop
   - override /trainer: default
 
 # all parameters below will be merged with parameters from default configurations set above
 # this allows you to overwrite only specified parameters
 
-tags: ["normal_largecorpus_multiview_cnsl", "xlsr_conformertcm_baseline_multiview"]
+tags: ["normal_largecorpus_multiview_cnsl", "xlsr_linear_mdt"]
 
 seed: 1234
 
@@ -34,6 +34,11 @@ model:
     min_lr: 1e-6
   compile: true
   cross_entropy_weight: [0.5, 0.5] # Balanced weights for cross entropy loss
+  weighted_views:
+    '1': 1.0
+    '2': 1.0
+    '3': 1.0
+    '4': 1.0
 
 data:
   batch_size: 32

@@ -5,14 +5,14 @@
 
 defaults:
   - override /data: normal_largecorpus_multiview_cnsl
-  - override /model: xlsr_conformertcm_baseline_multiview
-  - override /callbacks: default_loss_earlystop
+  - override /model: v2/xlsr_conformertcm_mdt_lora
+  - override /callbacks: default_lora_loss_earlystop_logger
   - override /trainer: default
 
 # all parameters below will be merged with parameters from default configurations set above
 # this allows you to overwrite only specified parameters
 
-tags: ["normal_largecorpus_multiview_cnsl", "xlsr_conformertcm_baseline_multiview"]
+tags: ["normal_largecorpus_multiview_cnsl", "xlsr_conformertcm_mdt_lora"]
 
 seed: 1234
 
@@ -23,7 +23,7 @@ trainer:
 
 model:
   optimizer:
-    lr: 0.0001
+    lr: 0.00001
     weight_decay: 0.0001
   net: null
   scheduler:
@@ -32,20 +32,43 @@ model:
     factor: 0.5
     patience: 3
     min_lr: 1e-6
-  compile: true
-  cross_entropy_weight: [0.5, 0.5] # Balanced weights for cross entropy loss
 
+  cross_entropy_weight: [0.7, 0.3] # amplify bonafide loss
+  args:
+    adapter:
+      r: 8
+      target_modules: ["q_proj", "v_proj", "k_proj", "out_proj", "fc1", "fc2", "final_proj", "LL", "qkv", "proj", "ht_proj"]
+      #target_modules: ["q_proj", "v_proj", "k_proj", "out_proj"] 
+      modules_to_save:  [] # conformer qkv
+      lora_dropout: 0.0
+      lora_alpha: 16
+      #init_lora_weights: "gaussian"
+    conformer:
+      emb_size: 144
+      heads: 4
+      kernel_size: 31
+      n_encoders: 4
+      type: "conv" # conv_res2net, conv_seblock, conv_res2net_seblock
+      pooling: "first"
+  
+  weighted_views:
+    '1': 1
+    '2': 1
+    '3': 1
+    '4': 1
+  
 data:
   batch_size: 32
-  data_dir: data/DVC_DSD-Large-Corpus
-  num_workers: 16
+  num_workers: 8
   pin_memory: true
+  data_dir: ${oc.env:NOISE_DATASET_PATH}
+
   args:
-    augmentation_methods: ["RawBoostdf", "RawBoost12", "none"]
-    protocol_path: data/DVC_DSD-Large-Corpus/protocol.txt
+    protocol_path: ${oc.env:NOISE_DATASET_PROTOCOL}
+    augmentation_methods: ["none", "RawBoost12"] # "none" is the original data
     padding_type: repeat
     random_start: True
-    #is_dev_aug: True # Use dev augmentation to verify the augmentation process
+    is_dev_aug: False
     view_padding_configs:
       '1':
         padding_type: repeat
@@ -59,7 +82,6 @@ data:
       '4':
         padding_type: repeat
         random_start: True
-
 
 logger:
   wandb:

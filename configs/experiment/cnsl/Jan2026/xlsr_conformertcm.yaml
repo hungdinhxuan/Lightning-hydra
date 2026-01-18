@@ -4,15 +4,15 @@
 # python train.py experiment=example
 
 defaults:
-  - override /data: normal_largecorpus_multiview_cnsl
-  - override /model: xlsr_conformertcm_baseline_multiview
+  - override /data: normal_largecorpus_for_asvspoof5
+  - override /model: v2/xlsr_conformertcm
   - override /callbacks: default_loss_earlystop
   - override /trainer: default
 
 # all parameters below will be merged with parameters from default configurations set above
 # this allows you to overwrite only specified parameters
 
-tags: ["normal_largecorpus_multiview_cnsl", "xlsr_conformertcm_baseline_multiview"]
+tags: ["normal_largecorpus_for_asvspoof5", "xlsr_conformertcm"]
 
 seed: 1234
 
@@ -37,33 +37,21 @@ model:
 
 data:
   batch_size: 32
-  data_dir: data/DVC_DSD-Large-Corpus
+  data_dir: ${oc.env:WILD_SPOOF_PATH}
   num_workers: 16
   pin_memory: true
   args:
-    augmentation_methods: ["RawBoostdf", "RawBoost12", "none"]
-    protocol_path: data/DVC_DSD-Large-Corpus/protocol.txt
+    augmentation_methods: ["RawBoostdf", "none"]
+    protocol_path: ${oc.env:WILD_SPOOF_PROTOCOL_PATH}
     padding_type: repeat
     random_start: True
     #is_dev_aug: True # Use dev augmentation to verify the augmentation process
-    view_padding_configs:
-      '1':
-        padding_type: repeat
-        random_start: True
-      '2':
-        padding_type: repeat
-        random_start: True
-      '3':
-        padding_type: repeat
-        random_start: True
-      '4':
-        padding_type: repeat
-        random_start: True
+    enable_cache: True
 
 
 logger:
   wandb:
     tags: ${tags}
-    group: "normal_largecorpus_multiview_cnsl"
+    group: "normal_largecorpus_for_asvspoof5"
   aim:
-    experiment: "normal_largecorpus_multiview_cnsl"
+    experiment: "normal_largecorpus_for_asvspoof5"
