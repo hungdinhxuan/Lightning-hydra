@@ -14,7 +14,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch import Tensor
 import fairseq
-from src.models.components.wavlmbase_vib import Model as WavlmBaseVIB
 from src.utils.debug import NaNErrorMode
 from src.models.components.xlsr_vib import Model as XLSRVIB
 from src.metrics.eer import EERMetric
@@ -246,7 +245,7 @@ class XLSRVIBLitModule(LightningModule):
         fname_list = list(utt_id)
         score_list = batch_out.data.cpu().numpy().tolist()
             
-        with open(self.score_save_path, 'a+') as fh:
+        with open(self.score_save_path, 'a+', encoding='utf-8') as fh:
             for f, cm in zip(fname_list, score_list):
                 fh.write('{} {} {}\n'.format(f, cm[0], cm[1]))
 

@@ -138,3 +138,9 @@ class Model(nn.Module):
             return {'L_CE':L_CE}
         elif self.loss_type == 5:
             return {'L_CF1':L_CF1, 'L_CF2':L_CF2}
+
+if __name__ == "__main__":
+    model = SSLModel("/home/hungdx/code/Lightning-hydra/pretrained/xlsr2_300m.pt")
+    x = torch.randn(1,64000)
+    print(model(x).shape)
+   # print(model)

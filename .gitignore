@@ -170,3 +170,5 @@ notebooks/**/*.csv
 
 .cache/
 pretrained/
+
+scripts/generate_vocoded_samples/

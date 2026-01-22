@@ -1,0 +1,438 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+from typing import Any, Dict, Optional, Tuple
+from lightning import LightningDataModule
+from torch.utils.data import DataLoader, Dataset
+from torch import Tensor
+import librosa
+import numpy as np
+import os
+from scipy import signal
+import copy
+import random
+from src.core_scripts.data_io import wav_augmentation as nii_wav_aug
+from src.core_scripts.data_io import wav_tools as nii_wav_tools
+from src.data.components.dataio import load_audio, pad
+from src.data.components.baseloader import Dataset_base
+
+# augwrapper
+from src.data.components.augwrapper import SUPPORTED_AUGMENTATION
+
+# dynamic import of augmentation methods
+for aug in SUPPORTED_AUGMENTATION:
+    exec(f"from src.data.components.augwrapper import {aug}")
+
+
+class Dataset_for(Dataset_base):
+    def __init__(self, args, list_IDs, labels, base_dir, algo=5, vocoders=[],
+                 augmentation_methods=[], eval_augment=None, num_additional_real=2, num_additional_spoof=2,
+                 trim_length=66800, wav_samp_rate=16000, noise_path=None, rir_path=None,
+                 aug_dir=None, online_aug=True, repeat_pad=True, is_train=True, random_start=False,
+                 aux_labels=None, **kwargs):
+        super(Dataset_for, self).__init__(args, list_IDs, labels, base_dir, algo, vocoders,
+                                          augmentation_methods, eval_augment, num_additional_real, num_additional_spoof,
+                                          trim_length, wav_samp_rate, noise_path, rir_path,
+                                          aug_dir, online_aug, repeat_pad, is_train, random_start)
+        self.padding_type = "repeat" if repeat_pad else "zero"
+        self.cache_dir = args.get('cache_dir', None)
+        self.aux_labels = aux_labels
+
+    def __getitem__(self, idx):
+        utt_id = self.list_IDs[idx]
+        filepath = os.path.join(self.base_dir, utt_id)
+        X = load_audio(filepath, self.sample_rate, cache_dir=self.cache_dir)
+
+        # apply augmentation
+        # randomly choose an augmentation method
+        augmethod_index = random.choice(range(len(self.augmentation_methods))) if len(
+            self.augmentation_methods) > 0 else -1
+        
+        if augmethod_index >= 0:
+            # print("Augmenting with", self.augmentation_methods[augmethod_index])
+            X = globals()[self.augmentation_methods[augmethod_index]](X, self.args, self.sample_rate,
+                                                                      audio_path=filepath)
+        X = pad(X, padding_type=self.padding_type,
+                    max_len=self.trim_length, random_start=self.random_start)
+        x_inp = Tensor(X)
+        target = self.labels[utt_id]
+        aux_target = self.aux_labels[utt_id]
+        return x_inp, target, aux_target
+
+
+class Dataset_for_dev(Dataset_base):
+    def __init__(self, args, list_IDs, labels, base_dir, algo=5, vocoders=[],
+                 augmentation_methods=[], eval_augment=None, num_additional_real=2, num_additional_spoof=2,
+                 trim_length=66800, wav_samp_rate=16000, noise_path=None, rir_path=None,
+                 aug_dir=None, online_aug=True, repeat_pad=False, is_train=True,
+                 random_start=False, aux_labels=None, **kwargs
+                 ):
+        super(Dataset_for_dev, self).__init__(args, list_IDs, labels, base_dir, algo, vocoders,
+                                              augmentation_methods, eval_augment, num_additional_real, num_additional_spoof,
+                                              trim_length, wav_samp_rate, noise_path, rir_path,
+                                              aug_dir, online_aug, repeat_pad, is_train, random_start)
+        self.padding_type = "repeat" if repeat_pad else "zero"
+        self.is_dev_aug = kwargs.get('is_dev_aug', False)
+        self.cache_dir = args.get('cache_dir', None)
+        self.aux_labels = aux_labels
+        if self.is_dev_aug:
+            print("Dev aug is enabled")
+
+    def __getitem__(self, index):
+        utt_id = self.list_IDs[index]
+        filepath = os.path.join(self.base_dir, utt_id)
+        X = load_audio(filepath, self.sample_rate, cache_dir=self.cache_dir)
+        
+        # apply augmentation at inference time
+        if self.is_dev_aug:
+            augmethod_index = random.choice(range(len(self.augmentation_methods))) if len(
+            self.augmentation_methods) > 0 else -1
+            if augmethod_index >= 0:
+                # print("Augmenting with", self.augmentation_methods[augmethod_index])
+                X = globals()[self.augmentation_methods[augmethod_index]](X, self.args, self.sample_rate,
+                                                                        audio_path=filepath)
+            
+        X = pad(X, padding_type=self.padding_type,
+                    max_len=self.trim_length, random_start=self.random_start)
+        x_inp = Tensor(X)
+        target = self.labels[utt_id]
+        aux_target = self.aux_labels[utt_id]
+        return x_inp, target, aux_target
+
+
+class Dataset_for_eval(Dataset_base):
+    def __init__(self, args, list_IDs, labels, base_dir, algo=5, vocoders=[],
+                 augmentation_methods=[], eval_augment=None, num_additional_real=2, num_additional_spoof=2,
+                 trim_length=66800, wav_samp_rate=16000, noise_path=None, rir_path=None,
+                 aug_dir=None, online_aug=True, repeat_pad=True, is_train=True, enable_chunking=False, random_start=False, aux_labels=None, **kwargs
+                 ):
+        super(Dataset_for_eval, self).__init__(args, list_IDs, labels, base_dir, algo, vocoders,
+                                               augmentation_methods, eval_augment, num_additional_real, num_additional_spoof,
+                                               trim_length, wav_samp_rate, noise_path, rir_path,
+                                               aug_dir, online_aug, repeat_pad, is_train, random_start)
+        self.enable_chunking = enable_chunking
+        self.padding_type = "repeat" if repeat_pad else "zero"
+        self.cache_dir = args.get('cache_dir', None)
+        self.aux_labels = aux_labels
+        # print("Chunking enabled:", self.enable_chunking)
+        print("trim_length:", trim_length)
+        # print("padding_type:", self.padding_type)
+        # print("random_start:", random_start)
+        self.no_pad = args.get('no_pad', False) if args is not None else False
+        if self.no_pad:
+            print('No padding')
+
+    def __getitem__(self, idx):
+        utt_id = self.list_IDs[idx]
+        filepath = os.path.join(self.base_dir, utt_id)
+        X = load_audio(filepath, self.sample_rate, cache_dir=self.cache_dir)
+        
+        # apply augmentation at inference time
+        if self.eval_augment is not None:
+            # print("eval_augment:", self.eval_augment)
+            X = globals()[self.eval_augment](
+                X, self.args, self.sample_rate, audio_path=filepath)
+        if not self.enable_chunking and not self.no_pad:
+            X = pad(X, padding_type=self.padding_type,
+                    max_len=self.trim_length, random_start=self.random_start)
+        if self.no_pad and len(X) > 160000: # 10 seconds is the maximum
+            X = X[:160000]
+        x_inp = Tensor(X)
+        return x_inp, utt_id
+
+
+class AuxNormalDataModule(LightningDataModule):
+    """`LightningDataModule` for the ASVSpoof dataset.
+
+    The ASVspoof 2019 database for logical access is based upon a standard multi-speaker speech synthesis database called VCTK2. 
+    Genuine speech is collected from 107 speakers (46 male, 61 female) and with no significant channel or background noise effects. 
+    Spoofed speech is generated from the genuine data using a number of different spoofing algorithms. 
+    The full dataset is partitioned into three subsets, the first for training, the second for development and the third for evaluation.
+    There is no speaker overlap across the three subsets regarding target speakers used in voice conversion or TTS adaptation.
+
+    A `LightningDataModule` implements 7 key methods:
+
+    ```python
+        def prepare_data(self):
+        # Things to do on 1 GPU/TPU (not on every GPU/TPU in DDP).
+        # Download data, pre-process, split, save to disk, etc...
+
+        def setup(self, stage):
+        # Things to do on every process in DDP.
+        # Load data, set variables, etc...
+
+        def train_dataloader(self):
+        # return train dataloader
+
+        def val_dataloader(self):
+        # return validation dataloader
+
+        def test_dataloader(self):
+        # return test dataloader
+
+        def predict_dataloader(self):
+        # return predict dataloader
+
+        def teardown(self, stage):
+        # Called on every process in DDP.
+        # Clean up after fit or test.
+    ```
+
+    This allows you to share a full dataset without explaining how to download,
+    split, transform and process the data.
+
+    Read the docs:
+        https://lightning.ai/docs/pytorch/latest/data/datamodule.html
+    """
+
+    def __init__(
+        self,
+        data_dir: str = "data/",
+        batch_size: int = 64,
+        num_workers: int = 0,
+        pin_memory: bool = False,
+        args: Optional[Dict[str, Any]] = None,
+        chunking_eval: bool = False,
+        enable_cache: bool = False,
+    ) -> None:
+        """Initialize a `ASVSpoofDataModule`.
+
+        :param data_dir: The data directory. Defaults to `"data/"`.
+        :param batch_size: The batch size. Defaults to `64`.
+        :param num_workers: The number of workers. Defaults to `0`.
+        :param pin_memory: Whether to pin memory. Defaults to `False`.
+        :param enable_cache: Whether to enable caching. Defaults to `False`.
+        """
+        super().__init__()
+
+        # this line allows to access init params with 'self.hparams' attribute
+        # also ensures init params will be stored in ckpt
+        self.save_hyperparameters(logger=False)
+
+        self.data_train: Optional[Dataset] = None
+        self.data_val: Optional[Dataset] = None
+        self.data_test: Optional[Dataset] = None
+
+        self.batch_size_per_device = batch_size
+        self.data_dir = data_dir
+        self.args = args
+        self.enable_cache = enable_cache
+        self.chunking_eval = chunking_eval
+        self.data_dir = data_dir
+        self.protocol_path = args.get(
+            'protocol_path', os.path.join(self.data_dir, 'protocol.txt'))
+
+    @property
+    def num_classes(self) -> int:
+        """Get the number of classes.
+
+        :return: The number of ASVSpoof classes (2).
+        """
+        return 2
+
+    def prepare_data(self) -> None:
+        pass
+
+    def setup(self, stage: Optional[str] = None) -> None:
+        """Load data. Set variables: `self.data_train`, `self.data_val`, `self.data_test`."""
+        # Divide batch size by the number of devices.
+        if self.trainer is not None:
+            if self.hparams.batch_size % self.trainer.world_size != 0:
+                raise RuntimeError(
+                    f"Batch size ({self.hparams.batch_size}) is not divisible by the number of devices ({self.trainer.world_size})."
+                )
+            self.batch_size_per_device = self.hparams.batch_size // self.trainer.world_size
+
+        # load and split datasets only if not loaded already
+        if not self.data_train and not self.data_val and not self.data_test:
+            # define train dataloader
+            d_label_trn, file_train, d_meta_aux_trn, file_list_aux_trn = self.genList(
+                is_train=True, is_eval=False, is_dev=False)
+
+            print('no. of training trials', len(file_train))
+
+            d_label_dev, file_dev, d_meta_aux_dev, file_list_aux_dev = self.genList(
+                is_train=False, is_eval=False, is_dev=True)
+            print('no. of validation trials', len(file_dev))
+            d_meta, file_eval, d_meta_aux_eval, file_list_aux_eval = self.genList(
+                is_train=False, is_eval=True, is_dev=False)
+            print('no. of evaluation trials', len(file_eval))
+
+            # Add cache settings to args
+            if self.args is None:
+                self.args = {}
+            
+            # Check both enable_cache parameter and args.enable_cache
+            cache_enabled = self.enable_cache or self.args.get('enable_cache', False)
+            cache_dir = self.args.get('cache_dir')
+            
+            if cache_enabled and cache_dir is not None:
+                print(f"Cache is ENABLED")
+                print(f"Using cache directory: {cache_dir}")
+                self.args['cache_dir'] = cache_dir
+            else:
+                print(f"Cache is DISABLED")
+                self.args['cache_dir'] = None
+
+            self.data_train = Dataset_for(self.args, list_IDs=file_train, labels=d_label_trn,
+                                          base_dir=self.data_dir+'/',  **self.args, aux_labels=d_meta_aux_trn)
+
+            self.data_val = Dataset_for_dev(self.args, list_IDs=file_dev, labels=d_label_dev,
+                                            base_dir=self.data_dir+'/',  is_train=False, **self.args, aux_labels=d_meta_aux_dev)
+
+            self.data_test = Dataset_for_eval(self.args, list_IDs=file_eval, labels=None,
+                                              base_dir=self.data_dir+'/',  random_start=self.args.random_start, trim_length=self.args.trim_length, repeat_pad=True if self.args.padding_type == 'repeat' else False,
+                                              enable_chunking=self.chunking_eval, aux_labels=d_meta_aux_eval)
+
+    def train_dataloader(self) -> DataLoader[Any]:
+        """Create and return the train dataloader.
+
+        :return: The train dataloader.
+        """
+        return DataLoader(
+            dataset=self.data_train,
+            batch_size=self.batch_size_per_device,
+            num_workers=self.hparams.num_workers,
+            pin_memory=self.hparams.pin_memory,
+            shuffle=True,
+            drop_last=True
+        )
+
+    def val_dataloader(self) -> DataLoader[Any]:
+        """Create and return the validation dataloader.
+
+        :return: The validation dataloader.
+        """
+        return DataLoader(
+            dataset=self.data_val,
+            batch_size=self.batch_size_per_device,
+            num_workers=self.hparams.num_workers,
+            pin_memory=self.hparams.pin_memory,
+            shuffle=False,
+        )
+
+    def test_dataloader(self) -> DataLoader[Any]:
+        """Create and return the test dataloader.
+
+        :return: The test dataloader.
+        """
+        return DataLoader(
+            dataset=self.data_test,
+            batch_size=self.batch_size_per_device,
+            num_workers=self.hparams.num_workers,
+            pin_memory=self.hparams.pin_memory,
+            shuffle=False,
+        )
+
+    def teardown(self, stage: Optional[str] = None) -> None:
+        """Lightning hook for cleaning up after `trainer.fit()`, `trainer.validate()`,
+        `trainer.test()`, and `trainer.predict()`.
+
+        :param stage: The stage being torn down. Either `"fit"`, `"validate"`, `"test"`, or `"predict"`.
+            Defaults to ``None``.
+        """
+        pass
+
+    def state_dict(self) -> Dict[Any, Any]:
+        """Called when saving a checkpoint. Implement to generate and save the datamodule state.
+
+        :return: A dictionary containing the datamodule state that you want to save.
+        """
+        return {}
+
+    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+        """Called when loading a checkpoint. Implement to reload datamodule state given datamodule
+        `state_dict()`.
+
+        :param state_dict: The datamodule state returned by `self.state_dict()`.
+        """
+        pass
+
+    def genList(self, is_train=False, is_eval=False, is_dev=False):
+        """
+            This function generates the list of files and their corresponding labels
+            Specifically for the standard CNSL dataset
+            Optimized to read protocol file only once
+        """
+        # bonafide: 1, spoof: 0
+        # aux_labels: 0-27
+        # aux_labels = ['bonafide_clean', 'spoof_clean', 'spoof_mp3', 'bonafide_mp3',
+        #             'bonafide_opus', 'spoof_opus', 'spoof_background_music',
+        #             'bonafide_background_music', 'spoof_background_noise',
+        #             'bonafide_background_noise', 'bonafide_reverberation',
+        #             'spoof_reverberation', 'bonafide_gaussian_noise',
+        #             'spoof_gaussian_noise', 'bonafide_echo', 'spoof_echo',
+        #             'spoof_highpass', 'bonafide_highpass', 'bonafide_lowpass',
+        #             'spoof_lowpass', 'bonafide_smooth', 'spoof_smooth',
+        #             'spoof_time_stretch', 'bonafide_time_stretch',
+        #             'bonafide_pitch_shift', 'spoof_pitch_shift',
+        #             'bonafide_quantization', 'spoof_quantization']
+        
+        # Create a dictionary of aux_labels
+        aux_labels = {
+            'bonafide_clean': 0,
+            'spoof_clean': 1,
+            'spoof_mp3': 2,
+            'bonafide_mp3': 3,
+            'bonafide_opus': 4,
+            'spoof_opus': 5,
+            'spoof_background_music': 6,
+            'bonafide_background_music': 7,
+            'spoof_background_noise': 8,
+            'bonafide_background_noise': 9,
+            'bonafide_reverberation': 10,
+            'spoof_reverberation': 11,
+            'bonafide_gaussian_noise': 12,
+            'spoof_gaussian_noise': 13,
+            'bonafide_echo': 14,
+            'spoof_echo': 15,
+            'spoof_highpass': 16,
+            'bonafide_highpass': 17,
+            'bonafide_lowpass': 18,
+            'spoof_lowpass': 19,
+            'bonafide_smooth': 20,
+            'spoof_smooth': 21,
+            'spoof_time_stretch': 22,
+            'bonafide_time_stretch': 23,
+            'bonafide_pitch_shift': 24,
+            'spoof_pitch_shift': 25,
+            'bonafide_quantization': 26,
+            'spoof_quantization': 27
+        }
+        
+        
+        
+        d_meta = {}
+        file_list = []
+        
+        d_meta_aux = {}
+        file_list_aux = []
+
+        # Read protocol file only once - major optimization!
+        with open(self.protocol_path, 'r') as f:
+            l_meta = f.readlines()
+        
+        # Parse all data in single pass
+        for line in l_meta:
+            utt, subset, label, aux_label = line.strip().split()
+            label_val = 1 if label == 'bonafide' else 0
+            aux_label_val = aux_labels[aux_label]
+            
+            if is_train and subset == 'train':
+                file_list.append(utt)
+                d_meta[utt] = label_val
+                d_meta_aux[utt] = aux_label_val
+                
+            elif is_dev and subset == 'dev':
+                file_list.append(utt)
+                d_meta[utt] = label_val
+                d_meta_aux[utt] = aux_label_val
+            elif is_eval and (subset == 'eval' or subset == 'test'):
+                file_list.append(utt)
+                d_meta[utt] = label_val
+                d_meta_aux[utt] = aux_label_val
+        
+        return d_meta, file_list, d_meta_aux, file_list_aux
+
+
+if __name__ == "__main__":
+    _ = AuxNormalDataModule()

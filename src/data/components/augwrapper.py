@@ -3,7 +3,7 @@ import numpy as np
 import librosa
 
 from src.data.components.RawBoost import ISD_additive_noise, LnL_convolutive_noise, SSI_additive_noise, normWav
-from src.data.components.audio_augmentor import BackgroundNoiseAugmentor, PitchAugmentor, ReverbAugmentor, SpeedAugmentor, VolumeAugmentor, TelephoneEncodingAugmentor, GaussianAugmentor, CopyPasteAugmentor, BaseAugmentor, TimeMaskingAugmentor, FrequencyMaskingAugmentor, MaskingAugmentor, TimeSwapAugmentor, FrequencySwapAugmentor, SwappingAugmentor, LinearFilterAugmentor, BandpassAugmentor, TimeStretchAugmentor, HighPassFilterAugmentor, LowPassFilterAugmentor, AutoTuneAugmentor, EchoAugmentor, AmplitudeModulationAugmentor, GaussianAugmentorV1, BackgroundMusicAugmentorDeepen, BackgroundNoiseAugmentorDeepen, BackgroundMusicAugmentorDeepen, FrequencyOperationAugmentorDeepen, ResampleAugmentor, BackgroundNoiseAugmentorAudiomentations, EchoAugmentorDeepen
+from src.data.components.audio_augmentor import BackgroundNoiseAugmentor, PitchAugmentor, ReverbAugmentor, SpeedAugmentor, VolumeAugmentor, TelephoneEncodingAugmentor, GaussianAugmentor, CopyPasteAugmentor, BaseAugmentor, TimeMaskingAugmentor, FrequencyMaskingAugmentor, MaskingAugmentor, TimeSwapAugmentor, FrequencySwapAugmentor, SwappingAugmentor, LinearFilterAugmentor, BandpassAugmentor, TimeStretchAugmentor, HighPassFilterAugmentor, LowPassFilterAugmentor, AutoTuneAugmentor, EchoAugmentor, AmplitudeModulationAugmentor, GaussianAugmentorV1, BackgroundMusicAugmentorDeepen, BackgroundNoiseAugmentorDeepen, BackgroundMusicAugmentorDeepen, FrequencyOperationAugmentorDeepen, ResampleAugmentor, BackgroundNoiseAugmentorAudiomentations, EchoAugmentorDeepen, SSBoll79Augmentor
 from src.data.components.audio_augmentor.utils import pydub_to_librosa, librosa_to_pydub
 
 import soundfile as sf
@@ -14,7 +14,9 @@ SUPPORTED_AUGMENTATION = [
     'RawBoostdf', 'RawBoost12', 'RawBoostFull', 'copy_paste_80', 'copy_paste_r', 'time_masking', 'masking', 'time_swap', 'time_stretch_v1', 'pitch_v1', 'background_noise_v1', 'highpass_filter_v1',
     'freq_swap', 'swapping', 'frequency_masking', 'linear_filter', 'mp32flac', 'ogg2flac', 'nonspeechtrim',
     'bandpass_0_4000', 'griffinlim_downsample', 'lowpass_hifigan_asvspoof5', 'lowpass_hifigan', 'librosa_downsample', 'none',
-    'autotune_v1', 'amplitude_modulation_v1', 'echo_v1', 'gaussian_v1', 'autotune_deepen', 'background_music_deepen', 'background_noise_deepen', 'background_music_deepen', 'freq_operation_deepen', 'lowpass_filter_v1', 'resample_v1', 'background_noise_audiomentations']
+    'autotune_v1', 'amplitude_modulation_v1', 'echo_v1', 'gaussian_v1', 'autotune_deepen', 'background_music_deepen', 'background_noise_deepen', 'background_music_deepen', 'freq_operation_deepen', 'lowpass_filter_v1', 'resample_v1', 'background_noise_audiomentations', 'ssboll79',
+    # Experiment #3: Telephony Simulation (Controlled LPF + Resample 16k→8k)
+    'telephony_8k_direct', 'telephony_8k_lpf2000', 'telephony_8k_lpf2800', 'telephony_8k_lpf3400', 'telephony_8k_lpf3800', 'telephony_8k_bandpass']
 
 
 def audio_transform(filepath: str, aug_type: BaseAugmentor, config: dict, online: bool = False, lrs=False):
@@ -479,6 +481,45 @@ def background_music_deepen(x, args, sr=16000, audio_path=None):
             os.makedirs(os.path.dirname(aug_audio_path), exist_ok=True)
             audio_transform(
                 filepath=audio_path, aug_type=BackgroundMusicAugmentorDeepen, config=config, online=False)
+            waveform, _ = librosa.load(aug_audio_path, sr=sr, mono=True)
+            return waveform
+
+def ssboll79(x, args, sr=16000, audio_path=None):
+    """
+    Apply SSBoll79 spectral subtraction denoising to the audio.
+    This augmentation applies spectral subtraction based on the Boll 1979 paper
+    for noise reduction in speech signals.
+    """
+    aug_dir = args.aug_dir
+    utt_id = os.path.basename(audio_path).split('.')[0]
+    args.input_path = os.path.dirname(audio_path)
+    aug_audio_path = os.path.join(aug_dir, 'ssboll79', utt_id + '.wav')
+    args.output_path = os.path.join(aug_dir, 'ssboll79')
+    args.out_format = 'wav'
+    
+    config = {
+        "aug_type": "ssboll79",
+        "output_path": args.output_path,
+        "out_format": args.out_format,
+        "initial_silence": 0.25  # Initial silence length in seconds for noise estimation
+    }
+
+    # print("Applying SSBoll79 augmentation")
+    # import sys
+    # sys.exit()
+    
+    if (args.online_aug):
+        waveform = audio_transform(
+            filepath=audio_path, aug_type=SSBoll79Augmentor, config=config, online=True)
+        return waveform
+    else:
+        if os.path.exists(aug_audio_path):
+            waveform, _ = librosa.load(aug_audio_path, sr=sr, mono=True)
+            return waveform
+        else:
+            os.makedirs(os.path.dirname(aug_audio_path), exist_ok=True)
+            audio_transform(
+                filepath=audio_path, aug_type=SSBoll79Augmentor, config=config, online=False)
             waveform, _ = librosa.load(aug_audio_path, sr=sr, mono=True)
             return waveform
 
@@ -1701,3 +1742,179 @@ def process_Rawboost_feature(feature, sr, args, algo):
         feature = feature
 
     return feature
+
+
+# ==============================================================================
+# Experiment #3: Telephony Simulation (Controlled LPF + Resample 16k→8k)
+# ==============================================================================
+# These augmentations apply:
+# 1. Linear-phase FIR lowpass filter (windowed-sinc, Kaiser window, 255 taps)
+# 2. High-quality resample using torchaudio with Julius backend (16k→8k)
+# 
+# Modes:
+# - telephony_8k_direct: Direct resample (baseline, equivalent to librosa.load(sr=8000))
+# - telephony_8k_lpf2000: LPF @ 2.0 kHz + Resample
+# - telephony_8k_lpf2800: LPF @ 2.8 kHz + Resample
+# - telephony_8k_lpf3400: LPF @ 3.4 kHz + Resample
+# - telephony_8k_lpf3800: LPF @ 3.8 kHz + Resample
+# - telephony_8k_bandpass: Bandpass (300-3400 Hz) + Resample
+#
+# IMPORTANT: Output is at 8 kHz sample rate. Model must handle this.
+# ==============================================================================
+
+import torch
+
+# Lazy import to avoid circular dependency and speed up initial load
+_telephony_sim_module = None
+
+def _get_telephony_sim():
+    """Lazy load telephony simulation module."""
+    global _telephony_sim_module
+    if _telephony_sim_module is None:
+        from src.data.components.telephony_simulation import (
+            process_audio,
+            telephony_8k_direct as _direct,
+            telephony_8k_lpf2000 as _lpf2000,
+            telephony_8k_lpf2800 as _lpf2800,
+            telephony_8k_lpf3400 as _lpf3400,
+            telephony_8k_lpf3800 as _lpf3800,
+            telephony_8k_bandpass as _bandpass,
+        )
+        _telephony_sim_module = {
+            'process_audio': process_audio,
+            'direct': _direct,
+            'lpf2000': _lpf2000,
+            'lpf2800': _lpf2800,
+            'lpf3400': _lpf3400,
+            'lpf3800': _lpf3800,
+            'bandpass': _bandpass,
+        }
+    return _telephony_sim_module
+
+
+def _telephony_wrapper(x, sr, mode_func):
+    """
+    Common wrapper for telephony simulation.
+    
+    Converts numpy array to torch tensor, applies telephony processing,
+    and converts back to numpy array.
+    
+    Note: Output sample rate is 8 kHz!
+    """
+    # Convert to torch tensor if needed
+    if isinstance(x, np.ndarray):
+        x_tensor = torch.from_numpy(x.copy()).float()
+    else:
+        x_tensor = x.float()
+    
+    # Apply telephony simulation
+    y_tensor = mode_func(x_tensor, sr)
+    
+    # Convert back to numpy
+    return y_tensor.numpy()
+
+
+def telephony_8k_direct(x, args, sr=16000, audio_path=None):
+    """
+    Experiment #3 Mode A: Direct resample 16k → 8k (Baseline).
+    
+    This is equivalent to loading audio with librosa.load(sr=8000) without
+    explicit anti-aliasing. Uses Julius backend with high-quality settings.
+    
+    WARNING: Output is at 8 kHz sample rate!
+    """
+    sim = _get_telephony_sim()
+    return _telephony_wrapper(x, sr, sim['direct'])
+
+
+def telephony_8k_lpf2000(x, args, sr=16000, audio_path=None):
+    """
+    Experiment #3 Mode B: LPF @ 2.0 kHz + Resample 16k → 8k.
+    
+    Applies linear-phase FIR lowpass filter at 2.0 kHz cutoff before resampling.
+    This significantly limits bandwidth, preserving only low-frequency content.
+    
+    Filter specs:
+    - Type: FIR, 255 taps
+    - Window: Kaiser (β=8.0)
+    - Phase: Linear
+    
+    WARNING: Output is at 8 kHz sample rate!
+    """
+    sim = _get_telephony_sim()
+    return _telephony_wrapper(x, sr, sim['lpf2000'])
+
+
+def telephony_8k_lpf2800(x, args, sr=16000, audio_path=None):
+    """
+    Experiment #3 Mode B: LPF @ 2.8 kHz + Resample 16k → 8k.
+    
+    Applies linear-phase FIR lowpass filter at 2.8 kHz cutoff before resampling.
+    This provides moderate bandwidth reduction.
+    
+    Filter specs:
+    - Type: FIR, 255 taps
+    - Window: Kaiser (β=8.0)
+    - Phase: Linear
+    
+    WARNING: Output is at 8 kHz sample rate!
+    """
+    sim = _get_telephony_sim()
+    return _telephony_wrapper(x, sr, sim['lpf2800'])
+
+
+def telephony_8k_lpf3400(x, args, sr=16000, audio_path=None):
+    """
+    Experiment #3 Mode B: LPF @ 3.4 kHz + Resample 16k → 8k.
+    
+    Applies linear-phase FIR lowpass filter at 3.4 kHz cutoff before resampling.
+    This is close to the standard telephone bandwidth limit.
+    
+    Filter specs:
+    - Type: FIR, 255 taps
+    - Window: Kaiser (β=8.0)
+    - Phase: Linear
+    
+    WARNING: Output is at 8 kHz sample rate!
+    """
+    sim = _get_telephony_sim()
+    return _telephony_wrapper(x, sr, sim['lpf3400'])
+
+
+def telephony_8k_lpf3800(x, args, sr=16000, audio_path=None):
+    """
+    Experiment #3 Mode B: LPF @ 3.8 kHz + Resample 16k → 8k.
+    
+    Applies linear-phase FIR lowpass filter at 3.8 kHz cutoff before resampling.
+    This is very close to Nyquist (4 kHz) for 8 kHz signals.
+    
+    Filter specs:
+    - Type: FIR, 255 taps
+    - Window: Kaiser (β=8.0)
+    - Phase: Linear
+    
+    WARNING: Output is at 8 kHz sample rate!
+    """
+    sim = _get_telephony_sim()
+    return _telephony_wrapper(x, sr, sim['lpf3800'])
+
+
+def telephony_8k_bandpass(x, args, sr=16000, audio_path=None):
+    """
+    Experiment #3 Mode C: Telephony Bandpass (300-3400 Hz) + Resample 16k → 8k.
+    
+    Applies telephony-standard bandpass filter before resampling:
+    - High-pass: 300 Hz (removes DC and low rumble)
+    - Low-pass: 3400 Hz (standard telephone upper limit)
+    
+    This simulates traditional PSTN (Public Switched Telephone Network) audio.
+    
+    Filter specs:
+    - Type: FIR bandpass (HPF - LPF combination), 255 taps
+    - Window: Kaiser (β=8.0)
+    - Phase: Linear
+    
+    WARNING: Output is at 8 kHz sample rate!
+    """
+    sim = _get_telephony_sim()
+    return _telephony_wrapper(x, sr, sim['bandpass'])

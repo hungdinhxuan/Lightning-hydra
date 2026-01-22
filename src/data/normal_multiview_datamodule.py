@@ -10,6 +10,7 @@ import os
 from scipy import signal
 import copy
 import random
+import shlex
 from src.core_scripts.data_io import wav_augmentation as nii_wav_aug
 from src.core_scripts.data_io import wav_tools as nii_wav_tools
 from src.data.components.dataio import load_audio, pad
@@ -34,24 +35,45 @@ class Dataset_for(Dataset_base):
                                           trim_length, wav_samp_rate, noise_path, rir_path,
                                           aug_dir, online_aug, repeat_pad, is_train, random_start)
         # self.args.online_aug = online_aug
+        print(f"[DATASET_FOR] wav_samp_rate: {wav_samp_rate}")
+        
+        # Check if GPU augmentation is enabled (augmentation will be applied in collate_fn)
+        self.use_gpu_augmentation = args.get('use_gpu_augmentation', False) if args is not None else False
         
         # Pre-compute augmentation indices for efficiency
+        # Skip augmentation in __getitem__ if GPU augmentation is enabled
         self.aug_method_count = len(self.augmentation_methods)
-        self.use_augmentation = self.aug_method_count > 0
+        self.use_augmentation = self.aug_method_count > 0 and not self.use_gpu_augmentation
+        
+        if self.use_gpu_augmentation:
+            print("[DATASET_FOR] GPU augmentation enabled - skipping augmentation in __getitem__")
+
+        self.use_pre_process = args.get('use_pre_process', False)
+        if self.use_pre_process:
+            print("Using pre-process")
+            self.pre_process_fn = list(set(args.get('pre_process_fn', [])))
+            self.pre_process_fn_count = len(self.pre_process_fn)
+        
 
     def __getitem__(self, idx):
         utt_id = self.list_IDs[idx]
         filepath = os.path.join(self.base_dir, utt_id)
-        X = load_audio(filepath, self.sample_rate)
-
+        
         # apply augmentation - optimized selection
+        # Skip if GPU augmentation is enabled (will be applied in collate_fn)
+        X = load_audio(filepath, self.sample_rate)
         if self.use_augmentation:
             # More efficient than random.choice(range(len(...)))
             augmethod_index = random.randrange(self.aug_method_count)
             # print("Augmenting with", self.augmentation_methods[augmethod_index])
+            
             X = globals()[self.augmentation_methods[augmethod_index]](X, self.args, self.sample_rate,
                                                                       audio_path=filepath)
-
+        if self.use_pre_process:
+            #X = self.pre_process_fn(X)
+            pre_processed_index = random.randrange(self.pre_process_fn_count)
+            X = globals()[self.pre_process_fn[pre_processed_index]](X, self.args, self.sample_rate,
+                                                                      audio_path=filepath)
         x_inp = Tensor(X)
         target = self.labels[utt_id]
         return x_inp, target
@@ -68,13 +90,27 @@ class Dataset_for_dev(Dataset_base):
                                               augmentation_methods, eval_augment, num_additional_real, num_additional_spoof,
                                               trim_length, wav_samp_rate, noise_path, rir_path,
                                               aug_dir, online_aug, repeat_pad, is_train, random_start)
+        print(f"[DATASET_FOR_DEV] wav_samp_rate: {wav_samp_rate}")
         self.is_dev_aug = kwargs.get('is_dev_aug', False)
         # Use consistent caching
         self.cache_dir = kwargs.get('cache_dir')
         
+        # Check if GPU augmentation is enabled
+        self.use_gpu_augmentation = args.get('use_gpu_augmentation', False) if args is not None else False
+        
         # Pre-compute augmentation indices for efficiency
+        # Skip augmentation in __getitem__ if GPU augmentation is enabled
         self.aug_method_count = len(self.augmentation_methods)
-        self.use_augmentation = self.is_dev_aug and self.aug_method_count > 0
+        self.use_augmentation = self.is_dev_aug and self.aug_method_count > 0 and not self.use_gpu_augmentation
+        
+        if self.use_gpu_augmentation:
+            print("[DATASET_FOR_DEV] GPU augmentation enabled - skipping augmentation in __getitem__")
+
+        self.use_pre_process = args.get('use_pre_process', False)
+        if self.use_pre_process:
+            print("Using pre-process")
+            self.pre_process_fn = list(set(args.get('pre_process_fn', [])))
+            self.pre_process_fn_count = len(self.pre_process_fn)
         
         if self.is_dev_aug:
             print("Dev aug is enabled")
@@ -93,6 +129,11 @@ class Dataset_for_dev(Dataset_base):
             # print("Augmenting with", self.augmentation_methods[augmethod_index])
             X = globals()[self.augmentation_methods[augmethod_index]](X, self.args, self.sample_rate,
                                                                     audio_path=filepath)
+        if self.use_pre_process:
+            #X = self.pre_process_fn(X)
+            pre_processed_index = random.randrange(self.pre_process_fn_count)
+            X = globals()[self.pre_process_fn[pre_processed_index]](X, self.args, self.sample_rate,
+                                                                      audio_path=filepath)
         x_inp = Tensor(X)
         target = self.labels[utt_id]
         return x_inp, target
@@ -110,6 +151,10 @@ class Dataset_for_eval(Dataset_base):
                                                aug_dir, online_aug, repeat_pad, is_train, random_start)
         self.enable_chunking = enable_chunking
         self.padding_type = "repeat" if repeat_pad else "zero"
+        self.eval_augment = args.get('eval_augment', None)
+        if self.eval_augment is not None:
+            print("Eval augmentation is enabled")
+
         # Use consistent caching
         self.cache_dir = kwargs.get('cache_dir')
         # print("Chunking enabled:", self.enable_chunking)
@@ -224,6 +269,11 @@ class NormalDataModule(LightningDataModule):
             'protocol_path', os.path.join(self.data_dir, 'protocol.txt'))
         self.is_variable_multi_view = args.get(
             'is_variable_multi_view', False) if args is not None else False
+        
+        # Check if GPU augmentation is enabled
+        self.use_gpu_augmentation = args.get('use_gpu_augmentation', False) if args is not None else False
+        self.gpu_augmentation_methods = args.get('gpu_augmentation_methods', []) if args is not None else []
+        
         if self.is_variable_multi_view:
             print('Using variable multi-view collate function')
             self.top_k = self.args.get('top_k', 4)
@@ -239,14 +289,29 @@ class NormalDataModule(LightningDataModule):
                 self.args.random_start
             )
         else:
-            self.collate_fn = lambda x: multi_view_collate_fn(
-                x,
-                self.args.views,
-                self.args.wav_samp_rate,
-                self.args.padding_type,
-                self.args.random_start,
-                self.args.view_padding_configs
-            )
+            if self.use_gpu_augmentation and len(self.gpu_augmentation_methods) > 0:
+                print('Using GPU augmentation in collate function')
+                from src.data.components.collate_fn import multi_view_collate_fn_with_gpu_augmentation
+                self.collate_fn = lambda x: multi_view_collate_fn_with_gpu_augmentation(
+                    x,
+                    self.args.views,
+                    self.args.wav_samp_rate,
+                    self.args.padding_type,
+                    self.args.random_start,
+                    self.args.view_padding_configs,
+                    augmentation_methods=self.gpu_augmentation_methods,
+                    args=self.args,
+                    device=None  # Will be determined automatically
+                )
+            else:
+                self.collate_fn = lambda x: multi_view_collate_fn(
+                    x,
+                    self.args.views,
+                    self.args.wav_samp_rate,
+                    self.args.padding_type,
+                    self.args.random_start,
+                    self.args.view_padding_configs
+                )
         self.chunking_eval = False
         if chunking_eval:
             self.chunking_eval = True
@@ -410,7 +475,12 @@ class NormalDataModule(LightningDataModule):
         
         # Parse all data in single pass
         for line in l_meta:
-            utt, subset, label = line.strip().split()
+            # Use shlex.split to handle quoted paths correctly
+            # Handles both: "quoted path" and unquoted path
+            parts = shlex.split(line.strip())
+            if len(parts) < 3:
+                continue  # Skip malformed lines
+            utt, subset, label = parts[0], parts[1], parts[2]
             label_val = 1 if label == 'bonafide' else 0
             
             if is_train and subset == 'train':

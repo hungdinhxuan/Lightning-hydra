@@ -1,0 +1,73 @@
+# @package _global_
+
+# to execute this experiment run:
+# python train.py experiment=example
+
+defaults:
+  - override /data: normal_largecorpus_multiview_cnsl
+  - override /model: v2/xlsr_conformertcm_mdt_lora
+  - override /callbacks: default_loss_earlystop
+  - override /trainer: default
+
+# all parameters below will be merged with parameters from default configurations set above
+# this allows you to overwrite only specified parameters
+
+tags: ["normal_largecorpus_multiview_cnsl", "v2/xlsr_conformertcm_mdt_lora"]
+
+seed: 1234
+
+trainer:
+  max_epochs: 100
+  gradient_clip_val: 0.0
+  accelerator: cuda
+
+model:
+  optimizer:
+    _target_: torch.optim.Adam
+    _partial_: true
+    lr: 0.000001 
+    weight_decay: 0.0001
+  net: null
+  scheduler: null
+  compile: true
+  cross_entropy_weight: [0.7, 0.3] # Balanced weights for cross entropy loss
+  weighted_views:
+    '1': 1
+    '2': 1
+    '3': 1
+    '4': 1
+  
+  base_model_path: "pretrained/S_241214_conf-1.pth"
+  adapter_type: null # None for no adapter
+  is_base_model_path_ln: False
+
+data:
+  batch_size: 32
+  num_workers: 16
+  pin_memory: true
+  args:
+    augmentation_methods: ["RawBoostdf", "pitch_v1", "time_stretch_v1", "background_noise_v1", "highpass_filter_v1", "none"] # "none" is the original data
+    padding_type: repeat
+    random_start: True
+    is_dev_aug: False
+    view_padding_configs:
+      '1':
+        padding_type: repeat
+        random_start: True
+      '2':
+        padding_type: repeat
+        random_start: True
+      '3':
+        padding_type: repeat
+        random_start: True
+      '4':
+        padding_type: repeat
+        random_start: True
+
+
+logger:
+  wandb:
+    tags: ${tags}
+    group: "normal_largecorpus_multiview_cnsl"
+  aim:
+    experiment: "normal_largecorpus_multiview_cnsl"

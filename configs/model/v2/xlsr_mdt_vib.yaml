@@ -1,0 +1,22 @@
+_target_: src.models.v2.xlsr_vib_mdt_module.XLSRVIBMultiViewLitModule
+
+optimizer:
+  _target_: torch.optim.Adam
+  _partial_: true
+  lr: 0.000001
+  weight_decay: 0.0001
+
+scheduler: null
+
+args:
+  model:
+    contra_mode: "all" # 'one' or 'all'
+    loss_type: 1 # 1: 2loss, 2: loss emb only, 3: loss final hidden state only, 4: CE loss
+    weight_CE: 1.0
+    weight_CF1: 1.0
+    weight_CF2: 1.0
+    recon_weight_l: 0.000001
+    recon_weight_b: 0.05
+
+# kwargs
+cp_path: ${oc.env:XLSR_PRETRAINED_MODEL_PATH}

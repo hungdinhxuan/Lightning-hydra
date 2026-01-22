@@ -34,7 +34,10 @@ class XLSRVIBNormalLitModule(NormalLitModule):
         output, (decoded, mu, logvar, feats_w2v), emb = self.forward(x)
         
         # reconstruction loss
-        BCE = F.binary_cross_entropy(torch.sigmoid(decoded), torch.sigmoid(feats_w2v), reduction='sum')
+        # Clamp sigmoid outputs to avoid CUDA assertion errors
+        decoded_sigmoid = torch.clamp(torch.sigmoid(decoded), min=1e-7, max=1-1e-7)
+        feats_sigmoid = torch.clamp(torch.sigmoid(feats_w2v), min=1e-7, max=1-1e-7)
+        BCE = F.binary_cross_entropy(decoded_sigmoid, feats_sigmoid, reduction='sum')
         
         KLD = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
         

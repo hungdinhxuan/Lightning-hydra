@@ -120,6 +120,8 @@ class BaseLitModule(LightningModule):
         "Lightning hook that is called when a validation epoch ends."
         pass
 
+    @torch.no_grad()
+    @torch.inference_mode(True)
     def test_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> None:
         """Perform a single test step on a batch of data from the test set.
 
@@ -145,7 +147,11 @@ class BaseLitModule(LightningModule):
         batch_x, utt_id = batch
         
         # Forward pass
-        batch_out = self.forward(batch_x, inference_mode=inference_mode)
+        is_jit_model = self.kwargs.get("is_jit_model", False)
+        if is_jit_model:
+            batch_out = self.net(batch_x)
+        else:
+            batch_out = self.forward(batch_x, inference_mode=inference_mode)
         
         # Optimized tensor to numpy conversion (avoid .data and .tolist())
         if batch_out.is_cuda:
@@ -171,7 +177,7 @@ class BaseLitModule(LightningModule):
     def _flush_buffer(self):
         """Flush the write buffer to file."""
         if self._write_buffer:
-            with open(self.score_save_path, 'a') as fh:
+            with open(self.score_save_path, 'a', encoding='utf-8') as fh:
                 fh.writelines(self._write_buffer)
             self._write_buffer.clear()
 
@@ -218,7 +224,7 @@ class BaseLitModule(LightningModule):
     
     def optimizer_zero_grad(self, epoch, batch_idx, optimizer):
         optimizer.zero_grad(set_to_none=True)
-
+        
     def _export_embedding_file(self, batch: Tuple[torch.Tensor, torch.Tensor]) -> None:
         """ Get the embedding file for the batch of data.
         :param batch: A batch of data (a tuple) containing the input tensor of images and target

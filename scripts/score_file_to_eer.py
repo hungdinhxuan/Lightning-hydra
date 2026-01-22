@@ -11,9 +11,39 @@ from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay, accuracy_s
 def eval_to_score_file(score_file, cm_key_file):
     cm_data = pandas.read_csv(cm_key_file, sep=' ', header=None)
     cm_data.columns = ['filename', 'subset', 'label']
-    submission_scores = pandas.read_csv(
-        score_file, sep=' ', header=None, skipinitialspace=True)
-    submission_scores.columns = ['filename', 'spoof', 'score']
+    
+    # Read score file with manual parsing to handle paths with spaces
+    # Format: <path_with_possible_spaces> <score1> <score2>
+    # We need to extract the last 2 numbers as scores, rest is the path
+    score_data = []
+    with open(score_file, 'r') as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            
+            # Split the line and extract scores from the end
+            parts = line.split()
+            if len(parts) >= 3:
+                # Has 2 scores: take last 2 as scores, rest as path
+                try:
+                    spoof_score = float(parts[-2])
+                    score = float(parts[-1])
+                    filename = ' '.join(parts[:-2])
+                    score_data.append({'filename': filename, 'spoof': spoof_score, 'score': score})
+                except ValueError:
+                    continue
+            elif len(parts) >= 2:
+                # Has 1 score: take last as score, rest as path
+                try:
+                    score = float(parts[-1])
+                    filename = ' '.join(parts[:-1])
+                    # For single score format, use same value for both spoof and score
+                    score_data.append({'filename': filename, 'spoof': score, 'score': score})
+                except ValueError:
+                    continue
+    
+    submission_scores = pandas.DataFrame(score_data)
     
     cm_scores = submission_scores.merge(
         cm_data, left_on='filename', right_on='filename', how='inner')

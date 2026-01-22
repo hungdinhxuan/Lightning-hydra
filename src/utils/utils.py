@@ -53,6 +53,97 @@ def load_ln_model_weights(model, checkpoint, required_prefix='net'):
 
     return model
 
+
+def load_ln_model_weights_with_ignore(model, checkpoint, required_prefix='net', ignore_keys=None, strict=False):
+    """
+    Load model weights from checkpoint with specific key prefix requirements and ability to ignore specific keys.
+    
+    Args:
+        model: PyTorch model to load weights into
+        checkpoint: Checkpoint dict or object with state_dict() method
+        required_prefix: Required prefix for state dict keys (default: 'net')
+        ignore_keys: List of key patterns to ignore. Supports exact match and prefix matching.
+                    For prefix matching, end the pattern with '*' (e.g., 'layer.0.*')
+                    If None or empty list, no keys are ignored.
+        strict: If True, requires exact match between model and loaded state dict (default: False)
+                Setting to False is recommended when ignoring keys.
+        
+    Returns:
+        model: Model with loaded weights
+        
+    Example:
+        # Ignore specific layers
+        model = load_ln_model_weights_with_ignore(
+            model, checkpoint, 
+            ignore_keys=['classifier.weight', 'classifier.bias', 'encoder.layer.0.*']
+        )
+    """
+  
+    state_dict = checkpoint if isinstance(
+        checkpoint, dict) else checkpoint.state_dict()
+    
+    print(f"Loading {len(state_dict)} parameters from checkpoint")
+
+    # Initialize ignore_keys as empty list if None
+    ignore_keys = ignore_keys or []
+    
+    # Create new state dict with processed keys
+    new_state_dict = OrderedDict()
+    ignored_keys = []
+
+    # Process the state dict keys
+    for key, value in state_dict.items():
+        # Skip keys that don't start with the required prefix
+        if not key.startswith(required_prefix):
+            continue
+
+        # Remove the 'net.' prefix to match model's state dict keys
+        new_key = key[len(required_prefix) + 1:]  # +1 for the dot after prefix
+        
+        # Check if this key should be ignored
+        should_ignore = False
+        for ignore_pattern in ignore_keys:
+            if ignore_pattern.endswith('*'):
+                # Prefix matching
+                prefix = ignore_pattern[:-1]
+                if new_key.startswith(prefix):
+                    should_ignore = True
+                    break
+            else:
+                # Exact matching
+                if new_key == ignore_pattern:
+                    should_ignore = True
+                    break
+        
+        if should_ignore:
+            ignored_keys.append(new_key)
+            continue
+            
+        new_state_dict[new_key] = value
+
+    # Print summary
+    if ignored_keys:
+        print(f"Ignored {len(ignored_keys)} keys: {ignored_keys[:5]}{'...' if len(ignored_keys) > 5 else ''}")
+    
+    # Load the processed state dict
+    try:
+        missing_keys, unexpected_keys = model.load_state_dict(new_state_dict, strict=strict)
+        print(f"Successfully loaded {len(new_state_dict)} parameters")
+        
+        if not strict:
+            if missing_keys:
+                print(f"Missing keys in checkpoint: {len(missing_keys)} keys")
+                print(f"  First few: {missing_keys[:3]}")
+            if unexpected_keys:
+                print(f"Unexpected keys in checkpoint: {len(unexpected_keys)} keys")
+                print(f"  First few: {unexpected_keys[:3]}")
+                
+    except RuntimeError as e:
+        print(f"Error loading state dict: {str(e)}")
+        raise
+
+    return model
+
 def extras(cfg: DictConfig) -> None:
     """Applies optional utilities before the task is started.
 

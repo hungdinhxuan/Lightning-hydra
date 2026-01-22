@@ -254,4 +254,85 @@ bash scripts/benchmark_mdt_paper.sh -g 2 -c huggingface_benchmark/xlsr_aasist_md
     └── summary_results.txt
 
 
+# Challenge
 ./scripts/benchmark.sh -g 3 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_more_elevenlabs -b data/wildspoof_challenge_benchmark -m /nvme1/hungdx/Lightning-hydra/logs/train/runs/2024-12-14_08-35-06-large-corpus-conf-1/checkpoints/averaged_top5.ckpt -a pretrained/MDT_241214_lora_250501 -r logs/results/wildspoof_challenge_benchmark -n "ConformerTCM_MDT_LoRA_LargeCorpus_MoreElevenlabs" 
+
+# Baseline
+./scripts/benchmark.sh -g 3 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b data/wildspoof_challenge_benchmark -m /nvme1/hungdx/Lightning-hydra/logs/train/runs/2024-12-14_08-35-06-large-corpus-conf-1/checkpoints/averaged_top5.ckpt -r logs/results/wildspoof_challenge_benchmark -n "Conformer_MDT_DEC2024_correct"
+
+
+
+## Mamba install
+uv pip install https://github.com/Dao-AILab/causal-conv1d/releases/download/v1.4.0/causal_conv1d-1.4.0+cu122torch2.4cxx11abiFALSE-cp39-cp39-linux_x86_64.whl
+
+uv pip install https://github.com/state-spaces/mamba/releases/download/v2.2.2/mamba_ssm-2.2.2+cu122torch2.4cxx11abiFALSE-cp39-cp39-linux_x86_64.whl
+
+
+# Post_training_benchmark
+./scripts/benchmark.sh -g MIG-56c6e426-3d07-52cb-aa59-73892edacb69 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_more_elevenlabs -b data/Post_training_benchmark -m pretrained/S_241214_conf-1.pth -a pretrained/MDT_241214_lora_250501 -r logs/results/Post_training_benchmark -n "ConformerTCM_MDT_LoRA_LargeCorpus_MoreElevenlabs" -l false
+
+# telephony simulation benchmark
+
+## baseline
+```bash
+./scripts/benchmark.sh -g 1 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b $(pwd)/data/benchmark_telephony -m pretrained/S_241214_conf-1.pth -r logs/results/benchmark_telephony -n "S_241214_conf-1" -l false
+```
+## lora-may
+```bash
+./scripts/benchmark.sh -g 2 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_more_elevenlabs -b data/benchmark_telephony -m pretrained/S_241214_conf-1.pth -a pretrained/MDT_241214_lora_250501 -r logs/results/benchmark_telephony -n "ConformerTCM_MDT_LoRA_LargeCorpus_MoreElevenlabs" -l false
+```
+## 8khz model
+```bash
+./scripts/benchmark.sh -g MIG-ad433dcf-e7b9-5a99-a0fa-6fdf3033b7cd -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer8khz -b $(pwd)/data/benchmark_telephony -m pretrained/8khz_xlsr_conformertcm_mdt.ckpt -r logs/results/benchmark_telephony -n "8khz_xlsr_conformertcm_mdt" -l true
+```
+
+## MDT-Jan26
+```bash
+./scripts/benchmark.sh -g 1 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b $(pwd)/data/benchmark_telephony -m /nvme1/hungdx/code/Lightning-hydra/logs/train/runs/2026-01-07_14-52-27/checkpoints/epoch_030.ckpt -r logs/results/benchmark_telephony -n "xlsr_conformertcm_mdt_epoch30_jan26" -l true
+```
+
+## lora-8khz from baseline
+```bash
+./scripts/benchmark.sh -g MIG-ad433dcf-e7b9-5a99-a0fa-6fdf3033b7cd -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer8khz -b $(pwd)/data/benchmark_telephony -m pretrained/S_241214_conf-1.pth -a logs/train/runs/2026-01-13_17-27-48/checkpoints/epoch_006.ckpt -r logs/results/benchmark_telephony -n "lora-8khz_xlsr_conformertcm_mdt" -l false
+```
+
+
+# lora_lowpass_gpu 
+```bash
+./scripts/benchmark.sh -g 0 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b $(pwd)/data/benchmark_telephony -m pretrained/S_241214_conf-1.pth -a logs/train/runs/2026-01-14_18-07-07/checkpoints/epoch_008.ckpt -r logs/results/benchmark_telephony -n "lora_lowpass_gpu" -l false
+```
+
+# lora_augmented_rawboostla_e9
+```bash
+./scripts/benchmark.sh -g MIG-6e4275af-2db0-51f1-a601-7ad8a1002745 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b $(pwd)/data/benchmark_telephony -m pretrained/S_241214_conf-1.pth -a /nvme1/hungdx/code/Lightning-hydra/logs/train/runs/2026-01-14_21-52-21/checkpoints/epoch_009.ckpt -r logs/results/benchmark_telephony -n "lora_augmented_la_e9" -l false
+```
+
+# lora_augmented_rawboostla_e23
+```bash
+./scripts/benchmark.sh -g MIG-ad433dcf-e7b9-5a99-a0fa-6fdf3033b7cd -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b $(pwd)/data/benchmark_telephony -m pretrained/S_241214_conf-1.pth -a /nvme1/hungdx/code/Lightning-hydra/logs/train/runs/2026-01-14_21-52-21/checkpoints/epoch_023.ckpt -r logs/results/benchmark_telephony -n "lora_augmented_la_e23" -l false
+```
+
+
+# lora_augmented_gen_la_500samples
+```bash
+./scripts/benchmark.sh -g MIG-ad433dcf-e7b9-5a99-a0fa-6fdf3033b7cd -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b $(pwd)/data/benchmark_telephony -m pretrained/S_241214_conf-1.pth -a /nvme1/hungdx/logs/train/runs/2026-01-18_14-30-56/checkpoints/epoch_011.ckpt -r logs/results/benchmark_telephony -n "lora_augmented_gen_la_500samples_correct" -l false
+```
+
+# lora_augmented_gen_la_1ksamples
+```bash
+./scripts/benchmark.sh -g MIG-46b32d1b-f775-5b7d-a987-fb8ebc049494 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b $(pwd)/data/benchmark_telephony -m pretrained/S_241214_conf-1.pth -a /nvme1/hungdx/logs/train/runs/2026-01-18_14-30-43/checkpoints/epoch_000.ckpt -r logs/results/benchmark_telephony -n "lora_augmented_gen_la_1ksamples_correct" -l false
+```
+
+# lora_augmented_gen_la_2ksamples
+```bash
+./scripts/benchmark.sh -g MIG-46b32d1b-f775-5b7d-a987-fb8ebc049494 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b $(pwd)/data/benchmark_telephony -m pretrained/S_241214_conf-1.pth -a /nvme1/hungdx/logs/train/runs/2026-01-17_23-02-11/checkpoints/epoch_078.ckpt -r logs/results/benchmark_telephony -n "lora_augmented_gen_la_2ksamples_correct" -l false
+```
+python scripts/augment_low_pass_torch_audiomentations.py \
+  --input_dir /nvme1/hungdx/code/Lightning-hydra/data/TTS_SASV_eval_anony/TTS_1 \
+  --output_dir /nvme1/hungdx/code/Lightning-hydra/logs/augmented_wavs/TTS_SASV_eval_anony_TTS_1_low_pass_filter \
+  --sample_rate 16000 \
+  --min_cutoff 2000 \
+  --max_cutoff 7500 \
+  --prob 1.0 \
+  --device cuda \
+  --patterns "*.flac"

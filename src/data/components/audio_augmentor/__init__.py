@@ -29,6 +29,7 @@ from .lowpass_filter import LowPassFilterAugmentor
 from .resample import ResampleAugmentor
 from .background_noise_audiomentations import BackgroundNoiseAugmentor as BackgroundNoiseAugmentorAudiomentations
 from .echo_deepen import EchoAugmentor as EchoAugmentorDeepen
+from .ssboll79 import SSBoll79Augmentor
 # from . import utils
 
 from .__version__ import (

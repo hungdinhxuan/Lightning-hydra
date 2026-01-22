@@ -98,6 +98,7 @@ def main():
         else:
             print("Loading LoRA weights (method 2)...")
             model = PeftModel.from_pretrained(model, args.lora_path)
+        #model = PeftModel.from_pretrained(model, args.lora_path)
         print("LoRA weights loaded successfully")
     except Exception as e:
         print(f"Error loading LoRA weights: {str(e)}")
