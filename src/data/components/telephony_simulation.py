@@ -277,12 +277,12 @@ def get_resampler(
     ).to(device)
     
     # Log configuration for traceability
-    print(f"[TelephonySim] Created Resampler: {orig_freq}Hz → {new_freq}Hz")
-    print(f"  - method: {RESAMPLER_CONFIG['resampling_method']}")
-    print(f"  - lowpass_filter_width: {RESAMPLER_CONFIG['lowpass_filter_width']}")
-    print(f"  - rolloff: {RESAMPLER_CONFIG['rolloff']}")
-    print(f"  - dtype: {RESAMPLER_CONFIG['dtype']}")
-    print(f"  - device: {device}")
+    # print(f"[TelephonySim] Created Resampler: {orig_freq}Hz → {new_freq}Hz")
+    # print(f"  - method: {RESAMPLER_CONFIG['resampling_method']}")
+    # print(f"  - lowpass_filter_width: {RESAMPLER_CONFIG['lowpass_filter_width']}")
+    # print(f"  - rolloff: {RESAMPLER_CONFIG['rolloff']}")
+    # print(f"  - dtype: {RESAMPLER_CONFIG['dtype']}")
+    # print(f"  - device: {device}")
     
     return resampler
 

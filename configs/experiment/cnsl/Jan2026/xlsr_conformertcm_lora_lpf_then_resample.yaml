@@ -6,7 +6,7 @@
 defaults:
   - override /data: normal_largecorpus_for_asvspoof5
   - override /model: v2/xlsr_conformertcm
-  - override /callbacks: default_loss_earlystop
+  - override /callbacks: default_lora_loss_earlystop_logger
   - override /trainer: default
 
 # all parameters below will be merged with parameters from default configurations set above
@@ -23,7 +23,7 @@ trainer:
 
 model:
   optimizer:
-    lr: 0.00001
+    lr: 0.0001
     weight_decay: 0.0001
   net: null
   scheduler:
@@ -34,6 +34,7 @@ model:
     min_lr: 1e-6
   compile: true
   cross_entropy_weight: [0.7, 0.3] # Balanced weights for cross entropy loss
+  adapter_type: "lora"
   args:
     adapter:
       r: 8
