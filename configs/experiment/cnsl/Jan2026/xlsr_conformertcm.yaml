@@ -23,7 +23,7 @@ trainer:
 
 model:
   optimizer:
-    lr: 0.0001
+    lr: 0.000005
     weight_decay: 0.0001
   net: null
   scheduler:
@@ -31,7 +31,7 @@ model:
     _partial_: true
     factor: 0.5
     patience: 3
-    min_lr: 1e-6
+    min_lr: 5e-7
   compile: true
   cross_entropy_weight: [0.5, 0.5] # Balanced weights for cross entropy loss
 
@@ -42,6 +42,7 @@ data:
   pin_memory: true
   args:
     augmentation_methods: ["RawBoostdf", "none"]
+    #augmentation_methods: ["RawBoostdf","pitch_1", "volume_10", "speed_01", "none"]
     protocol_path: ${oc.env:WILD_SPOOF_PROTOCOL_PATH}
     padding_type: repeat
     random_start: True

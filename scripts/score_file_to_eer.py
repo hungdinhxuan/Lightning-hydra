@@ -8,40 +8,117 @@ import pandas
 import eval_metrics_DF as em
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay, accuracy_score, f1_score, recall_score, precision_score, det_curve
 
-def eval_to_score_file(score_file, cm_key_file):
-    cm_data = pandas.read_csv(cm_key_file, sep=' ', header=None)
-    cm_data.columns = ['filename', 'subset', 'label']
+
+def parse_protocol_line(line: str):
+    """
+    Parse protocol line handling paths with spaces and quotes.
+    Format: <path> <subset> <label>
     
-    # Read score file with manual parsing to handle paths with spaces
-    # Format: <path_with_possible_spaces> <score1> <score2>
-    # We need to extract the last 2 numbers as scores, rest is the path
+    Returns: (file_id, subset, label) or None if invalid
+    """
+    line = line.strip()
+    if not line or line.startswith("#"):
+        return None
+    
+    # Check if path is quoted
+    if line.startswith('"') or line.startswith("'"):
+        quote_char = line[0]
+        close_quote_idx = line.find(quote_char, 1)
+        if close_quote_idx == -1:
+            return None
+        
+        file_id = line[1:close_quote_idx]
+        remainder = line[close_quote_idx + 1:].strip()
+        parts = remainder.split()
+        
+        if len(parts) != 2:
+            return None
+        
+        subset, label = parts
+        return file_id, subset, label
+    
+    # Parse from right: last 2 tokens are subset and label
+    parts = line.rsplit(maxsplit=2)
+    if len(parts) != 3:
+        return None
+    
+    file_id, subset, label = parts
+    return file_id, subset, label
+
+
+def parse_score_line(line: str):
+    """
+    Parse score line handling paths with spaces and quotes.
+    Format: <path> <score1> <score2> or <path> <score>
+    
+    Returns: (file_id, score1, score2) or None if invalid
+    """
+    line = line.strip()
+    if not line or line.startswith("#"):
+        return None
+    
+    # Check if path is quoted
+    if line.startswith('"') or line.startswith("'"):
+        quote_char = line[0]
+        close_quote_idx = line.find(quote_char, 1)
+        if close_quote_idx == -1:
+            return None
+        
+        file_id = line[1:close_quote_idx]
+        remainder = line[close_quote_idx + 1:].strip()
+        parts = remainder.split()
+        
+        try:
+            if len(parts) >= 2:
+                score1 = float(parts[0])
+                score2 = float(parts[1])
+                return file_id, score1, score2
+            elif len(parts) == 1:
+                score = float(parts[0])
+                return file_id, score, score
+        except ValueError:
+            return None
+        
+        return None
+    
+    # Parse from right: last 2 (or 1) numbers are scores
+    parts = line.split()
+    try:
+        if len(parts) >= 3:
+            score1 = float(parts[-2])
+            score2 = float(parts[-1])
+            file_id = ' '.join(parts[:-2])
+            return file_id, score1, score2
+        elif len(parts) >= 2:
+            score = float(parts[-1])
+            file_id = ' '.join(parts[:-1])
+            return file_id, score, score
+    except ValueError:
+        return None
+    
+    return None
+
+
+def eval_to_score_file(score_file, cm_key_file):
+    # Read protocol file with proper parsing
+    cm_data_list = []
+    with open(cm_key_file, 'r') as f:
+        for line in f:
+            parsed = parse_protocol_line(line)
+            if parsed:
+                filename, subset, label = parsed
+                cm_data_list.append({'filename': filename, 'subset': subset, 'label': label})
+    
+    cm_data = pandas.DataFrame(cm_data_list)
+    
+    # Read score file with proper parsing to handle paths with spaces and quotes
     score_data = []
     with open(score_file, 'r') as f:
         for line in f:
-            line = line.strip()
-            if not line:
-                continue
-            
-            # Split the line and extract scores from the end
-            parts = line.split()
-            if len(parts) >= 3:
-                # Has 2 scores: take last 2 as scores, rest as path
-                try:
-                    spoof_score = float(parts[-2])
-                    score = float(parts[-1])
-                    filename = ' '.join(parts[:-2])
-                    score_data.append({'filename': filename, 'spoof': spoof_score, 'score': score})
-                except ValueError:
-                    continue
-            elif len(parts) >= 2:
-                # Has 1 score: take last as score, rest as path
-                try:
-                    score = float(parts[-1])
-                    filename = ' '.join(parts[:-1])
-                    # For single score format, use same value for both spoof and score
-                    score_data.append({'filename': filename, 'spoof': score, 'score': score})
-                except ValueError:
-                    continue
+            parsed = parse_score_line(line)
+            if parsed:
+                filename, spoof_score, score = parsed
+                score_data.append({'filename': filename, 'spoof': spoof_score, 'score': score})
     
     submission_scores = pandas.DataFrame(score_data)
     

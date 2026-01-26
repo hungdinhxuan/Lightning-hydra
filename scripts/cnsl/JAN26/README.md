@@ -15,3 +15,6 @@ train from scratch
 
 # 8_xlsr_conformertcm_MDT_quick_lora
 Using pretrained baseline model but lora with only 10k aug samples
+
+# 13_xlsr_conformertcm_large_corpus_25th.sh
+Using pretrained baseline model but continual trainign with telephony protocol 

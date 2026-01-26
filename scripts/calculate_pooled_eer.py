@@ -22,6 +22,96 @@ import tempfile
 from pathlib import Path
 
 
+def parse_protocol_line(line: str):
+    """
+    Parse protocol line handling paths with spaces and quotes.
+    Format: <path> <subset> <label>
+    
+    Returns: (file_id, subset, label) or None if invalid
+    """
+    line = line.strip()
+    if not line or line.startswith("#"):
+        return None
+    
+    # Check if path is quoted
+    if line.startswith('"') or line.startswith("'"):
+        quote_char = line[0]
+        close_quote_idx = line.find(quote_char, 1)
+        if close_quote_idx == -1:
+            return None
+        
+        file_id = line[1:close_quote_idx]
+        remainder = line[close_quote_idx + 1:].strip()
+        parts = remainder.split()
+        
+        if len(parts) != 2:
+            return None
+        
+        subset, label = parts
+        return file_id, subset, label
+    
+    # Parse from right: last 2 tokens are subset and label
+    parts = line.rsplit(maxsplit=2)
+    if len(parts) != 3:
+        return None
+    
+    file_id, subset, label = parts
+    return file_id, subset, label
+
+
+def parse_score_line(line: str):
+    """
+    Parse score line handling paths with spaces and quotes.
+    Format: <path> <score1> <score2> or <path> <score>
+    
+    Returns: (file_id, score1, score2) or None if invalid
+    """
+    line = line.strip()
+    if not line or line.startswith("#"):
+        return None
+    
+    # Check if path is quoted
+    if line.startswith('"') or line.startswith("'"):
+        quote_char = line[0]
+        close_quote_idx = line.find(quote_char, 1)
+        if close_quote_idx == -1:
+            return None
+        
+        file_id = line[1:close_quote_idx]
+        remainder = line[close_quote_idx + 1:].strip()
+        parts = remainder.split()
+        
+        try:
+            if len(parts) >= 2:
+                score1 = float(parts[0])
+                score2 = float(parts[1])
+                return file_id, score1, score2
+            elif len(parts) == 1:
+                score = float(parts[0])
+                return file_id, score, score
+        except ValueError:
+            return None
+        
+        return None
+    
+    # Parse from right: last 2 (or 1) numbers are scores
+    parts = line.split()
+    try:
+        if len(parts) >= 3:
+            score1 = float(parts[-2])
+            score2 = float(parts[-1])
+            file_id = ' '.join(parts[:-2])
+            return file_id, score1, score2
+        elif len(parts) >= 2:
+            score = float(parts[-1])
+            file_id = ' '.join(parts[:-1])
+            return file_id, score, score
+    except ValueError:
+        return None
+    
+    return None
+
+
 def read_protocol_eval_subset(protocol_path):
     """Read evaluation subset from protocol file"""
     protocol_entries = []
@@ -34,27 +124,26 @@ def read_protocol_eval_subset(protocol_path):
         has_eval_subset = False
         with open(protocol_path, 'r') as f:
             for line in f:
-                if 'eval' in line:
-                    has_eval_subset = True
-                    break
+                parsed = parse_protocol_line(line)
+                if parsed:
+                    _, subset, _ = parsed
+                    if subset == 'eval':
+                        has_eval_subset = True
+                        break
         
         # Second pass: read appropriate lines
         with open(protocol_path, 'r') as f:
             for line in f:
-                line = line.strip()
-                if not line:
+                parsed = parse_protocol_line(line)
+                if not parsed:
                     continue
                 
-                parts = line.split()
-                if len(parts) >= 3:  # Need at least filename, subset, label
-                    # If there's an eval subset, only process eval lines
-                    # If no eval subset, process all lines
-                    if not has_eval_subset or 'eval' in line:
-                        file_id = parts[0]
-                        subset = parts[1]
-                        label = parts[2]
-                        rest = ' '.join(parts[3:]) if len(parts) > 3 else ''
-                        protocol_entries.append((file_id, label, subset))  # Note: label, subset order for compatibility
+                file_id, subset, label = parsed
+                
+                # If there's an eval subset, only process eval lines
+                # If no eval subset, process all lines
+                if not has_eval_subset or subset == 'eval':
+                    protocol_entries.append((file_id, label, subset))  # Note: label, subset order for compatibility
                         
     except Exception as e:
         print(f"Error reading protocol file {protocol_path}: {e}", file=sys.stderr)
@@ -72,26 +161,10 @@ def read_scores(score_path):
     try:
         with open(score_path, 'r') as f:
             for line in f:
-                line = line.strip()
-                if not line:
-                    continue
-                
-                parts = line.split()
-                if len(parts) >= 3:  # Expect 3 columns: filename bonafide_score spoof_score
-                    file_id = parts[0]
-                    try:
-                        bonafide_score = float(parts[1])
-                        spoof_score = float(parts[2])
-                        scores[file_id] = (bonafide_score, spoof_score)
-                    except ValueError:
-                        continue
-                elif len(parts) >= 2:  # Fallback for 2-column format
-                    file_id = parts[0]
-                    try:
-                        score = float(parts[1])
-                        scores[file_id] = (score, score)  # Use same score for both
-                    except ValueError:
-                        continue
+                parsed = parse_score_line(line)
+                if parsed:
+                    file_id, bonafide_score, spoof_score = parsed
+                    scores[file_id] = (bonafide_score, spoof_score)
     except Exception as e:
         print(f"Error reading score file {score_path}: {e}", file=sys.stderr)
     
