@@ -325,8 +325,51 @@ uv pip install https://github.com/state-spaces/mamba/releases/download/v2.2.2/ma
 
 # lora_augmented_gen_la_2ksamples
 ```bash
-./scripts/benchmark.sh -g MIG-46b32d1b-f775-5b7d-a987-fb8ebc049494 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b $(pwd)/data/benchmark_telephony -m pretrained/S_241214_conf-1.pth -a /nvme1/hungdx/logs/train/runs/2026-01-17_23-02-11/checkpoints/epoch_078.ckpt -r logs/results/benchmark_telephony -n "lora_augmented_gen_la_2ksamples_correct" -l false
+./scripts/benchmark.sh -g MIG-8cdeef83-092c-5a8d-a748-452f299e1df0 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b $(pwd)/data/benchmark_telephony -m pretrained/S_241214_conf-1.pth -a /home/hungdx/code/Lightning-hydra/logs/train/runs/2026-01-18_14-30-27/checkpoints/epoch_009.ckpt -r logs/results/benchmark_telephony -n "lora_augmented_gen_la_2ksamples_correct" -l false
 ```
+
+# lora_augmented_gen_la_2ksamples
+/home/hungdx/code/Lightning-hydra/logs/train/runs/2026-01-18_15-48-43/checkpoints/epoch_024.ckpt
+
+
+# lora_augmented_lpf_then_resample
+```bash
+./scripts/benchmark.sh -g MIG-57de94a5-be15-5b5a-b67e-e118352d8a59 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b $(pwd)/data/benchmark_telephony -m pretrained/S_241214_conf-1.pth -a /nvme1/hungdx/logs/train/runs/2026-01-18_17-31-56/checkpoints/epoch_005.ckpt -r logs/results/benchmark_telephony -n "lora_augmented_lpf_then_resample" -l false
+```
+
+
+
+# lora_augmented_gen_la_5ksamples
+```bash
+./scripts/benchmark.sh -g MIG-46b32d1b-f775-5b7d-a987-fb8ebc049494 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b $(pwd)/data/benchmark_telephony -m pretrained/S_241214_conf-1.pth -a /nvme1/hungdx/logs/train/runs/2026-01-18_22-58-37/checkpoints/epoch_003.ckpt -r logs/results/benchmark_telephony -n "lora_augmented_gen_la_5ksamples_correct_v2" -l false
+```
+
+
+# Latest protocol Jan-18-epoch-23
+```bash
+./scripts/benchmark.sh -g MIG-57de94a5-be15-5b5a-b67e-e118352d8a59 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b $(pwd)/data/benchmark_telephony -m /home/hungdx/code/Lightning-hydra/logs/train/runs/2026-01-15_14-26-30/checkpoints/epoch_023.ckpt -r logs/results/benchmark_telephony -n "26-Jan-18-epoch-23" -l true
+```
+
+# finetuning from baseline with latest protocol
+```bash
+./scripts/benchmark.sh -g MIG-57de94a5-be15-5b5a-b67e-e118352d8a59 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b $(pwd)/data/benchmark_telephony -m /home/hungdx/code/Lightning-hydra/logs/train/runs/2026-01-14_23-28-36/checkpoints/epoch_015.ckpt -r logs/results/benchmark_telephony -n "finetuning_with_Jan-14_protocol" -l true
+```
+
+# Latest protocol Jan-18-epoch-32
+```bash
+./scripts/benchmark.sh -g MIG-ad433dcf-e7b9-5a99-a0fa-6fdf3033b7cd -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b $(pwd)/data/benchmark_telephony -m /home/hungdx/code/Lightning-hydra/logs/train/runs/2026-01-15_14-26-30/checkpoints/epoch_031.ckpt -r logs/results/benchmark_telephony -n "26-Jan-14-protocol-epoch-31" -l true
+```
+
+# CNSL_Q1_2026_benchmarks
+```bash
+./scripts/benchmark.sh -g 0 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b $(pwd)/data/CNSL_Q1_2026_benchmarks -m /nvme1/hungdx/logs/train/runs/2026-01-15_14-26-30/checkpoints/averaged_top5.ckpt -r logs/results/CNSL_Q1_2026_benchmarks -n "XLSR_ConformerTCM_MDT_RawboostLA_DF" -l true
+```
+
+```bash
+python ./scripts/benchmark_py/benchmark.py -g MIG-6e4275af-2db0-51f1-a601-7ad8a1002745 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b $(pwd)/data/CNSL_Q1_2026_benchmarks -m /home/hungdx/code/Lightning-hydra/logs/train/runs/2026-01-25_02-22-18/checkpoints/averaged_top5.ckpt -r logs/results/CNSL_Q1_2026_benchmarks -n "XLSR_ConformerTCM_FT_TelephonyLA" -l true
+```
+
+
 python scripts/augment_low_pass_torch_audiomentations.py \
   --input_dir /nvme1/hungdx/code/Lightning-hydra/data/TTS_SASV_eval_anony/TTS_1 \
   --output_dir /nvme1/hungdx/code/Lightning-hydra/logs/augmented_wavs/TTS_SASV_eval_anony_TTS_1_low_pass_filter \
@@ -336,3 +379,6 @@ python scripts/augment_low_pass_torch_audiomentations.py \
   --prob 1.0 \
   --device cuda \
   --patterns "*.flac"
+
+
+# /nvme1/hungdx/code/Lightning-hydra/logs/train/runs/2026-01-14_23-28-36 new protocol
