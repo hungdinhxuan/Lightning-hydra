@@ -382,3 +382,18 @@ python scripts/augment_low_pass_torch_audiomentations.py \
 
 
 # /nvme1/hungdx/code/Lightning-hydra/logs/train/runs/2026-01-14_23-28-36 new protocol
+
+# Kipot
+```bash
+python ./scripts/benchmark_py/benchmark.py -g 2 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_more_elevenlabs -b data/Kipot_benchmark -m pretrained/S_241214_conf-1.pth -a pretrained/MDT_241214_lora_250501 -r logs/results/Kipot_benchmark -n "MDT_241214_lora_250501" -l false
+```
+
+ # Benchmark Conformer + MDT
+ ```bash
+DEFAULT_BATCH_SIZE=256 python ./scripts/benchmark_py/benchmark.py -g 2 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b $(pwd)/data/Kipot_benchmark -m pretrained/20260125_014841_telephony_protocol_xlsr_conformertcm_ft_s241214.ckpt -r logs/results/Kipot_benchmark -n "jan26_xlsr_conformertcm_ft_s241214"
+ ```
+
+Benchmark Conformer
+```bash
+DEFAULT_BATCH_SIZE=256 python ./scripts/benchmark_py/benchmark.py -g 1 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b $(pwd)/data/Kipot_benchmark -m /data/hungdx/lighning-hydra-train-runs/runs/2026-01-28_01-08-10/checkpoints/averaged_top5.ckpt -r logs/results/Kipot_benchmark -n "jan26_xlsr_conformertcm_train_from_scratch"
+ ```

@@ -415,3 +415,23 @@ class AdapterLitModule(BaseLitModule):
     def _set_lora_adapter(self, adapter_name: str):
         self.net.set_adapter(adapter_name)
         print(f"Set LoRA adapter to {adapter_name}") 
+    
+    
+    def configure_optimizers(self):
+        trainable_params = [p for p in self.trainer.model.parameters() if p.requires_grad]
+        optimizer = self.hparams.optimizer(params=trainable_params)
+
+        print(f"Only optimizing {len(trainable_params)} parameters")
+
+        if self.hparams.scheduler is not None:
+            scheduler = self.hparams.scheduler(optimizer=optimizer)
+            return {
+                "optimizer": optimizer,
+                "lr_scheduler": {
+                    "scheduler": scheduler,
+                    "monitor": "val/loss",
+                    "interval": "epoch",
+                    "frequency": 1,
+                },
+            }
+        return {"optimizer": optimizer}
