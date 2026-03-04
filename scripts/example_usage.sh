@@ -8,15 +8,15 @@
 # Process all datasets in a parent directory (eval subset only)
 python main_generate_ssbolldata_parallel.py \
     --parent_dir "/data/Datasets" \
-    --target_base_dir "/nvme1/hungdx/Lightning-hydra/data/processed_ssboll79" \
+    --target_base_dir "/nvme2/hungdx/Lightning-hydra/data/processed_ssboll79" \
     --post_name "_ssboll79" \
     --num_processes 8 \
     --IS 0.25
 
 # Example with wildspoof challenge benchmark datasets (eval subset only)
 python main_generate_ssbolldata_parallel.py \
-    --parent_dir "/nvme1/hungdx/Lightning-hydra/data/wildspoof_challenge_benchmark" \
-    --target_base_dir "/nvme1/hungdx/Lightning-hydra/data/processed_ssboll79" \
+    --parent_dir "/nvme2/hungdx/Lightning-hydra/data/wildspoof_challenge_benchmark" \
+    --target_base_dir "/nvme2/hungdx/Lightning-hydra/data/processed_ssboll79" \
     --post_name "_ssboll79" \
     --num_processes 16 \
     --IS 0.25

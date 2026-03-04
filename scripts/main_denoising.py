@@ -40,9 +40,9 @@ def process_and_save(absolute_path, stationary_dir, non_stationary_dir):
     # Return filenames (relative paths are just basenames here)
     return base
 
-df = pd.read_csv("/nvme1/hungdx/Lightning-hydra/data/wildspoof_challenge_benchmark/asv19/protocol.txt", sep=" ", header=None)
+df = pd.read_csv("/nvme2/hungdx/Lightning-hydra/data/wildspoof_challenge_benchmark/asv19/protocol.txt", sep=" ", header=None)
 df.columns = ["utt", "subset", "label"]
-DATA_DIR = "/nvme1/hungdx/Lightning-hydra/data/wildspoof_challenge_benchmark/asv19"
+DATA_DIR = "/nvme2/hungdx/Lightning-hydra/data/wildspoof_challenge_benchmark/asv19"
 
 DENOISE_DIR = "/data/Datasets/asv19_denoiser"
 STATIONARY_DIR = os.path.join(DENOISE_DIR, "stationary")

@@ -52,8 +52,8 @@ python main_handle_rc_parallel.py \
 python main_handle_rc_parallel.py --help
 ```
 
-- `--root-dir`: Root directory for output (default: `/nvme1/hungdx/Lightning-hydra/data/SSBoll_resample`)
-- `--source-dir`: Source directory containing audio files (default: `/nvme1/hungdx/Lightning-hydra/data/wildspoof_challenge_benchmark/record`)
+- `--root-dir`: Root directory for output (default: `/nvme2/hungdx/Lightning-hydra/data/SSBoll_resample`)
+- `--source-dir`: Source directory containing audio files (default: `/nvme2/hungdx/Lightning-hydra/data/wildspoof_challenge_benchmark/record`)
 - `--name-processing`: Name for processing output folder (default: `ssBoll_py_parallel`)
 - `--post-name`: Suffix for processed files (default: `_ssBoll_py`)
 - `--num-processes`: Number of parallel processes (default: CPU count)
@@ -173,14 +173,14 @@ pip install numpy scipy soundfile librosa tqdm psutil
 
 ```
 Starting parallel audio preprocessing...
-Root directory: /nvme1/hungdx/Lightning-hydra/data/SSBoll_resample
-Source directory: /nvme1/hungdx/Lightning-hydra/data/wildspoof_challenge_benchmark/record
+Root directory: /nvme2/hungdx/Lightning-hydra/data/SSBoll_resample
+Source directory: /nvme2/hungdx/Lightning-hydra/data/wildspoof_challenge_benchmark/record
 Output folder: ssBoll_py_parallel
 Number of processes: 8
 Categories: ['benign/en', 'spoof/bark/en', 'spoof/vits/en', 'spoof/xtts_v1.1/en', 'spoof/xtts_v2/en']
 
 Setting up directories...
-Output directory: /nvme1/hungdx/Lightning-hydra/data/SSBoll_resample/ssBoll_py_parallel/test
+Output directory: /nvme2/hungdx/Lightning-hydra/data/SSBoll_resample/ssBoll_py_parallel/test
 
 Processing audio files...
 

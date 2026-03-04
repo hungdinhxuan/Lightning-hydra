@@ -4,9 +4,9 @@
 # Usage: ./generate.sh [options]
 
 # Default values
-PROTOCOL_PATH="/nvme1/hungdx/Lightning-hydra/data/normal_250625_noise/protocols/replay_protocol.txt"
-BASE_INPUT_DIR="/nvme1/hungdx/Lightning-hydra/data/normal_250625_noise"
-BASE_OUTPUT_DIR="/nvme1/hungdx/Lightning-hydra/data/normal_250625_noise/auto_tune_output"
+PROTOCOL_PATH="/nvme2/hungdx/Lightning-hydra/data/normal_250625_noise/protocols/replay_protocol.txt"
+BASE_INPUT_DIR="/nvme2/hungdx/Lightning-hydra/data/normal_250625_noise"
+BASE_OUTPUT_DIR="/nvme2/hungdx/Lightning-hydra/data/normal_250625_noise/auto_tune_output"
 NOISE_TYPE="auto_tune"
 NUM_WORKERS=4  # Reduced default workers
 SAMPLE_RATE=16000

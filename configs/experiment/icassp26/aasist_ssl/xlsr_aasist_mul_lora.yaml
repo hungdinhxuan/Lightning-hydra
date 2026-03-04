@@ -27,7 +27,7 @@ model:
     weight_decay: 0.0001
   net: null
   scheduler: null
-  base_model_path: "/nvme1/hungdx/Lightning-hydra/Best_LA_model_for_DF.pth"
+  base_model_path: "/nvme2/hungdx/Lightning-hydra/Best_LA_model_for_DF.pth"
   cross_entropy_weight: [0.9, 0.1] # amplify bonafide loss
   args:
     adapter:
@@ -41,7 +41,7 @@ model:
 
   adapter_paths: "/home/hungdx/logs/train/runs/2025-09-12_14-07-14/checkpoints/epoch_010.ckpt,/home/hungdx/logs/train/runs/2025-09-11_02-21-04/checkpoints/epoch_018.ckpt,/home/hungdx/logs/train/runs/2025-09-11_04-04-11/checkpoints/epoch_029.ckpt,/home/hungdx/logs/train/runs/2025-09-13_04-27-17/checkpoints/epoch_022.ckpt,/home/hungdx/logs/train/runs/2025-09-11_04-47-15/checkpoints/epoch_029.ckpt,/home/hungdx/logs/train/runs/2025-09-11_04-47-15/checkpoints/epoch_029.ckpt,/home/hungdx/logs/train/runs/2025-09-13_09-54-56/checkpoints/epoch_012.ckpt"
   adapter_names: "g1,g2,g3,g4,g5,g6,g7"
-  noise_model_path: "/nvme1/hungdx/Lightning-hydra/best_model_interspeech_6.pth"
+  noise_model_path: "/nvme2/hungdx/Lightning-hydra/best_model_interspeech_6.pth"
   
 data:
   batch_size: 1

@@ -324,10 +324,10 @@ def main():
     """Main preprocessing pipeline with parallel processing support"""
     parser = argparse.ArgumentParser(description='Parallel Audio Preprocessing Pipeline')
     parser.add_argument('--root-dir', type=str, 
-                       default="/nvme1/hungdx/Lightning-hydra/data/SSBoll_resample_librosa",
+                       default="/nvme2/hungdx/Lightning-hydra/data/SSBoll_resample_librosa",
                        help='Root directory for output')
     parser.add_argument('--source-dir', type=str,
-                       default="/nvme1/hungdx/Lightning-hydra/data/wildspoof_challenge_benchmark/record",
+                       default="/nvme2/hungdx/Lightning-hydra/data/wildspoof_challenge_benchmark/record",
                        help='Source directory containing audio files')
     parser.add_argument('--name-processing', type=str, default="ssBoll_py_parallel",
                        help='Name for processing output folder')

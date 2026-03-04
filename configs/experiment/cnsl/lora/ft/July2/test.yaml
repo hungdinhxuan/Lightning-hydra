@@ -52,7 +52,7 @@ model:
     '2': 1
     '3': 1
     '4': 1
-  base_model_path: "/nvme1/hungdx/Lightning-hydra/logs/best_ckpt/MDT_241214_lora_250418_merged.pth"
+  base_model_path: "/nvme2/hungdx/Lightning-hydra/logs/best_ckpt/MDT_241214_lora_250418_merged.pth"
   
 data:
   batch_size: 16
@@ -63,7 +63,7 @@ data:
     online_aug: False
     protocol_paths: ${oc.env:LARGE_CORPUS_FOR_CNSL_CONTINUOUS_PROTOCOLS}
     augmentation_methods: ['time_stretch_v1', 'pitch_v1' , 'highpass_filter_v1', 'gaussian_v1', 'amplitude_modulation_v1', 'echo_v1']
-    aug_dir: /nvme1/hungdx/Lightning-hydra/data/normal_250625_noise
+    aug_dir: /nvme2/hungdx/Lightning-hydra/data/normal_250625_noise
     padding_type: repeat
     random_start: True
     is_dev_aug: True # Use dev augmentation for training

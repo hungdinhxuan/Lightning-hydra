@@ -8,14 +8,14 @@ from pathlib import Path
 import eval_metrics_DF as em
 
 # Constants
-METADATA_PATH = "/nvme1/hungdx/Lightning-hydra/data/cnsl_benchmark/AIHUB_FreeCommunication_may/protocol.txt"
-META_CSV_PATH = "/nvme1/hungdx/Lightning-hydra/data/cnsl_benchmark/AIHUB_FreeCommunication_may_meta.csv"
-BASE_DIR = "/nvme1/hungdx/Lightning-hydra/logs/eval/cnsl/largecorpus"
+METADATA_PATH = "/nvme2/hungdx/Lightning-hydra/data/cnsl_benchmark/AIHUB_FreeCommunication_may/protocol.txt"
+META_CSV_PATH = "/nvme2/hungdx/Lightning-hydra/data/cnsl_benchmark/AIHUB_FreeCommunication_may_meta.csv"
+BASE_DIR = "/nvme2/hungdx/Lightning-hydra/logs/eval/cnsl/largecorpus"
 
 # old prediction file
-PREDICTION_FILE="/nvme1/hungdx/Lightning-hydra/logs/results/cnsl_benchmark/ConformerTCM_MDT_LoRA_LargeCorpus_MoreElevenlabs/AIHUB_FreeCommunication_may_cnsl_lora_elevenlabs_xlsr_conformertcm_mdt_more_elevenlabs_ConformerTCM_MDT_LoRA_LargeCorpus_MoreElevenlabs.txt"
+PREDICTION_FILE="/nvme2/hungdx/Lightning-hydra/logs/results/cnsl_benchmark/ConformerTCM_MDT_LoRA_LargeCorpus_MoreElevenlabs/AIHUB_FreeCommunication_may_cnsl_lora_elevenlabs_xlsr_conformertcm_mdt_more_elevenlabs_ConformerTCM_MDT_LoRA_LargeCorpus_MoreElevenlabs.txt"
 # new prediction file
-PREDICTION_FILE="/nvme1/hungdx/Lightning-hydra/logs/results/cnsl_benchmark/MDT_baseline_lora_exp1_june2/AIHUB_FreeCommunication_may_cnsl_lora_elevenlabs_xlsr_conformertcm_mdt_lora_infer_MDT_baseline_lora_exp1_june2.txt"
+PREDICTION_FILE="/nvme2/hungdx/Lightning-hydra/logs/results/cnsl_benchmark/MDT_baseline_lora_exp1_june2/AIHUB_FreeCommunication_may_cnsl_lora_elevenlabs_xlsr_conformertcm_mdt_lora_infer_MDT_baseline_lora_exp1_june2.txt"
 
 class MetricsCalculator:
     @staticmethod

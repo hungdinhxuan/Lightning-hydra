@@ -80,7 +80,7 @@
 
 # class Args:
 #     def __init__(self):
-#         self.aug_dir = "/nvme1/hungdx/Lightning-hydra/data/0_large-corpus/aug"
+#         self.aug_dir = "/nvme2/hungdx/Lightning-hydra/data/0_large-corpus/aug"
 #         self.online_aug = False
 #         self.noise_path = "/tmp/noise.wav"
 
@@ -106,8 +106,8 @@
 
 # def main():
 #     # Load dataset
-#     BASE_DIR = "/nvme1/hungdx/Lightning-hydra/data/0_large-corpus"
-#     df = pd.read_csv("/nvme1/hungdx/Lightning-hydra/notebooks/new_protocol_trim_vocoded_cleaned_v2.txt", 
+#     BASE_DIR = "/nvme2/hungdx/Lightning-hydra/data/0_large-corpus"
+#     df = pd.read_csv("/nvme2/hungdx/Lightning-hydra/notebooks/new_protocol_trim_vocoded_cleaned_v2.txt", 
 #                      sep=" ", header=None)
 #     df.columns = ["utt", "subset", "label"]
     
@@ -168,12 +168,12 @@ from sklearn.metrics import confusion_matrix, accuracy_score, f1_score, recall_s
 from pathlib import Path
 
 # Constants
-METADATA_PATH = "/nvme1/hungdx/Lightning-hydra/data/cnsl_benchmark/AIHUB_FreeCommunication_may_updated/protocol.txt"
-META_CSV_PATH = "/nvme1/hungdx/Lightning-hydra/data/cnsl_benchmark/AIHUB_FreeCommunication_may_updated/june_week1_merged_df.csv"
-BASE_DIR = "/nvme1/hungdx/Lightning-hydra/logs/eval/cnsl/largecorpus"
+METADATA_PATH = "/nvme2/hungdx/Lightning-hydra/data/cnsl_benchmark/AIHUB_FreeCommunication_may_updated/protocol.txt"
+META_CSV_PATH = "/nvme2/hungdx/Lightning-hydra/data/cnsl_benchmark/AIHUB_FreeCommunication_may_updated/june_week1_merged_df.csv"
+BASE_DIR = "/nvme2/hungdx/Lightning-hydra/logs/eval/cnsl/largecorpus"
 
 # old prediction file
-PREDICTION_FILE="/nvme1/hungdx/Lightning-hydra/logs/results/cnsl_benchmark/ConformerTCM_MDT_LoRA_LargeCorpus_MoreElevenlabs/AIHUB_FreeCommunication_may_updated_cnsl_lora_elevenlabs_xlsr_conformertcm_mdt_more_elevenlabs_ConformerTCM_MDT_LoRA_LargeCorpus_MoreElevenlabs.txt"
+PREDICTION_FILE="/nvme2/hungdx/Lightning-hydra/logs/results/cnsl_benchmark/ConformerTCM_MDT_LoRA_LargeCorpus_MoreElevenlabs/AIHUB_FreeCommunication_may_updated_cnsl_lora_elevenlabs_xlsr_conformertcm_mdt_more_elevenlabs_ConformerTCM_MDT_LoRA_LargeCorpus_MoreElevenlabs.txt"
 
 def debug_load_metadata() -> pd.DataFrame:
     """Load and debug metadata files."""

@@ -374,7 +374,7 @@ run_benchmark_with_tracking(
 
 ```bash
 # If you get import errors, check Python path
-cd /nvme1/hungdx/code/Lightning-hydra
+cd /nvme2/hungdx/code/Lightning-hydra
 
 # Test imports
 python3 -c "
@@ -533,7 +533,7 @@ docker run --gpus all \
 crontab -e
 
 # Run benchmark every Sunday at midnight
-0 0 * * 0 cd /nvme1/hungdx/code/Lightning-hydra && \
+0 0 * * 0 cd /nvme2/hungdx/code/Lightning-hydra && \
     python scripts/benchmark_py/benchmark.py \
     -g 0 -c config -b /data/benchmarks \
     -m /models/latest.ckpt -r /results \

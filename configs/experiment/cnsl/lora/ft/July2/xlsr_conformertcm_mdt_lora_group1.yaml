@@ -57,7 +57,7 @@ model:
     '2': 1
     '3': 1
     '4': 1
-  base_model_path: "/nvme1/hungdx/Lightning-hydra/notebooks/S_241214_conf-1.pth"
+  base_model_path: "/nvme2/hungdx/Lightning-hydra/notebooks/S_241214_conf-1.pth"
   
   
 data:
@@ -70,7 +70,7 @@ data:
     online_aug: False
     protocol_paths: ${oc.env:LARGE_CORPUS_FOR_CNSL_CONTINUOUS_PROTOCOLS}
     augmentation_methods: ["background_noise_deepen", "background_music_deepen"]
-    aug_dir: /nvme1/hungdx/Lightning-hydra/data/normal_250702_noise
+    aug_dir: /nvme2/hungdx/Lightning-hydra/data/normal_250702_noise
     padding_type: repeat
     random_start: True
     is_dev_aug: True # Use dev augmentation to verify the augmentation process

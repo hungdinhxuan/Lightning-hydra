@@ -14,14 +14,14 @@ input_ckpt_path = args_cli.ckpt_path
 ckpt = torch.load(input_ckpt_path, weights_only=False)
 
 import yaml
-with open('/nvme1/hungdx/Lightning-hydra/configs/experiment/cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_more_elevenlabs_july4.yaml', 'r') as f:
+with open('/nvme2/hungdx/Lightning-hydra/configs/experiment/cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_more_elevenlabs_july4.yaml', 'r') as f:
     config = yaml.safe_load(f)
 
 args = config['model']['args']['conformer']
 
 
 model = XLSRConformerTCM(args=args,
-                         ssl_pretrained_path='/nvme1/hungdx/Lightning-hydra/pretrained/xlsr2_300m.pt')
+                         ssl_pretrained_path='/nvme2/hungdx/Lightning-hydra/pretrained/xlsr2_300m.pt')
 
 from collections import OrderedDict
 

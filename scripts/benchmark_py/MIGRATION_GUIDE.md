@@ -186,7 +186,7 @@ ModuleNotFoundError: No module named 'benchmark_py'
 
 **Solution**: Run from the project root directory:
 ```bash
-cd /nvme1/hungdx/code/Lightning-hydra
+cd /nvme2/hungdx/code/Lightning-hydra
 python scripts/benchmark_py/benchmark.py [args]
 ```
 

@@ -15,14 +15,14 @@ CUDA_DEVICE=${CUDA_DEVICE:-3}
 # CUDA_VISIBLE_DEVICES=$CUDA_DEVICE OMP_NUM_THREADS=1 python src/train.py \
 #     experiment=icassp26/conformertcm/xlsr_conformertcm_single_lora \
 #     ++model.is_base_model_path_ln=false \
-#     ++data.args.protocol_path="/nvme1/hungdx/Lightning-hydra/protocols_icassp/background_music_noise.txt" \
+#     ++data.args.protocol_path="/nvme2/hungdx/Lightning-hydra/protocols_icassp/background_music_noise.txt" \
 #     logger=wandb
 
 CUDA_VISIBLE_DEVICES=$CUDA_DEVICE OMP_NUM_THREADS=1 python src/train.py \
     experiment=icassp26/conformertcm/xlsr_conformertcm_single_lora \
     ++model.is_base_model_path_ln=false \
-    ++data.args.protocol_path="/nvme1/hungdx/Lightning-hydra/noise_type_large_asv19/background_music_noise.txt" \
-    ++data.data_dir="/nvme1/hungdx/Lightning-hydra/data/ASV19_noise" \
+    ++data.args.protocol_path="/nvme2/hungdx/Lightning-hydra/noise_type_large_asv19/background_music_noise.txt" \
+    ++data.data_dir="/nvme2/hungdx/Lightning-hydra/data/ASV19_noise" \
     +trainer.limit_train_batches=0.25 +trainer.limit_val_batches=0.25 \
     ++data.batch_size=16 \
     ++model.optimizer.lr=0.000003 \

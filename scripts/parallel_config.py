@@ -10,8 +10,8 @@ class ParallelConfig:
     """Configuration class for parallel audio processing"""
     
     # Default paths
-    DEFAULT_ROOT_DIR = "/nvme1/hungdx/Lightning-hydra/data/SSBoll_resample"
-    DEFAULT_SOURCE_DIR = "/nvme1/hungdx/Lightning-hydra/data/wildspoof_challenge_benchmark/record"
+    DEFAULT_ROOT_DIR = "/nvme2/hungdx/Lightning-hydra/data/SSBoll_resample"
+    DEFAULT_SOURCE_DIR = "/nvme2/hungdx/Lightning-hydra/data/wildspoof_challenge_benchmark/record"
     
     # Processing settings
     DEFAULT_NAME_PROCESSING = "ssBoll_py_parallel"

@@ -52,19 +52,19 @@ model:
     '2': 1
     '3': 1
     '4': 1
-  base_model_path: "/nvme1/hungdx/Lightning-hydra/notebooks/S_241214_conf-1.pth"
+  base_model_path: "/nvme2/hungdx/Lightning-hydra/notebooks/S_241214_conf-1.pth"
   
 data:
   batch_size: 32
   num_workers: 8
   pin_memory: true
-  data_dir: /nvme1/hungdx/Lightning-hydra/data/train_set_noise_interpseech2025/downloaded_files_wj
+  data_dir: /nvme2/hungdx/Lightning-hydra/data/train_set_noise_interpseech2025/downloaded_files_wj
 
   args:
     enable_cache: true # Whether to enable caching in args
-    protocol_path: /nvme1/hungdx/Lightning-hydra/data/train_set_noise_interpseech2025/downloaded_files_wj/protocol_reverberation.txt
+    protocol_path: /nvme2/hungdx/Lightning-hydra/data/train_set_noise_interpseech2025/downloaded_files_wj/protocol_reverberation.txt
     augmentation_methods: ['none'] # offline set already has augmentation
-    aug_dir: /nvme1/hungdx/Lightning-hydra/data/normal_250625_noise
+    aug_dir: /nvme2/hungdx/Lightning-hydra/data/normal_250625_noise
     padding_type: repeat
     random_start: True
     is_dev_aug: True # Use dev augmentation for training

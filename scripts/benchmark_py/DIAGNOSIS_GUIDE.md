@@ -238,7 +238,7 @@ PROTOCOL_SUBSET=dev ./scripts/benchmark_py/benchmark.py [args]
 ### 1. Run Diagnosis Now
 
 ```bash
-cd /nvme1/hungdx/code/Lightning-hydra
+cd /nvme2/hungdx/code/Lightning-hydra
 ./scripts/benchmark_py/run_diagnosis.sh
 ```
 

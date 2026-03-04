@@ -52,7 +52,7 @@ model:
     '2': 1
     '3': 1
     '4': 1
-  base_model_path: "/nvme1/hungdx/Lightning-hydra/notebooks/S_241214_conf-1.pth"
+  base_model_path: "/nvme2/hungdx/Lightning-hydra/notebooks/S_241214_conf-1.pth"
   
 data:
   batch_size: 16
@@ -63,7 +63,7 @@ data:
     enable_cache: true
     protocol_paths: ${oc.env:LARGE_CORPUS_FOR_CNSL_CONTINUOUS_PROTOCOLS}
     augmentation_methods: ['freq_operation_deepen'] # this include both freq_minus and freq_plus
-    aug_dir: /nvme1/hungdx/Lightning-hydra/data/normal_250625_noise
+    aug_dir: /nvme2/hungdx/Lightning-hydra/data/normal_250625_noise
     padding_type: repeat
     random_start: True
     is_dev_aug: True # Use dev augmentation for training

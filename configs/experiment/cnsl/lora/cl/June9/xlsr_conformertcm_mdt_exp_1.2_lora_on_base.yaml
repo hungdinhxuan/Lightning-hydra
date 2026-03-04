@@ -60,13 +60,13 @@ model:
     '3': 1
     '4': 1
   
-  base_model_path: "/nvme1/hungdx/Lightning-hydra/notebooks/S_241214_conf-1.pth"
+  base_model_path: "/nvme2/hungdx/Lightning-hydra/notebooks/S_241214_conf-1.pth"
   
 data:
   batch_size: 16
   num_workers: 8
   pin_memory: true
-  data_dir: /nvme1/hungdx/Lightning-hydra/data/replay_cl_250609
+  data_dir: /nvme2/hungdx/Lightning-hydra/data/replay_cl_250609
   
   novel_ratio: 0.7  # Ratio of novel samples in each batch
   replay_ratio: 0.3  # Ratio of replay samples in each batch

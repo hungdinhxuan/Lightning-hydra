@@ -24,7 +24,7 @@ PROTOCOL_SUBSET=dev ./scripts/benchmark_py/benchmark.py \
     -g 0 \
     -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer \
     -b $(pwd)/data/CNSL_Q1_2026_benchmarks \
-    -m /nvme1/hungdx/logs/train/runs/2026-01-15_14-26-30/checkpoints/averaged_top5.ckpt \
+    -m /nvme2/hungdx/logs/train/runs/2026-01-15_14-26-30/checkpoints/averaged_top5.ckpt \
     -r logs/results/CNSL_Q1_2026_benchmarks_dev \
     -n "XLSR_ConformerTCM_MDT_RawboostLA_DF" \
     -l true
@@ -169,7 +169,7 @@ PROTOCOL_SUBSET=dev ./scripts/benchmark_py/benchmark.py \
     -g 0 \
     -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer \
     -b $(pwd)/data/CNSL_Q1_2026_benchmarks \
-    -m /nvme1/hungdx/logs/train/runs/2026-01-15_14-26-30/checkpoints/averaged_top5.ckpt \
+    -m /nvme2/hungdx/logs/train/runs/2026-01-15_14-26-30/checkpoints/averaged_top5.ckpt \
     -r logs/results/CNSL_Q1_2026_benchmarks_dev \
     -n "XLSR_ConformerTCM_MDT_RawboostLA_DF" \
     -l true

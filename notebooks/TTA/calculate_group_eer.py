@@ -7,7 +7,7 @@ from sklearn.metrics import confusion_matrix, accuracy_score, f1_score, recall_s
 from pathlib import Path
 
 # Add the parent directory to the path to import eval_metrics_DF
-sys.path.append('/nvme1/hungdx/Lightning-hydra/notebooks/TTA')
+sys.path.append('/nvme2/hungdx/Lightning-hydra/notebooks/TTA')
 import eval_metrics_DF as em
 
 class GroupEERCalculator:
@@ -168,8 +168,8 @@ def load_and_process_data(result_file: str, metadata_file: str) -> pd.DataFrame:
 def main():
     """Main function to demonstrate the EER calculation."""
     # Example file paths - update these to your actual file paths
-    result_file = '/nvme1/hungdx/Lightning-hydra/logs/results/TTA_benchmark_test_det_show_lts/ToP_LA19/ADV_2025_cnsl_xlsr_vib_paper_ToP_LA19.txt'
-    metadata_file = '/nvme1/hungdx/Lightning-hydra/data/TTA_benchmark_2025/ADV_2025/ADV/protocol.txt'
+    result_file = '/nvme2/hungdx/Lightning-hydra/logs/results/TTA_benchmark_test_det_show_lts/ToP_LA19/ADV_2025_cnsl_xlsr_vib_paper_ToP_LA19.txt'
+    metadata_file = '/nvme2/hungdx/Lightning-hydra/data/TTA_benchmark_2025/ADV_2025/ADV/protocol.txt'
     
     try:
         # Load and process data

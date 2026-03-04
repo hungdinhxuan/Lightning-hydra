@@ -12,8 +12,8 @@ def get_cache_path(file_path: str, cache_dir: str) -> str:
     """
     Convert file path to cache path
     Example:
-        input: /nvme1/0.wav
-        output: cache_dir/nvme1/0.npy
+        input: /nvme2/0.wav
+        output: cache_dir/nvme2/0.npy
     """
     # Get the directory and filename without extension
     dir_name = os.path.dirname(file_path)
