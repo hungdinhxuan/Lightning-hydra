@@ -1,5 +1,5 @@
 import torch
-from src.data.components.dataio import pad
+from src.data.components.dataio import pad, pad_tensor
 import numpy as np
 from torch import Tensor
 from typing import List, Dict, Tuple, Union, Optional, Any
@@ -118,136 +118,6 @@ def multi_view_aux_collate_fn(batch, views=[1, 2, 3, 4], sample_rate=16000, padd
         view_batches[view] = (padded_sequences, labels, aux_labels)
 
     return view_batches
-
-# def multi_view_collate_fn_for_scl(batch: List[Tuple[List[np.ndarray], Tensor]],
-#                                   views: List[int] = [1, 2, 3, 4],
-#                                   sample_rate: int = 16000,
-#                                   padding_type: str = 'repeat',
-#                                   random_start: bool = False,
-#                                   view_padding_configs: Dict[str, Dict[str, bool]] = None) -> Dict[int, Tuple[Tensor, Tensor]]:
-#     """
-#     Collate function to pad multiple audio samples in a batch to multiple views.
-
-#     Args:
-#         batch: List of tuples (batch_data, label) where batch_data is a list of audio samples
-#         views: List of views to pad each sample to
-#         sample_rate: Sample rate of the audio
-#         padding_type: Default padding type if view_padding_configs not provided
-#         random_start: Default random start setting if view_padding_configs not provided
-#         view_padding_configs: Dictionary of view-specific padding configurations
-
-#     Returns:
-#         Dictionary with views as keys and tuples of (padded_sequences, labels) as values
-#     """
-#     # Set default configurations if none provided
-#     if view_padding_configs is None:
-#         view_padding_configs = {
-#             str(view): {'padding_type': padding_type, 'random_start': random_start}
-#             for view in views
-#         }
-
-#     # Initialize dictionary to store batches for each view
-#     view_batches = {view: {'sequences': [], 'labels': []} for view in views}
-
-#     for batch_data, label in batch:
-#         # Process each audio sample in the batch_data list
-#         for audio in batch_data:
-#             if isinstance(audio, np.ndarray):
-#                 audio = torch.from_numpy(audio)
-
-#             # Process for each view
-#             for view in views:
-#                 view_length = view * sample_rate
-#                 config = view_padding_configs[str(view)]
-
-#                 x_padded = nii_wav_aug.batch_pad_for_multiview(
-#                     audio, sample_rate, view_length, random_trim_nosil=config['random_start'], repeat_pad=True if config['padding_type'] == 'repeat' else False)
-#                 # Use the existing pad function
-#                 # x_padded = pad(
-#                 #     audio,
-#                 #     padding_type=config['padding_type'],
-#                 #     max_len=view_length,
-#                 #     random_start=config['random_start']
-#                 # )
-#                 x_padded = np.concatenate(x_padded, axis=1)
-
-#                 if not torch.is_tensor(x_padded):
-#                     x_padded = torch.from_numpy(x_padded)
-
-#                 view_batches[view]['sequences'].append(x_padded)
-#                 view_batches[view]['labels'].append(label)
-#     print(view_batches)
-#     # Convert lists to tensors for each view
-#     result = {}
-#     for view in views:
-#         sequences = torch.stack(view_batches[view]['sequences'])
-#         # Stack all labels and take only unique values since they're repeated
-#         labels = torch.stack(view_batches[view]['labels']).unique(dim=0)
-#         result[view] = (sequences, labels)
-
-#     return result
-# def multi_view_collate_fn_for_scl(batch, views=[1, 2, 3, 4], sample_rate=16000, padding_type='repeat', random_start=False, view_padding_configs: Dict[str, Dict[str, bool]] = None):
-#     '''
-#     Collate function to pad each sample in a batch to multiple views
-#     :param batch: list of tuples (x, label)
-#     :param views: list of views to pad each sample to
-#     :param sample_rate: sample rate of the audio
-#     :param padding_type: padding type to use
-#     :param random_start: whether to randomly start the sample
-#     :return: dictionary with keys as views and values as tuples of padded sequences and labels
-
-#     Example:
-#     batch = [([1, 2, 3], 0), ([1, 2, 3, 4], 1)]
-#     multi_view_collate_fn(batch, views=[1, 2], sample_rate=16000)
-#     Output:
-#     {
-#         1: (tensor([[1, 2, 3], [1, 2, 3, 4]]), tensor([0, 1])),
-#         2: (tensor([[1, 2, 3, 0], [1, 2, 3, 4]]), tensor([0, 1]))
-#     }
-#     '''
-#     # Set default configurations if none provided
-#     if view_padding_configs is None:
-#         view_padding_configs = {
-#             str(i): {'padding_type': 'repeat', 'random_start': False}
-#             for i in range(1, 5)
-#         }
-
-#     # Extract views from config and convert to integers
-#     views = [int(view) for view in view_padding_configs]
-
-#     view_batches = {view: [] for view in views}
-#     # Warning: padding_type and random_start are not used in this function
-#     # print("Warning: padding_type and random_start are not used in this function. Please use view_padding_configs instead")
-
-#     # Process each sample in the batch
-
-#     for index, (x_input, label) in enumerate(batch):
-#         """
-#         x_input: list of numpy arrays
-#         label: list of integers with 0 for spoof, 1 bonafide
-#         """
-#         for x in x_input:
-#             # Check if x is Tensor or numpy array and convert to Tensor if necessary
-
-#             # Pad each sample for each view
-#             for view in views:
-#                 view_length = view * sample_rate
-
-#                 x_view = pad(x, padding_type=view_padding_configs[str(view)]['padding_type'],
-#                              max_len=view_length, random_start=view_padding_configs[str(view)]['random_start'])
-
-#                 if not torch.is_tensor(x_view):
-#                     x_view = torch.from_numpy(x_view)
-
-#                 view_batches[view].append((x_view, label[index]))
-
-#     # Convert lists to tensors
-#     for view in views:
-#         sequences, labels = zip(*view_batches[view])
-#         padded_sequences = torch.stack(sequences)
-#         view_batches[view] = (padded_sequences, labels)
-
-#     return view_batches
 
 def multi_view_collate_fn_for_scl(batch, views=[1, 2, 3, 4], sample_rate=16000,
                                   padding_type='repeat', random_start=False,
@@ -509,7 +379,7 @@ def apply_gpu_augmentation_to_batch(
     
     # Import torch-audiomentations directly for batch processing
     try:
-        from torch_audiomentations import LowPassFilter, Compose, Resample
+        from torch_audiomentations import LowPassFilter
         
         if aug_method_name == 'low_pass_filter':
             # Create augmentation configuration
@@ -610,4 +480,261 @@ def multi_view_collate_fn_with_gpu_augmentation(
             
             view_batches[view] = (augmented_sequences, labels)
     
+    return view_batches
+
+
+from typing import Dict, List, Tuple, Optional
+import torch
+import torch.nn.functional as F
+
+try:
+    import torchaudio
+    from torchaudio.functional import lowpass_biquad
+except ImportError:
+    torchaudio = None
+    lowpass_biquad = None
+
+
+def _to_tensor(x):
+    if torch.is_tensor(x):
+        return x.float()
+    return torch.tensor(x, dtype=torch.float32)
+
+
+def _fix_length(
+    x: torch.Tensor,
+    target_len: int,
+    padding_type: str = "repeat",
+    random_start: bool = False,
+) -> torch.Tensor:
+    """
+    Make waveform length exactly target_len.
+    x: shape [T]
+    """
+    x = x.flatten()
+
+    if x.numel() == target_len:
+        return x
+
+    if x.numel() > target_len:
+        if random_start:
+            max_start = x.numel() - target_len
+            start = torch.randint(0, max_start + 1, (1,)).item()
+        else:
+            start = 0
+        return x[start:start + target_len]
+
+    pad_len = target_len - x.numel()
+
+    if padding_type == "zero":
+        return F.pad(x, (0, pad_len))
+
+    if padding_type == "repeat":
+        n_repeat = (target_len + x.numel() - 1) // x.numel()
+        x_rep = x.repeat(n_repeat)
+        return x_rep[:target_len]
+
+    raise ValueError(f"Unsupported padding_type: {padding_type}")
+
+
+def _resample_waveform(x: torch.Tensor, orig_sr: int, new_sr: int) -> torch.Tensor:
+    if orig_sr == new_sr:
+        return x
+    if torchaudio is None:
+        raise ImportError("torchaudio is required for resampling.")
+    return torchaudio.functional.resample(x, orig_freq=orig_sr, new_freq=new_sr)
+
+
+def _apply_band_transform(
+    x: torch.Tensor,
+    band: str,
+    sample_rate: int = 16000,
+    wideband_cutoff: int = 7800,
+) -> torch.Tensor:
+    """
+    Apply MBCT band transform to a 1D waveform.
+    Input and output are both [T] at sample_rate.
+    """
+    x = x.flatten()
+
+    if band == "normal":
+        return x
+
+    elif band == "narrowband":
+        # Simulate bandwidth reduction via 16k -> 8k -> 16k
+        x_8k = _resample_waveform(x, orig_sr=sample_rate, new_sr=8000)
+        x_16k = _resample_waveform(x_8k, orig_sr=8000, new_sr=sample_rate)
+        return x_16k
+
+    elif band == "wideband":
+        if lowpass_biquad is None:
+            raise ImportError("torchaudio is required for low-pass filtering.")
+        # Slightly below Nyquist is safer than exactly 8k at 16k SR
+        return lowpass_biquad(x.unsqueeze(0), sample_rate=sample_rate, cutoff_freq=wideband_cutoff).squeeze(0)
+
+    else:
+        raise ValueError(f"Unsupported band type: {band}")
+
+
+def _mbct_apply_configured_band(
+    x: torch.Tensor,
+    band_name: str,
+    cfg: Dict[str, Any],
+    sample_rate: int,
+) -> torch.Tensor:
+    """Apply MBCT band path from ``band_configs`` entry (same rules as :func:`mbct_collate_fn`)."""
+    band_type = cfg.get("type", band_name)
+    if band_type == "normal":
+        return _apply_band_transform(x, band="normal", sample_rate=sample_rate)
+    if band_type == "narrowband":
+        return _apply_band_transform(x, band="narrowband", sample_rate=sample_rate)
+    if band_type == "wideband":
+        return _apply_band_transform(
+            x,
+            band="wideband",
+            sample_rate=sample_rate,
+            wideband_cutoff=cfg.get("cutoff_hz", 7800),
+        )
+    raise ValueError(f"Unknown band config type: {band_type}")
+
+
+def mbct_mdt_collate_fn(
+    batch: List[Tuple[torch.Tensor, int]],
+    sample_rate: int = 16000,
+    max_length_sec: Optional[float] = None,
+    padding_type: str = "repeat",
+    random_start: bool = False,
+    view_padding_configs: Optional[Dict[str, Dict[str, Any]]] = None,
+    band_configs: Optional[Dict[str, Dict]] = None,
+) -> Dict[str, Tuple[torch.Tensor, torch.Tensor]]:
+    """
+    Multi-duration (MDT) × multi-band (MBCT) collate.
+
+    For each sample, optionally fixes length, then for each duration view pads/crops to
+    ``view * sample_rate`` samples, then applies each MBCT band transform. Batch keys are
+    ``"{view_key}_{band_name}"`` (e.g. ``1_normal``), matching :class:`MDTLitModule` /
+    :class:`MBCTLitModule` flat ``weighted_views`` keys.
+    """
+    if band_configs is None:
+        band_configs = {
+            "normal": {"type": "normal"},
+            "narrowband": {"type": "narrowband"},
+            "wideband": {"type": "wideband", "cutoff_hz": 7800},
+        }
+    if view_padding_configs is None:
+        view_padding_configs = {
+            str(i): {"padding_type": "repeat", "random_start": False}
+            for i in range(1, 5)
+        }
+
+    view_keys = sorted(view_padding_configs.keys(), key=lambda k: int(k))
+    composite_keys = [f"{vk}_{bn}" for vk in view_keys for bn in band_configs.keys()]
+    view_batches = {k: [] for k in composite_keys}
+
+    target_len = None
+    if max_length_sec is not None:
+        target_len = int(max_length_sec * sample_rate)
+
+    for x, label in batch:
+        x = _to_tensor(x).flatten()
+        if target_len is not None:
+            x = _fix_length(
+                x,
+                target_len=target_len,
+                padding_type=padding_type,
+                random_start=random_start,
+            )
+
+        for vk in view_keys:
+            vpc = view_padding_configs[vk]
+            view_len = int(vk) * sample_rate
+            x_pad = pad_tensor(
+                x,
+                padding_type=vpc["padding_type"],
+                max_len=view_len,
+                random_start=vpc["random_start"],
+            )
+            for band_name, cfg in band_configs.items():
+                x_band = _mbct_apply_configured_band(
+                    x_pad, band_name, cfg, sample_rate
+                )
+                ck = f"{vk}_{band_name}"
+                view_batches[ck].append((x_band, label))
+
+    for ck in view_batches:
+        sequences, labels = zip(*view_batches[ck])
+        sequences = torch.stack(sequences, dim=0)
+        labels = torch.tensor(labels, dtype=torch.long)
+        view_batches[ck] = (sequences, labels)
+
+    return view_batches
+
+
+def mbct_collate_fn(
+    batch: List[Tuple[torch.Tensor, int]],
+    sample_rate: int = 16000,
+    max_length_sec: Optional[float] = None,
+    padding_type: str = "repeat",
+    random_start: bool = False,
+    band_configs: Optional[Dict[str, Dict]] = None,
+):
+    """
+    Multi-Band Consistency Training collate function.
+
+    Args:
+        batch:
+            List of (waveform, label), where waveform is 1D audio.
+        sample_rate:
+            Target sample rate expected by the model, usually 16000.
+        max_length_sec:
+            If provided, crop/pad all waveforms to fixed duration before band transform.
+        padding_type:
+            'repeat' or 'zero'.
+        random_start:
+            Whether to use random crop when waveform is longer than target length.
+        band_configs:
+            Dict defining band conditions.
+
+    Returns:
+        Dict like:
+        {
+            "normal": (Tensor[B, T], Tensor[B]),
+            "narrowband": (Tensor[B, T], Tensor[B]),
+            "wideband": (Tensor[B, T], Tensor[B]),
+        }
+    """
+    if band_configs is None:
+        band_configs = {
+            "normal": {"type": "normal"},
+            "narrowband": {"type": "narrowband"},
+            "wideband": {"type": "wideband", "cutoff_hz": 7800},
+        }
+
+    view_batches = {band_name: [] for band_name in band_configs.keys()}
+
+    target_len = None
+    if max_length_sec is not None:
+        target_len = int(max_length_sec * sample_rate)
+
+    for x, label in batch:
+        x = _to_tensor(x).flatten()
+
+        if target_len is not None:
+            x = _fix_length(
+                x,
+                target_len=target_len,
+                padding_type=padding_type,
+                random_start=random_start,
+            )
+
+        for band_name, cfg in band_configs.items():
+            x_view = _mbct_apply_configured_band(x, band_name, cfg, sample_rate)
+            view_batches[band_name].append((x_view, label))
+
+    for band_name in view_batches:
+        sequences, labels = zip(*view_batches[band_name])
+        sequences = torch.stack(sequences, dim=0)   # [B, T]
+        labels = torch.tensor(labels, dtype=torch.long)
+        view_batches[band_name] = (sequences, labels)
+
     return view_batches

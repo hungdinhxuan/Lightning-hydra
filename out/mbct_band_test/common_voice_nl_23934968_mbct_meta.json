@@ -1,0 +1,25 @@
+{
+  "source_relpath": "common_voice_22_0/nl/train/nl_train_0/common_voice_nl_23934968.mp3",
+  "source_abspath": "/nvme3/Datasets/DVC_DSD-Large-Corpus/raw/0_large-corpus_toys/common_voice_22_0/nl/train/nl_train_0/common_voice_nl_23934968.mp3",
+  "sample_rate": 16000,
+  "collate_kw": {
+    "sample_rate": 16000,
+    "padding_type": "repeat",
+    "random_start": false,
+    "max_length_sec": 4.0
+  },
+  "shapes": {
+    "normal": [
+      1,
+      64000
+    ],
+    "narrowband": [
+      1,
+      64000
+    ],
+    "wideband": [
+      1,
+      64000
+    ]
+  }
+}

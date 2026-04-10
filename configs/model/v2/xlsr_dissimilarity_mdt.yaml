@@ -1,0 +1,20 @@
+_target_: src.models.v2.xlsr_dissimilarity_mdt_module.XLSRDissimilarityMDTLitModule
+
+optimizer:
+  _target_: torch.optim.Adam
+  _partial_: true
+  lr: 0.000003
+  weight_decay: 0.0001
+
+scheduler:
+  _target_: torch.optim.lr_scheduler.ReduceLROnPlateau
+  _partial_: true
+  factor: 0.5
+  patience: 3
+  min_lr: 1e-6
+
+# kwargs
+ssl_pretrained_path: ${oc.env:XLSR_PRETRAINED_MODEL_PATH}
+cross_entropy_weight: [0.1, 0.9]
+adapter_type: null
+

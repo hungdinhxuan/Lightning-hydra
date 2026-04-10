@@ -1,0 +1,61 @@
+# @package _global_
+
+defaults:
+  - override /data: normal_largecorpus_MDT_cnsl_gpu_aug
+  - override /model: v2/xlsr_dissimilarity_mdt
+  - override /callbacks: default_loss_earlystop
+  - override /trainer: default
+
+tags: ["normal_largecorpus_MDT_cnsl_gpu_aug", "xlsr_dissimilarity_mdt"]
+
+seed: 1234
+
+trainer:
+  max_epochs: 80
+  gradient_clip_val: 0.0
+  accelerator: cuda
+
+model:
+  optimizer:
+    lr: 0.000003
+    weight_decay: 0.0001
+  net: null
+  compile: true
+  cross_entropy_weight: [0.1, 0.9]
+  weighted_views:
+    "1": 1.0
+    "2": 1.0
+    "3": 1.0
+    "4": 1.0
+
+data:
+  batch_size: 96
+  data_dir: data/replay_cl_260320
+  num_workers: 16
+  pin_memory: true
+  args:
+    augmentation_methods: ["RawBoostdf", "none"]
+    protocol_path: data/replay_cl_260320/protocols/protocol.txt
+    padding_type: repeat
+    random_start: true
+    view_padding_configs:
+      "1":
+        padding_type: repeat
+        random_start: true
+      "2":
+        padding_type: repeat
+        random_start: true
+      "3":
+        padding_type: repeat
+        random_start: true
+      "4":
+        padding_type: repeat
+        random_start: true
+
+logger:
+  wandb:
+    tags: ${tags}
+    group: "cnsl-march2026-dissimilarity-mdt"
+  aim:
+    experiment: "cnsl-march2026-dissimilarity-mdt"
+

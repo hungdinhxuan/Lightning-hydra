@@ -422,3 +422,32 @@ DEFAULT_BATCH_SIZE=196 uv run ./scripts/benchmark_py/benchmark.py -g 2 -c cnsl/l
  ```bash
  DEFAULT_BATCH_SIZE=196 uv run ./scripts/benchmark_py/benchmark.py -g 3 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b $(pwd)/data/Kipot_benchmark -m /data/hungdx/lighning-hydra-train-runs/runs/2026-02-25_00-24-49/checkpoints/averaged_top5.ckpt -r logs/results/Kipot_benchmark -n "26feb26_xlsr_conformertcm_mdt_ft_from_06feb26vad"
  ```
+
+
+ # Multi 
+
+ # Latest
+```bash
+DEFAULT_BATCH_SIZE=512 uv run ./scripts/benchmark_py/benchmark.py -g 0 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b $(pwd)/data/benchmark_telephony -m pretrained/S_241214_conf-1.pth -a /home/hungdx/code/Lightning-hydra/logs/train/runs/2026-04-03_00-59-42/checkpoints/epoch_005.ckpt -r logs/results/benchmark_telephony -n "mbct_xlsr_conformertcm_lora_from_S_241214_conf-1" -l false
+```
+
+# exp_d1
+```bash
+DEFAULT_BATCH_SIZE=128 uv run ./scripts/benchmark_py/benchmark.py -g 0 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b $(pwd)/data/benchmark_telephony -m pretrained/S_241214_conf-1.pth -a /home/hung_cache/runs/2026-04-04_02-24-28/checkpoints/epoch_007-v1.ckpt -r logs/results/benchmark_telephony -n "mbct_xlsr_conformertcm_loraexp_d1_from_S_241214_conf-1" -l false
+```
+
+# exp_d_1_full_train_2band_normal_wideband
+```bash
+DEFAULT_BATCH_SIZE=128 uv run ./scripts/benchmark_py/benchmark.py -g MIG-8cdeef83-092c-5a8d-a748-452f299e1df0 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b $(pwd)/data/benchmark_telephony -m pretrained/S_241214_conf-1.pth -a /home/hung_cache/runs/2026-04-04_03-22-25/checkpoints/epoch_006-v1.ckpt -r logs/results/benchmark_telephony -n "mbct_xlsr_conformertcm_loraexp_d_1_full_train_2band_normal_wideband_from_S_241214_conf-1" -l false
+```
+
+# exp_d_1_full_train_2band_normal_narrowband
+```bash
+DEFAULT_BATCH_SIZE=128 uv run ./scripts/benchmark_py/benchmark.py -g MIG-6e4275af-2db0-51f1-a601-7ad8a1002745 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b $(pwd)/data/benchmark_telephony -m pretrained/S_241214_conf-1.pth -a /home/hung_cache/runs/2026-04-04_03-22-28/checkpoints/epoch_006-v1.ckpt -r logs/results/benchmark_telephony -n "mbct_xlsr_conformertcm_loraexp_d_1_full_train_2band_normal_narrowband_from_S_241214_conf-1" -l false
+```
+
+# exp_b_1
+
+```bash
+DEFAULT_BATCH_SIZE=196 uv run ./scripts/benchmark_py/benchmark.py -g 0 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b $(pwd)/data/benchmark_telephony -m /home/hung_cache/runs/2026-04-04_02-58-58/checkpoints/averaged_top5.ckpt -r logs/results/benchmark_telephony -n "mbct_xlsr_conformertcm_exp_b_1"
+```

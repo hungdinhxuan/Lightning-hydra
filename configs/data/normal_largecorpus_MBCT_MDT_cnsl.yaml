@@ -1,0 +1,52 @@
+_target_: src.data.normal_mbct_mdt_datamodule.NormalMBCTMDTDataModule
+data_dir: ${oc.env:LARGE_CORPUS_FOR_CNSL}
+batch_size: 16
+num_workers: 4
+pin_memory: True
+enable_cache: false
+args:
+  protocol_path: ${oc.env:LARGE_CORPUS_FOR_CNSL_PROTOCOLS}
+  mbct_fix_duration_in_dataset: true
+  mbct_max_length_sec: null
+  mbct_band_configs: null
+  view_padding_configs:
+    "1":
+      padding_type: repeat
+      random_start: false
+    "2":
+      padding_type: repeat
+      random_start: false
+    "3":
+      padding_type: repeat
+      random_start: false
+    "4":
+      padding_type: repeat
+      random_start: false
+  cache_dir: null
+  enable_cache: false
+  nBands: 5
+  minF: 20
+  maxF: 8000
+  minBW: 100
+  maxBW: 1000
+  minCoeff: 10
+  maxCoeff: 100
+  minG: 0
+  maxG: 0
+  minBiasLinNonLin: 5
+  maxBiasLinNonLin: 20
+  N_f: 5
+  P: 10
+  g_sd: 2
+  SNRmin: 10
+  SNRmax: 40
+  augmentation_methods: ["none"]
+  wav_samp_rate: 16000
+  trim_length: 64000
+  padding_type: repeat
+  random_start: true
+  online_aug: true
+  repeat_pad: true
+  aug_dir: null
+  noise_path: null
+  rir_path: null

@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+# MDT-only datamodule (duration views). For MDT + MBCT bands, see
+# :mod:`src.data.normal_mbct_mdt_datamodule`.
 from typing import Any, Dict, Optional, Tuple
 from lightning import LightningDataModule
 from torch.utils.data import DataLoader, Dataset
@@ -15,7 +17,11 @@ from src.core_scripts.data_io import wav_augmentation as nii_wav_aug
 from src.core_scripts.data_io import wav_tools as nii_wav_tools
 from src.data.components.dataio import load_audio, pad
 from src.data.components.baseloader import Dataset_base
-from src.data.components.collate_fn import multi_view_collate_fn, variable_multi_view_collate_fn, ChunkingCollator
+from src.data.components.collate_fn import (
+    multi_view_collate_fn,
+    variable_multi_view_collate_fn,
+    ChunkingCollator,
+)
 # augwrapper
 from src.data.components.augwrapper import SUPPORTED_AUGMENTATION
 

@@ -1,0 +1,68 @@
+# @package _global_
+#
+# MBCT (multi-band consistency) with XLSR-ConformerTCM — train full model from SSL init.
+# Data: NormalMBCTDataModule (fix-duration in dataset, mbct_collate_fn on train/val).
+# See plans/20260402_mbct_experiment/PLAN.md for next steps.
+#
+# Dataset (defaults below; override paths as needed):
+#   data/DVC_DSD-Large-Corpus/raw/0_large-corpus_toys
+#   protocol: data/protocols/cnsl/new_protocol_trim_vocoded_cleaned_v4_corrected.txt
+#
+# Baseline for benchmark comparison (LoRA MDT, S_241214_conf-1), focus metric:
+#   m_ailabs_v7_only_la_codec_aug — see logs/results/benchmark_telephony/S_241214_conf-1/summary_results.txt
+# Benchmark audio root (eval scripts): data/benchmark_telephony
+#
+# Run (set XLSR checkpoint):
+#   LARGE_CORPUS_FOR_CNSL=data/DVC_DSD-Large-Corpus/raw/0_large-corpus_toys \
+#   LARGE_CORPUS_FOR_CNSL_PROTOCOLS=data/protocols/cnsl/new_protocol_trim_vocoded_cleaned_v4_corrected.txt \
+#   XLSR_PRETRAINED_MODEL_PATH=/path/to/xlsr.pth \
+#   python src/train.py experiment=cnsl/April2026/xlsr_conformertcm_mbct
+
+defaults:
+  - override /data: normal_largecorpus_MBCT_cnsl
+  - override /model: v2/xlsr_conformertcm_mbct
+  - override /callbacks: default_loss_earlystop
+  - override /trainer: default
+
+tags: ["normal_largecorpus_MBCT_cnsl", "xlsr_conformertcm_mbct"]
+
+seed: 1234
+
+trainer:
+  max_epochs: 100
+  gradient_clip_val: 0.0
+  accelerator: cuda
+
+model:
+  optimizer:
+    lr: 0.00001
+    weight_decay: 0.0001
+  scheduler:
+    _target_: torch.optim.lr_scheduler.ReduceLROnPlateau
+    _partial_: true
+    factor: 0.5
+    patience: 3
+    min_lr: 1e-6
+  compile: true
+  cross_entropy_weight: [0.5, 0.5]
+  weighted_views:
+    normal: 1
+    narrowband: 1
+    wideband: 1
+
+data:
+  data_dir: data/DVC_DSD-Large-Corpus/raw/0_large-corpus_toys
+  batch_size: 16
+  num_workers: 8
+  pin_memory: true
+  args:
+    protocol_path: data/protocols/cnsl/new_protocol_trim_vocoded_cleaned_v4_corrected.txt
+    padding_type: repeat
+    random_start: true
+
+logger:
+  wandb:
+    tags: ${tags}
+    group: "normal_largecorpus_MBCT_cnsl"
+  aim:
+    experiment: "normal_largecorpus_MBCT_cnsl"
