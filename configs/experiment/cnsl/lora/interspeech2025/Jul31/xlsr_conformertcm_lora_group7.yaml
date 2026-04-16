@@ -61,7 +61,7 @@ data:
   data_dir: /nvme2/hungdx/Lightning-hydra/data/train_set_noise_interpseech2025/downloaded_files_wj
 
   args:
-    enable_cache: true # Whether to enable caching in args
+    enable_cache: false # Whether to enable caching in args
     protocol_path: /nvme2/hungdx/Lightning-hydra/data/train_set_noise_interpseech2025/downloaded_files_wj/protocol_reverberation.txt
     augmentation_methods: ['none'] # offline set already has augmentation
     aug_dir: /nvme2/hungdx/Lightning-hydra/data/normal_250625_noise

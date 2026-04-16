@@ -113,6 +113,9 @@ def pad(x: np.ndarray, padding_type: str = 'zero', max_len=64000, random_start=F
         print("Warning: max_len is 0, no padding will be applied")
         padded_x = x
     elif max_len > 0:
+        if x_len == 0:
+            # Robust fallback for empty/corrupted audio entries.
+            return np.zeros(max_len, dtype=x.dtype)
         if x_len >= max_len:
             if random_start:
                 start = np.random.randint(0, x_len - max_len+1)
@@ -122,12 +125,15 @@ def pad(x: np.ndarray, padding_type: str = 'zero', max_len=64000, random_start=F
         else:
             if random_start:
                 # keep at least half of the signal
-                start = np.random.randint(0, int((x_len+1)/2))
+                high = max(1, int((x_len + 1) / 2))
+                start = np.random.randint(0, high)
                 x_new = x[start:]
             else:
                 x_new = x
 
             if padding_type == "repeat":
+                if len(x_new) == 0:
+                    return np.zeros(max_len, dtype=x.dtype)
                 num_repeats = int(max_len / len(x_new)) + 1
                 padded_x = np.tile(x_new, (1, num_repeats))[:, :max_len][0]
 
@@ -163,6 +169,9 @@ def pad_tensor(x: torch.Tensor, padding_type: str = 'zero', max_len: int = 64000
         # no padding
         padded_x = x
     elif max_len > 0:
+        if x_len == 0:
+            # Robust fallback for empty/corrupted audio entries.
+            return torch.zeros(max_len, dtype=x.dtype)
         if x_len >= max_len:
             if random_start:
                 start = torch.randint(0, x_len - max_len + 1, (1,)).item()

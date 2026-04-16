@@ -60,7 +60,7 @@ data:
   pin_memory: true
 
   args:
-    enable_cache: true # Whether to enable caching in args
+    enable_cache: false # Whether to enable caching in args
     protocol_paths: ${oc.env:LARGE_CORPUS_FOR_CNSL_CONTINUOUS_PROTOCOLS}
     augmentation_methods: ['gaussian_v1']
     aug_dir: /nvme2/hungdx/Lightning-hydra/data/normal_250625_noise

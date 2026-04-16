@@ -46,7 +46,7 @@ data:
     padding_type: repeat
     random_start: True
     #is_dev_aug: True # Use dev augmentation to verify the augmentation process
-    enable_cache: True
+    enable_cache: false
 
 
 logger:

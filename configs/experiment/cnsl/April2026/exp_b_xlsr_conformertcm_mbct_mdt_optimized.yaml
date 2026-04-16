@@ -50,8 +50,8 @@ model:
 
 data:
   data_dir: data/DVC_DSD-Large-Corpus/raw/0_large-corpus_toys
-  batch_size: 16
-  num_workers: 16
+  batch_size: 32
+  num_workers: 24
   pin_memory: true
   args:
     protocol_path: data/protocols/cnsl/new_protocol_trim_vocoded_cleaned_v4_corrected.txt

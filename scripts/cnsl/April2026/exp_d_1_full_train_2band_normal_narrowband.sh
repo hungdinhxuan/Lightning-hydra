@@ -26,7 +26,7 @@ CUDA_VISIBLE_DEVICES=$CUDA_DEVICE OMP_NUM_THREADS=32 python src/train.py \
   experiment=cnsl/April2026/exp_d_xlsr_conformertcm_mbct_mdt_lora_2band_normal_narrowband \
   ++data.data_dir="data/DVC_DSD-Large-Corpus/raw/0_large-corpus_toys" \
   ++data.args.protocol_path="data/protocols/cnsl/new_protocol_trim_vocoded_cleaned_v4_corrected.txt" \
-  logger=wandb \
+  logger=csv +trainer.precision=bf16-mixed \
   +trainer.val_check_interval=0.5 \
   ++model.is_base_model_path_ln=False \
   ++model.base_model_path="pretrained/S_241214_conf-1.pth" \

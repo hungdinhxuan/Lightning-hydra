@@ -63,9 +63,9 @@ data:
   batch_size: 16
   num_workers: 8
   pin_memory: true
-  enable_cache: true # Enable caching at the top level
+  enable_cache: false # Enable caching at the top level
   args:
-    enable_cache: true # Whether to enable caching in args
+    enable_cache: false # Whether to enable caching in args
     protocol_paths: ${oc.env:LARGE_CORPUS_FOR_CNSL_CONTINUOUS_PROTOCOLS}
     augmentation_methods: [] # no augmentation
     aug_dir: /nvme2/hungdx/Lightning-hydra/data/normal_250625_noise

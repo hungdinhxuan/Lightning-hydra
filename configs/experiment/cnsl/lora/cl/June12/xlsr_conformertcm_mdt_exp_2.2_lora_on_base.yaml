@@ -71,7 +71,7 @@ data:
   replay_protocol_path: /nvme2/hungdx/Lightning-hydra/data/replay_cl_250610/protocols/replay_protocol.txt  # Protocol file for replay set
   novel_ratio: 0.7  # Ratio of novel samples in each batch
   replay_ratio: 0.3  # Ratio of replay samples in each batch
-  enable_cache: true
+  enable_cache: false
   args:
     augmentation_methods: ["RawBoost12", "pitch_1", "volume_10", "speed_01", "none"] # "none" is the original data
     padding_type: repeat

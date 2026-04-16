@@ -1,7 +1,7 @@
 _target_: src.data.normal_multiview_datamodule_optimized.NormalDataModule
 data_dir: ${oc.env:LARGE_CORPUS_FOR_CNSL}
 batch_size: 16
-num_workers: 4
+num_workers: 24
 pin_memory: True
 enable_cache: false
 args:

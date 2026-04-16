@@ -64,9 +64,9 @@ data:
   batch_size: 16
   num_workers: 8
   pin_memory: true
-  enable_cache: true # Enable caching at the top level
+  enable_cache: false # Enable caching at the top level
   args:
-    enable_cache: true # Whether to enable caching in args
+    enable_cache: false # Whether to enable caching in args
     online_aug: False
     protocol_paths: ${oc.env:LARGE_CORPUS_FOR_CNSL_CONTINUOUS_PROTOCOLS}
     augmentation_methods: ["background_noise_deepen", "background_music_deepen"]

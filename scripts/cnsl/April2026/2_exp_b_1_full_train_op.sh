@@ -74,9 +74,9 @@ echo "Batch size: $BATCH_SIZE"
 echo "Train epoch batches: $TRAIN_EPOCH_BATCHES"
 echo "Validation check interval (batches): $VAL_CHECK_INTERVAL"
 
-CUDA_VISIBLE_DEVICES=$CUDA_DEVICE OMP_NUM_THREADS=5 python src/train.py \
+CUDA_VISIBLE_DEVICES=$CUDA_DEVICE OMP_NUM_THREADS=16 python src/train.py \
   experiment=cnsl/April2026/exp_b_xlsr_conformertcm_mbct_mdt_optimized \
-  logger=csv \
+  logger=csv +trainer.precision=bf16-mixed \
   ++data.args.wds_train_epoch_batches=$TRAIN_EPOCH_BATCHES \
   ++trainer.val_check_interval=$VAL_CHECK_INTERVAL \
   ++model_averaging=True

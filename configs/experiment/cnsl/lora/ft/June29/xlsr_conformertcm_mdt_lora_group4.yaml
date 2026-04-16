@@ -60,7 +60,7 @@ data:
   pin_memory: true
 
   args:
-    enable_cache: true
+    enable_cache: false
     protocol_paths: ${oc.env:LARGE_CORPUS_FOR_CNSL_CONTINUOUS_PROTOCOLS}
     augmentation_methods: ['freq_operation_deepen'] # this include both freq_minus and freq_plus
     aug_dir: /nvme2/hungdx/Lightning-hydra/data/normal_250625_noise

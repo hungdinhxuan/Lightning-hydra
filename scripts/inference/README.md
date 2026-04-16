@@ -1,1 +1,5 @@
 python scripts/inference/merge_lora_to_base.py --checkpoint_path="/datad/pretrained/AudioDeepfakeCMs/S_241214_conf-1.pth" --config_path="/nvme2/hungdx/Lightning-hydra/configs/experiment/cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_more_elevenlabs.yaml" --lora_path="/datad/pretrained/AudioDeepfakeCMs/lora/MDT_241214_lora_250611" --output_path="/nvme2/hungdx/Lightning-hydra/logs/best_ckpt/MDT_baseline_lora_june11.pth" --device='cpu'  
+
+
+
+python scripts/inference/merge_lora_to_base.py --checkpoint_path="/home/hungdx/code/Lightning-hydra/pretrained/S_241214_conf-1.pth" --config_path="/home/hungdx/code/Lightning-hydra/configs/experiment/cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_more_elevenlabs.yaml" --lora_path="/datad/pretrained/AudioDeepfakeCMs/lora/MDT_241214_lora_250501" --output_path="/NAS1/MDT_241214_lora_250501_merged.pth" --device='cpu' --ssl_pretrained_path /home/hungdx/code/Lightning-hydra/pretrained/xlsr2_300m.pt
