@@ -1,0 +1,40 @@
+_target_: src.data.normal_mbct_datamodule.NormalMBCTDataModule
+data_dir: ${oc.env:LARGE_CORPUS_FOR_CNSL}
+batch_size: 16
+num_workers: 4
+pin_memory: True
+enable_cache: false
+args:
+  protocol_path: ${oc.env:LARGE_CORPUS_FOR_CNSL_PROTOCOLS}
+  # Fix duration in Dataset_for (pad to trim_length); collate uses max_length_sec=null (see NormalMBCTDataModule).
+  mbct_fix_duration_in_dataset: true
+  mbct_max_length_sec: null
+  mbct_band_configs: null
+  cache_dir: null
+  enable_cache: false
+  nBands: 5
+  minF: 20
+  maxF: 8000
+  minBW: 100
+  maxBW: 1000
+  minCoeff: 10
+  maxCoeff: 100
+  minG: 0
+  maxG: 0
+  minBiasLinNonLin: 5
+  maxBiasLinNonLin: 20
+  N_f: 5
+  P: 10
+  g_sd: 2
+  SNRmin: 10
+  SNRmax: 40
+  augmentation_methods: ["none"]
+  wav_samp_rate: 16000
+  trim_length: 64000
+  padding_type: repeat
+  random_start: true
+  online_aug: false
+  repeat_pad: true
+  aug_dir: null
+  noise_path: null
+  rir_path: null

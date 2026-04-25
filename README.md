@@ -74,7 +74,7 @@ You can override any parameter from command line like this
 python src/train.py trainer.max_epochs=20 data.batch_size=64
 ```
 
-CUDA_VISIBLE_DEVICES=2 OMP_NUM_THREADS=1 python src/train.py experiment=partialspoof/aasistssl_multiview_conf-beta-1.1 ++model_averaging=True +model.score_save_path="logs/eval/ps/ps_xlsr_aasist_multiview_conf-beta-1.1_eval_4s.txt"  ++train=False ++test=True ++ckpt_path='/nvme1/hungdx/Lightning-hydra/logs/train/runs/2024-12-29_23-09-16-beta-1.1/checkpoints' callbacks=none ++data.args.cut=64600 ++data.args.random_start=False  ++data.batch_size=64 ++data.args.protocols_path="/nvme1/hungdx/Lightning-hydra/data/PartialSpoof/database/protocol.txt"  ++data.data_dir="/nvme1/hungdx/Lightning-hydra/data/PartialSpoof/database/" ++data.chunking_eval=False ++data.args.eval_set='partialspoof' ++data.args.eval=True ++data.args.chunk_size=64000 ++data.args.overlap_size=32000 
+CUDA_VISIBLE_DEVICES=2 OMP_NUM_THREADS=1 python src/train.py experiment=partialspoof/aasistssl_multiview_conf-beta-1.1 ++model_averaging=True +model.score_save_path="logs/eval/ps/ps_xlsr_aasist_multiview_conf-beta-1.1_eval_4s.txt"  ++train=False ++test=True ++ckpt_path='/nvme2/hungdx/Lightning-hydra/logs/train/runs/2024-12-29_23-09-16-beta-1.1/checkpoints' callbacks=none ++data.args.cut=64600 ++data.args.random_start=False  ++data.batch_size=64 ++data.args.protocols_path="/nvme2/hungdx/Lightning-hydra/data/PartialSpoof/database/protocol.txt"  ++data.data_dir="/nvme2/hungdx/Lightning-hydra/data/PartialSpoof/database/" ++data.chunking_eval=False ++data.args.eval_set='partialspoof' ++data.args.eval=True ++data.args.chunk_size=64000 ++data.args.overlap_size=32000 
 
 ## Docker Build Instructions
 
@@ -88,7 +88,7 @@ docker buildx bake 280-py311-cuda1281-cudnn-devel-ubuntu2204 --set 280-py311-cud
 
 ## April (ToP) cnsl
 ```bash
-CUDA_VISIBLE_DEVICES=3 OMP_NUM_THREADS=1 python src/train.py experiment=cnsl/xlsr_vib_large_corpus +model.score_save_path="/nvme1/hungdx/Lightning-hydra/logs/eval/cnsl/KoreanReadSpeechCorpus_april_xlsr_vib_large_corpus_s202412.txt"  ++data.data_dir="/nvme1/hungdx/Lightning-hydra/data/KoreanReadSpeechCorpus" ++data.args.protocol_path="/nvme1/hungdx/Lightning-hydra/data/KoreanReadSpeechCorpus/KoreanReadSpeechCorpus_protocol.txt" ++train=False ++test=True ++model.spec_eval=True ++data.batch_size=64
+CUDA_VISIBLE_DEVICES=3 OMP_NUM_THREADS=1 python src/train.py experiment=cnsl/xlsr_vib_large_corpus +model.score_save_path="/nvme2/hungdx/Lightning-hydra/logs/eval/cnsl/KoreanReadSpeechCorpus_april_xlsr_vib_large_corpus_s202412.txt"  ++data.data_dir="/nvme2/hungdx/Lightning-hydra/data/KoreanReadSpeechCorpus" ++data.args.protocol_path="/nvme2/hungdx/Lightning-hydra/data/KoreanReadSpeechCorpus/KoreanReadSpeechCorpus_protocol.txt" ++train=False ++test=True ++model.spec_eval=True ++data.batch_size=64
  ```
 
 # Benchmark ToP april
@@ -98,7 +98,7 @@ CUDA_VISIBLE_DEVICES=3 OMP_NUM_THREADS=1 python src/train.py experiment=cnsl/xls
 
  # Benchmark Conformer + MDT
  ```bash
-./scripts/benchmark.sh -g 2 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b $(pwd)/data/huggingface_benchrmark_Speech-DF-Arena -m /nvme1/hungdx/Lightning-hydra/logs/train/runs/2024-12-14_08-35-06-large-corpus-conf-1/checkpoints/averaged_top5.ckpt -r logs/results/huggingface_benchrmark_Speech-DF-Arena -n "Conformer_MDT_DEC2024_correct"
+./scripts/benchmark.sh -g 2 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b $(pwd)/data/huggingface_benchrmark_Speech-DF-Arena -m /nvme2/hungdx/Lightning-hydra/logs/train/runs/2024-12-14_08-35-06-large-corpus-conf-1/checkpoints/averaged_top5.ckpt -r logs/results/huggingface_benchrmark_Speech-DF-Arena -n "Conformer_MDT_DEC2024_correct"
  ```
 
  # Benchmark ToP (LA19)
@@ -108,28 +108,28 @@ CUDA_VISIBLE_DEVICES=3 OMP_NUM_THREADS=1 python src/train.py experiment=cnsl/xls
 
  # Benchmark AASIST-SSL + MDT(LA19)
  ```bash
-./scripts/benchmark.sh -g 2 -c huggingface_benchmark/xlsr_aasist_mdt_paper -b $(pwd)/data/huggingface_benchrmark_Speech-DF-Arena -m /nvme1/hungdx/Lightning-hydra/logs/train/runs/2024-10-16_21-04-31-conf-2/checkpoints/averaged_top5.ckpt -r logs/results/huggingface_benchrmark_Speech-DF-Arena -n "AASIST_SSL_MDT_LA19"
+./scripts/benchmark.sh -g 2 -c huggingface_benchmark/xlsr_aasist_mdt_paper -b $(pwd)/data/huggingface_benchrmark_Speech-DF-Arena -m /nvme2/hungdx/Lightning-hydra/logs/train/runs/2024-10-16_21-04-31-conf-2/checkpoints/averaged_top5.ckpt -r logs/results/huggingface_benchrmark_Speech-DF-Arena -n "AASIST_SSL_MDT_LA19"
  ```
 
   # Benchmark ConformerTCM + MDT (LA19)
  ```bash
-./scripts/benchmark.sh -g 2 -c huggingface_benchmark/xlsr_conformertcm_mdt_lora_infer -b $(pwd)/data/huggingface_benchrmark_Speech-DF-Arena -m /nvme1/hungdx/tcm_add/models/Conformer_w_TCM_LA_WCE_1e-06_ES144_H4_NE4_KS31_AUG3_w_sin_pos_multiview/best/avg_5_best_4.pth -r logs/results/huggingface_benchrmark_Speech-DF-Arena -n "ConformerTCM_MDT_LA19"
+./scripts/benchmark.sh -g 2 -c huggingface_benchmark/xlsr_conformertcm_mdt_lora_infer -b $(pwd)/data/huggingface_benchrmark_Speech-DF-Arena -m /nvme2/hungdx/tcm_add/models/Conformer_w_TCM_LA_WCE_1e-06_ES144_H4_NE4_KS31_AUG3_w_sin_pos_multiview/best/avg_5_best_4.pth -r logs/results/huggingface_benchrmark_Speech-DF-Arena -n "ConformerTCM_MDT_LA19"
  ```
 
  # Benchrmark ConformerTCM + MDT LoRA (Large corpus + More elevenlabs)
  ```bash
-./scripts/benchmark.sh -g 3 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_more_elevenlabs -b $(pwd)/data/cnsl_benchmark -m /nvme1/hungdx/Lightning-hydra/logs/train/runs/2024-12-14_08-35-06-large-corpus-conf-1/checkpoints/averaged_top5.ckpt -a /nvme1/hungdx/Lightning-hydra/logs/train/runs/2025-04-29_11-38-10-v4-corrected/checkpoints/epoch_020.ckpt -r logs/results/cnsl_benchmark -n "ConformerTCM_MDT_LoRA_LargeCorpus_MoreElevenlabs"
+./scripts/benchmark.sh -g 3 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_more_elevenlabs -b $(pwd)/data/cnsl_benchmark -m /nvme2/hungdx/Lightning-hydra/logs/train/runs/2024-12-14_08-35-06-large-corpus-conf-1/checkpoints/averaged_top5.ckpt -a /nvme2/hungdx/Lightning-hydra/logs/train/runs/2025-04-29_11-38-10-v4-corrected/checkpoints/epoch_020.ckpt -r logs/results/cnsl_benchmark -n "ConformerTCM_MDT_LoRA_LargeCorpus_MoreElevenlabs"
  ```
 
   # Benchrmark ConformerTCM + MDT LoRA (Large corpus + More elevenlabs) on Huggingface
  ```bash
-./scripts/benchmark.sh -g 3 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_more_elevenlabs -b $(pwd)/data/huggingface_benchrmark_Speech-DF-Arena -m /nvme1/hungdx/Lightning-hydra/logs/train/runs/2024-12-14_08-35-06-large-corpus-conf-1/checkpoints/averaged_top5.ckpt -a /nvme1/hungdx/Lightning-hydra/logs/train/runs/2025-04-29_11-38-10-v4-corrected/checkpoints/epoch_020.ckpt -r logs/results/huggingface_benchrmark_Speech-DF-Arena -n "ConformerTCM_MDT_LoRA_LargeCorpus_MoreElevenlabs"
+./scripts/benchmark.sh -g 3 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_more_elevenlabs -b $(pwd)/data/huggingface_benchrmark_Speech-DF-Arena -m /nvme2/hungdx/Lightning-hydra/logs/train/runs/2024-12-14_08-35-06-large-corpus-conf-1/checkpoints/averaged_top5.ckpt -a /nvme2/hungdx/Lightning-hydra/logs/train/runs/2025-04-29_11-38-10-v4-corrected/checkpoints/epoch_020.ckpt -r logs/results/huggingface_benchrmark_Speech-DF-Arena -n "ConformerTCM_MDT_LoRA_LargeCorpus_MoreElevenlabs"
  ```
 
 # CNSL benchmark
 ## ConformerTCM + MDT LoRA (Large corpus + More elevenlabs)
 ```bash
-./scripts/benchmark.sh -g 2 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_more_elevenlabs -b $(pwd)/data/cnsl_benchmark -m /nvme1/hungdx/Lightning-hydra/logs/train/runs/2024-12-14_08-35-06-large-corpus-conf-1/checkpoints/averaged_top5.ckpt -a /nvme1/hungdx/Lightning-hydra/logs/train/runs/2025-04-29_11-38-10-v4-corrected/checkpoints/epoch_020.ckpt -r logs/results/cnsl_benchmark -n "ConformerTCM_MDT_LoRA_LargeCorpus_MoreElevenlabs"
+./scripts/benchmark.sh -g 2 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_more_elevenlabs -b $(pwd)/data/cnsl_benchmark -m /nvme2/hungdx/Lightning-hydra/logs/train/runs/2024-12-14_08-35-06-large-corpus-conf-1/checkpoints/averaged_top5.ckpt -a /nvme2/hungdx/Lightning-hydra/logs/train/runs/2025-04-29_11-38-10-v4-corrected/checkpoints/epoch_020.ckpt -r logs/results/cnsl_benchmark -n "ConformerTCM_MDT_LoRA_LargeCorpus_MoreElevenlabs"
  ```
  ## ToP April
  ```bash
@@ -138,42 +138,42 @@ CUDA_VISIBLE_DEVICES=3 OMP_NUM_THREADS=1 python src/train.py experiment=cnsl/xls
 
  # 2B benchmark
  ```bash
-./scripts/benchmark2.sh -g 2 -c cnsl/xlsr_2b_conformertcm_layerwise_24_mdt_large_corpus -b $(pwd)/data/huggingface_benchrmark_Speech-DF-Arena -m /nvme1/hungdx/Lightning-hydra/logs/train/runs/2025-05-02_02-31-32-2b/checkpoints/epoch_018.ckpt -r logs/results/huggingface_benchrmark_Speech-DF-Arena -n "ConformerTCM_MDT_2B_LargeCorpus_e18"
+./scripts/benchmark2.sh -g 2 -c cnsl/xlsr_2b_conformertcm_layerwise_24_mdt_large_corpus -b $(pwd)/data/huggingface_benchrmark_Speech-DF-Arena -m /nvme2/hungdx/Lightning-hydra/logs/train/runs/2025-05-02_02-31-32-2b/checkpoints/epoch_018.ckpt -r logs/results/huggingface_benchrmark_Speech-DF-Arena -n "ConformerTCM_MDT_2B_LargeCorpus_e18"
  ```
 
  # 
 ```bash
-./scripts/benchmark.sh -g 2 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b $(pwd)/data/cnsl_benchmark -m /nvme1/hungdx/Lightning-hydra/logs/train/runs/2024-12-14_08-35-06-large-corpus-conf-1/checkpoints/averaged_top5.ckpt -r logs/results/cnsl_benchmark -n "Conformer_MDT_DEC2024_correct"
+./scripts/benchmark.sh -g 2 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b $(pwd)/data/cnsl_benchmark -m /nvme2/hungdx/Lightning-hydra/logs/train/runs/2024-12-14_08-35-06-large-corpus-conf-1/checkpoints/averaged_top5.ckpt -r logs/results/cnsl_benchmark -n "Conformer_MDT_DEC2024_correct"
 ```
 
 
 ## benchmark again merged lora model
 ```bash
-./scripts/benchmark.sh -g 2 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b $(pwd)/data/cnsl_benchmark -m /nvme1/hungdx/Lightning-hydra/logs/best_ckpt/MDT_241214_lora_250501_merged.pth -r logs/results/cnsl_benchmark -n "MDT_241214_lora_250501_merged_lora_exp_2_june2"
+./scripts/benchmark.sh -g 2 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b $(pwd)/data/cnsl_benchmark -m /nvme2/hungdx/Lightning-hydra/logs/best_ckpt/MDT_241214_lora_250501_merged.pth -r logs/results/cnsl_benchmark -n "MDT_241214_lora_250501_merged_lora_exp_2_june2"
 ```
 
 
 # Benchmark learnable aasist-ssl (LA19)
  ```bash
-./scripts/benchmark.sh -g 2 -c aasistssl_mdt_conf-2_learnable -b $(pwd)/data/huggingface_benchrmark_Speech-DF-Arena -m /nvme1/hungdx/Lightning-hydra/logs/train/runs/2025-05-29_07-48-34/checkpoints/averaged_top5.ckpt -r logs/results/huggingface_benchrmark_Speech-DF-Arena -n "aasistssl_mdt_leranble_MDT_LA19"
+./scripts/benchmark.sh -g 2 -c aasistssl_mdt_conf-2_learnable -b $(pwd)/data/huggingface_benchrmark_Speech-DF-Arena -m /nvme2/hungdx/Lightning-hydra/logs/train/runs/2025-05-29_07-48-34/checkpoints/averaged_top5.ckpt -r logs/results/huggingface_benchrmark_Speech-DF-Arena -n "aasistssl_mdt_leranble_MDT_LA19"
  ```
 
 
 # Merge lora weights to base model
 ```bash
-python scripts/inference/merge_lora_to_base.py --checkpoint_path="/nvme1/hungdx/Lightning-hydra/logs/best_ckpt/MDT_241214_lora_250501_merged.pth" --config_path="/nvme1/hungdx/Lightning-hydra/configs/experiment/cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_more_elevenlabs.yaml" --lora_path="/nvme1/hungdx/Lightning-hydra/logs/train/runs/2025-06-02_02-18-43/checkpoints/epoch_000.ckpt" --output_path="/nvme1/hungdx/Lightning-hydra/logs/best_ckpt/MDT_241214_lora_250501_merged_lora_exp2_june2.pth" --device='cpu'
+python scripts/inference/merge_lora_to_base.py --checkpoint_path="/nvme2/hungdx/Lightning-hydra/logs/best_ckpt/MDT_241214_lora_250501_merged.pth" --config_path="/nvme2/hungdx/Lightning-hydra/configs/experiment/cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_more_elevenlabs.yaml" --lora_path="/nvme2/hungdx/Lightning-hydra/logs/train/runs/2025-06-02_02-18-43/checkpoints/epoch_000.ckpt" --output_path="/nvme2/hungdx/Lightning-hydra/logs/best_ckpt/MDT_241214_lora_250501_merged_lora_exp2_june2.pth" --device='cpu'
 ```
 
 # Merge lora weights to base model
 ```bash
-python scripts/inference/merge_lora_to_base.py --checkpoint_path="/datad/pretrained/AudioDeepfakeCMs/S_241214_conf-1.pth" --config_path="/nvme1/hungdx/Lightning-hydra/configs/experiment/cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_more_elevenlabs.yaml" --lora_path="/nvme1/hungdx/Lightning-hydra/logs/train/runs/2025-06-01_13-16-39/checkpoints/epoch_000.ckpt" --output_path="/nvme1/hungdx/Lightning-hydra/logs/best_ckpt/MDT_241214_baseline_lora_exp1_june1.pth" --device='cpu'
+python scripts/inference/merge_lora_to_base.py --checkpoint_path="/datad/pretrained/AudioDeepfakeCMs/S_241214_conf-1.pth" --config_path="/nvme2/hungdx/Lightning-hydra/configs/experiment/cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_more_elevenlabs.yaml" --lora_path="/nvme2/hungdx/Lightning-hydra/logs/train/runs/2025-06-01_13-16-39/checkpoints/epoch_000.ckpt" --output_path="/nvme2/hungdx/Lightning-hydra/logs/best_ckpt/MDT_241214_baseline_lora_exp1_june1.pth" --device='cpu'
 ```
 
 
 
 python tests/test_merge_lora.py \
     --checkpoint_path /datad/pretrained/AudioDeepfakeCMs/S_241214_conf-1.pth \
-    --config_path /nvme1/hungdx/Lightning-hydra/configs/experiment/cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_more_elevenlabs.yaml \
+    --config_path /nvme2/hungdx/Lightning-hydra/configs/experiment/cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_more_elevenlabs.yaml \
     --lora_path /datad/pretrained/AudioDeepfakeCMs/lora/MDT_241214_lora_250418 \
     --seed 42
 
@@ -181,48 +181,48 @@ python tests/test_merge_lora.py \
 
 ## exp1_june1_25
 ```bash
-./scripts/benchmark.sh -g 3 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b $(pwd)/data/cnsl_benchmark -m /nvme1/hungdx/Lightning-hydra/logs/best_ckpt/MDT_241214_baseline_lora_exp1_june1.pth -r logs/results/cnsl_benchmark -n "MDT_241214_baseline_lora_exp_1_june1" -l false
+./scripts/benchmark.sh -g 3 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b $(pwd)/data/cnsl_benchmark -m /nvme2/hungdx/Lightning-hydra/logs/best_ckpt/MDT_241214_baseline_lora_exp1_june1.pth -r logs/results/cnsl_benchmark -n "MDT_241214_baseline_lora_exp_1_june1" -l false
 ```
 
 ## exp2_june2_25
 ```bash
-./scripts/benchmark.sh -g 3 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b $(pwd)/data/huggingface_benchrmark_Speech-DF-Arena -m /nvme1/hungdx/Lightning-hydra/logs/best_ckpt/MDT_241214_lora_250501_merged_lora_exp2_june2.pth -r logs/results/huggingface_benchrmark_Speech-DF-Arena -n "MDT_241214_lora_250501_merged_lora_exp_2_june2" -l false
+./scripts/benchmark.sh -g 3 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b $(pwd)/data/huggingface_benchrmark_Speech-DF-Arena -m /nvme2/hungdx/Lightning-hydra/logs/best_ckpt/MDT_241214_lora_250501_merged_lora_exp2_june2.pth -r logs/results/huggingface_benchrmark_Speech-DF-Arena -n "MDT_241214_lora_250501_merged_lora_exp_2_june2" -l false
 ```
 
 ## exp1_june2_25
 ```bash
-./scripts/benchmark.sh -g 2 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b $(pwd)/data/huggingface_benchrmark_Speech-DF-Arena -m /nvme1/hungdx/Lightning-hydra/logs/best_ckpt/MDT_baseline_lora_exp1_june2.pth -r logs/results/huggingface_benchrmark_Speech-DF-Arena -n "MDT_baseline_lora_exp1_june2" -l false
+./scripts/benchmark.sh -g 2 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b $(pwd)/data/huggingface_benchrmark_Speech-DF-Arena -m /nvme2/hungdx/Lightning-hydra/logs/best_ckpt/MDT_baseline_lora_exp1_june2.pth -r logs/results/huggingface_benchrmark_Speech-DF-Arena -n "MDT_baseline_lora_exp1_june2" -l false
 ```
 
 # CL benchmark
 ## exp_1.1_june9
 ```bash
-./scripts/benchmark.sh -g 2 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_more_elevenlabs -b $(pwd)/data/CL_benchmark -m /nvme1/hungdx/Lightning-hydra/logs/train/runs/2024-12-14_08-35-06-large-corpus-conf-1/checkpoints/averaged_top5.ckpt -a /datad/Lightning-hydra/runs/2025-06-09_14-55-39/checkpoints/epoch_049.ckpt -r logs/results/CL_benchmark -n "ConformerTCM_MDT_LoRA_exp_1.1_june9"
+./scripts/benchmark.sh -g 2 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_more_elevenlabs -b $(pwd)/data/CL_benchmark -m /nvme2/hungdx/Lightning-hydra/logs/train/runs/2024-12-14_08-35-06-large-corpus-conf-1/checkpoints/averaged_top5.ckpt -a /datad/Lightning-hydra/runs/2025-06-09_14-55-39/checkpoints/epoch_049.ckpt -r logs/results/CL_benchmark -n "ConformerTCM_MDT_LoRA_exp_1.1_june9"
 ```
 
 ## exp_1.2_june9
 ```bash
-./scripts/benchmark.sh -g 3 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_more_elevenlabs -b $(pwd)/data/CL_benchmark -m /nvme1/hungdx/Lightning-hydra/logs/train/runs/2024-12-14_08-35-06-large-corpus-conf-1/checkpoints/averaged_top5.ckpt -a /datad/Lightning-hydra/runs/2025-06-09_14-55-41/checkpoints/epoch_025.ckpt -r logs/results/CL_benchmark -n "ConformerTCM_MDT_LoRA_exp_1.2_june9"
+./scripts/benchmark.sh -g 3 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_more_elevenlabs -b $(pwd)/data/CL_benchmark -m /nvme2/hungdx/Lightning-hydra/logs/train/runs/2024-12-14_08-35-06-large-corpus-conf-1/checkpoints/averaged_top5.ckpt -a /datad/Lightning-hydra/runs/2025-06-09_14-55-41/checkpoints/epoch_025.ckpt -r logs/results/CL_benchmark -n "ConformerTCM_MDT_LoRA_exp_1.2_june9"
 ```
 
 ## exp_1.3_june10
 ```bash
-./scripts/benchmark.sh -g 2 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_more_elevenlabs -b $(pwd)/data/CL_benchmark -m /nvme1/hungdx/Lightning-hydra/logs/train/runs/2024-12-14_08-35-06-large-corpus-conf-1/checkpoints/averaged_top5.ckpt -a /nvme1/hungdx/Lightning-hydra/logs/train/runs/2025-06-10_13-03-58/checkpoints/epoch_035.ckpt -r logs/results/CL_benchmark -n "ConformerTCM_MDT_LoRA_exp_1.3_june10"
+./scripts/benchmark.sh -g 2 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_more_elevenlabs -b $(pwd)/data/CL_benchmark -m /nvme2/hungdx/Lightning-hydra/logs/train/runs/2024-12-14_08-35-06-large-corpus-conf-1/checkpoints/averaged_top5.ckpt -a /nvme2/hungdx/Lightning-hydra/logs/train/runs/2025-06-10_13-03-58/checkpoints/epoch_035.ckpt -r logs/results/CL_benchmark -n "ConformerTCM_MDT_LoRA_exp_1.3_june10"
 ```
 
 ## exp_2.1_june10
 ```bash
-./scripts/benchmark.sh -g 3 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_more_elevenlabs -b $(pwd)/data/CL_benchmark -m /nvme1/hungdx/Lightning-hydra/logs/train/runs/2024-12-14_08-35-06-large-corpus-conf-1/checkpoints/averaged_top5.ckpt -a /nvme1/hungdx/Lightning-hydra/logs/train/runs/2025-06-10_13-14-47/checkpoints/epoch_058.ckpt -r logs/results/CL_benchmark -n "ConformerTCM_MDT_LoRA_exp_2.1_june10"
+./scripts/benchmark.sh -g 3 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_more_elevenlabs -b $(pwd)/data/CL_benchmark -m /nvme2/hungdx/Lightning-hydra/logs/train/runs/2024-12-14_08-35-06-large-corpus-conf-1/checkpoints/averaged_top5.ckpt -a /nvme2/hungdx/Lightning-hydra/logs/train/runs/2025-06-10_13-14-47/checkpoints/epoch_058.ckpt -r logs/results/CL_benchmark -n "ConformerTCM_MDT_LoRA_exp_2.1_june10"
 ```
 
 # Benchmark multi-duration  (MDT) paper
 ## ConformerTCM + MDT paper 
 ```bash
-bash scripts/benchmark_mdt_paper.sh -g 3 -c huggingface_benchmark/xlsr_conformertcm_mdt_lora_infer -b data/mdt_paper_benchmark -m /nvme1/hungdx/tcm_add/models/Conformer_w_TCM_LA_WCE_1e-06_ES144_H4_NE4_KS31_AUG3_w_sin_pos_multiview/best/avg_5_best_4.pth -r results/conformertcm_mdt_paper --random_start False -l False
+bash scripts/benchmark_mdt_paper.sh -g 3 -c huggingface_benchmark/xlsr_conformertcm_mdt_lora_infer -b data/mdt_paper_benchmark -m /nvme2/hungdx/tcm_add/models/Conformer_w_TCM_LA_WCE_1e-06_ES144_H4_NE4_KS31_AUG3_w_sin_pos_multiview/best/avg_5_best_4.pth -r results/conformertcm_mdt_paper --random_start False -l False
 ```
 ## AASIST-SSL + MDT paper
 ```bash
-bash scripts/benchmark_mdt_paper.sh -g 2 -c huggingface_benchmark/xlsr_aasist_mdt_paper -b data/mdt_paper_benchmark -m /nvme1/hungdx/Lightning-hydra/logs/train/runs/2024-10-16_21-04-31-conf-2/checkpoints/averaged_top5.ckpt -r results/aasistssl_mdt_paper --random_start False -l True
+bash scripts/benchmark_mdt_paper.sh -g 2 -c huggingface_benchmark/xlsr_aasist_mdt_paper -b data/mdt_paper_benchmark -m /nvme2/hungdx/Lightning-hydra/logs/train/runs/2024-10-16_21-04-31-conf-2/checkpoints/averaged_top5.ckpt -r results/aasistssl_mdt_paper --random_start False -l True
 ```
 
 
@@ -239,7 +239,7 @@ bash scripts/benchmark_mdt_paper.sh -g 2 -c huggingface_benchmark/xlsr_aasist_md
 -n: comment
 
 => Folder resulst will be create for example: 
-/nvme1/hungdx/Lightning-hydra/logs/results/TTA_benchmark_2_specs (parent directory which argument from -b option)
+/nvme2/hungdx/Lightning-hydra/logs/results/TTA_benchmark_2_specs (parent directory which argument from -b option)
 ├── ToP_DF_s_1 (comment)
 │   ├── ASVspoof2021_DF_eval_cnsl_xlsr_vib_paper_ToP_DF_s_1.txt (dataset order)
 │   ├── merged_protocol_cnsl_xlsr_vib_paper_ToP_DF_s_1.txt
@@ -255,10 +255,10 @@ bash scripts/benchmark_mdt_paper.sh -g 2 -c huggingface_benchmark/xlsr_aasist_md
 
 
 # Challenge
-./scripts/benchmark.sh -g 3 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_more_elevenlabs -b data/wildspoof_challenge_benchmark -m /nvme1/hungdx/Lightning-hydra/logs/train/runs/2024-12-14_08-35-06-large-corpus-conf-1/checkpoints/averaged_top5.ckpt -a pretrained/MDT_241214_lora_250501 -r logs/results/wildspoof_challenge_benchmark -n "ConformerTCM_MDT_LoRA_LargeCorpus_MoreElevenlabs" 
+./scripts/benchmark.sh -g 3 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_more_elevenlabs -b data/wildspoof_challenge_benchmark -m /nvme2/hungdx/Lightning-hydra/logs/train/runs/2024-12-14_08-35-06-large-corpus-conf-1/checkpoints/averaged_top5.ckpt -a pretrained/MDT_241214_lora_250501 -r logs/results/wildspoof_challenge_benchmark -n "ConformerTCM_MDT_LoRA_LargeCorpus_MoreElevenlabs" 
 
 # Baseline
-./scripts/benchmark.sh -g 3 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b data/wildspoof_challenge_benchmark -m /nvme1/hungdx/Lightning-hydra/logs/train/runs/2024-12-14_08-35-06-large-corpus-conf-1/checkpoints/averaged_top5.ckpt -r logs/results/wildspoof_challenge_benchmark -n "Conformer_MDT_DEC2024_correct"
+./scripts/benchmark.sh -g 3 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b data/wildspoof_challenge_benchmark -m /nvme2/hungdx/Lightning-hydra/logs/train/runs/2024-12-14_08-35-06-large-corpus-conf-1/checkpoints/averaged_top5.ckpt -r logs/results/wildspoof_challenge_benchmark -n "Conformer_MDT_DEC2024_correct"
 
 
 
@@ -288,7 +288,7 @@ uv pip install https://github.com/state-spaces/mamba/releases/download/v2.2.2/ma
 
 ## MDT-Jan26
 ```bash
-./scripts/benchmark.sh -g 1 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b $(pwd)/data/benchmark_telephony -m /nvme1/hungdx/code/Lightning-hydra/logs/train/runs/2026-01-07_14-52-27/checkpoints/epoch_030.ckpt -r logs/results/benchmark_telephony -n "xlsr_conformertcm_mdt_epoch30_jan26" -l true
+./scripts/benchmark.sh -g 1 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b $(pwd)/data/benchmark_telephony -m /nvme2/hungdx/code/Lightning-hydra/logs/train/runs/2026-01-07_14-52-27/checkpoints/epoch_030.ckpt -r logs/results/benchmark_telephony -n "xlsr_conformertcm_mdt_epoch30_jan26" -l true
 ```
 
 ## lora-8khz from baseline
@@ -304,35 +304,161 @@ uv pip install https://github.com/state-spaces/mamba/releases/download/v2.2.2/ma
 
 # lora_augmented_rawboostla_e9
 ```bash
-./scripts/benchmark.sh -g MIG-6e4275af-2db0-51f1-a601-7ad8a1002745 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b $(pwd)/data/benchmark_telephony -m pretrained/S_241214_conf-1.pth -a /nvme1/hungdx/code/Lightning-hydra/logs/train/runs/2026-01-14_21-52-21/checkpoints/epoch_009.ckpt -r logs/results/benchmark_telephony -n "lora_augmented_la_e9" -l false
+./scripts/benchmark.sh -g MIG-6e4275af-2db0-51f1-a601-7ad8a1002745 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b $(pwd)/data/benchmark_telephony -m pretrained/S_241214_conf-1.pth -a /nvme2/hungdx/code/Lightning-hydra/logs/train/runs/2026-01-14_21-52-21/checkpoints/epoch_009.ckpt -r logs/results/benchmark_telephony -n "lora_augmented_la_e9" -l false
 ```
 
 # lora_augmented_rawboostla_e23
 ```bash
-./scripts/benchmark.sh -g MIG-ad433dcf-e7b9-5a99-a0fa-6fdf3033b7cd -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b $(pwd)/data/benchmark_telephony -m pretrained/S_241214_conf-1.pth -a /nvme1/hungdx/code/Lightning-hydra/logs/train/runs/2026-01-14_21-52-21/checkpoints/epoch_023.ckpt -r logs/results/benchmark_telephony -n "lora_augmented_la_e23" -l false
+./scripts/benchmark.sh -g MIG-ad433dcf-e7b9-5a99-a0fa-6fdf3033b7cd -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b $(pwd)/data/benchmark_telephony -m pretrained/S_241214_conf-1.pth -a /nvme2/hungdx/code/Lightning-hydra/logs/train/runs/2026-01-14_21-52-21/checkpoints/epoch_023.ckpt -r logs/results/benchmark_telephony -n "lora_augmented_la_e23" -l false
 ```
 
 
 # lora_augmented_gen_la_500samples
 ```bash
-./scripts/benchmark.sh -g MIG-ad433dcf-e7b9-5a99-a0fa-6fdf3033b7cd -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b $(pwd)/data/benchmark_telephony -m pretrained/S_241214_conf-1.pth -a /nvme1/hungdx/logs/train/runs/2026-01-18_14-30-56/checkpoints/epoch_011.ckpt -r logs/results/benchmark_telephony -n "lora_augmented_gen_la_500samples_correct" -l false
+./scripts/benchmark.sh -g MIG-ad433dcf-e7b9-5a99-a0fa-6fdf3033b7cd -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b $(pwd)/data/benchmark_telephony -m pretrained/S_241214_conf-1.pth -a /nvme2/hungdx/logs/train/runs/2026-01-18_14-30-56/checkpoints/epoch_011.ckpt -r logs/results/benchmark_telephony -n "lora_augmented_gen_la_500samples_correct" -l false
 ```
 
 # lora_augmented_gen_la_1ksamples
 ```bash
-./scripts/benchmark.sh -g MIG-46b32d1b-f775-5b7d-a987-fb8ebc049494 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b $(pwd)/data/benchmark_telephony -m pretrained/S_241214_conf-1.pth -a /nvme1/hungdx/logs/train/runs/2026-01-18_14-30-43/checkpoints/epoch_000.ckpt -r logs/results/benchmark_telephony -n "lora_augmented_gen_la_1ksamples_correct" -l false
+./scripts/benchmark.sh -g MIG-46b32d1b-f775-5b7d-a987-fb8ebc049494 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b $(pwd)/data/benchmark_telephony -m pretrained/S_241214_conf-1.pth -a /nvme2/hungdx/logs/train/runs/2026-01-18_14-30-43/checkpoints/epoch_000.ckpt -r logs/results/benchmark_telephony -n "lora_augmented_gen_la_1ksamples_correct" -l false
 ```
 
 # lora_augmented_gen_la_2ksamples
 ```bash
-./scripts/benchmark.sh -g MIG-46b32d1b-f775-5b7d-a987-fb8ebc049494 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b $(pwd)/data/benchmark_telephony -m pretrained/S_241214_conf-1.pth -a /nvme1/hungdx/logs/train/runs/2026-01-17_23-02-11/checkpoints/epoch_078.ckpt -r logs/results/benchmark_telephony -n "lora_augmented_gen_la_2ksamples_correct" -l false
+./scripts/benchmark.sh -g MIG-8cdeef83-092c-5a8d-a748-452f299e1df0 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b $(pwd)/data/benchmark_telephony -m pretrained/S_241214_conf-1.pth -a /home/hungdx/code/Lightning-hydra/logs/train/runs/2026-01-18_14-30-27/checkpoints/epoch_009.ckpt -r logs/results/benchmark_telephony -n "lora_augmented_gen_la_2ksamples_correct" -l false
 ```
+
+# lora_augmented_gen_la_2ksamples
+/home/hungdx/code/Lightning-hydra/logs/train/runs/2026-01-18_15-48-43/checkpoints/epoch_024.ckpt
+
+
+# lora_augmented_lpf_then_resample
+```bash
+./scripts/benchmark.sh -g MIG-57de94a5-be15-5b5a-b67e-e118352d8a59 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b $(pwd)/data/benchmark_telephony -m pretrained/S_241214_conf-1.pth -a /nvme2/hungdx/logs/train/runs/2026-01-18_17-31-56/checkpoints/epoch_005.ckpt -r logs/results/benchmark_telephony -n "lora_augmented_lpf_then_resample" -l false
+```
+
+
+
+# lora_augmented_gen_la_5ksamples
+```bash
+./scripts/benchmark.sh -g MIG-46b32d1b-f775-5b7d-a987-fb8ebc049494 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b $(pwd)/data/benchmark_telephony -m pretrained/S_241214_conf-1.pth -a /nvme2/hungdx/logs/train/runs/2026-01-18_22-58-37/checkpoints/epoch_003.ckpt -r logs/results/benchmark_telephony -n "lora_augmented_gen_la_5ksamples_correct_v2" -l false
+```
+
+
+# Latest protocol Jan-18-epoch-23
+```bash
+./scripts/benchmark.sh -g MIG-57de94a5-be15-5b5a-b67e-e118352d8a59 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b $(pwd)/data/benchmark_telephony -m /home/hungdx/code/Lightning-hydra/logs/train/runs/2026-01-15_14-26-30/checkpoints/epoch_023.ckpt -r logs/results/benchmark_telephony -n "26-Jan-18-epoch-23" -l true
+```
+
+# finetuning from baseline with latest protocol
+```bash
+./scripts/benchmark.sh -g MIG-57de94a5-be15-5b5a-b67e-e118352d8a59 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b $(pwd)/data/benchmark_telephony -m /home/hungdx/code/Lightning-hydra/logs/train/runs/2026-01-14_23-28-36/checkpoints/epoch_015.ckpt -r logs/results/benchmark_telephony -n "finetuning_with_Jan-14_protocol" -l true
+```
+
+# Latest protocol Jan-18-epoch-32
+```bash
+./scripts/benchmark.sh -g MIG-ad433dcf-e7b9-5a99-a0fa-6fdf3033b7cd -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b $(pwd)/data/benchmark_telephony -m /home/hungdx/code/Lightning-hydra/logs/train/runs/2026-01-15_14-26-30/checkpoints/epoch_031.ckpt -r logs/results/benchmark_telephony -n "26-Jan-14-protocol-epoch-31" -l true
+```
+
+# CNSL_Q1_2026_benchmarks
+```bash
+./scripts/benchmark.sh -g 0 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b $(pwd)/data/CNSL_Q1_2026_benchmarks -m /nvme2/hungdx/logs/train/runs/2026-01-15_14-26-30/checkpoints/averaged_top5.ckpt -r logs/results/CNSL_Q1_2026_benchmarks -n "XLSR_ConformerTCM_MDT_RawboostLA_DF" -l true
+```
+
+```bash
+python ./scripts/benchmark_py/benchmark.py -g MIG-6e4275af-2db0-51f1-a601-7ad8a1002745 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b $(pwd)/data/CNSL_Q1_2026_benchmarks -m /home/hungdx/code/Lightning-hydra/logs/train/runs/2026-01-25_02-22-18/checkpoints/averaged_top5.ckpt -r logs/results/CNSL_Q1_2026_benchmarks -n "XLSR_ConformerTCM_FT_TelephonyLA" -l true
+```
+
+
 python scripts/augment_low_pass_torch_audiomentations.py \
-  --input_dir /nvme1/hungdx/code/Lightning-hydra/data/TTS_SASV_eval_anony/TTS_1 \
-  --output_dir /nvme1/hungdx/code/Lightning-hydra/logs/augmented_wavs/TTS_SASV_eval_anony_TTS_1_low_pass_filter \
+  --input_dir /nvme2/hungdx/code/Lightning-hydra/data/TTS_SASV_eval_anony/TTS_1 \
+  --output_dir /nvme2/hungdx/code/Lightning-hydra/logs/augmented_wavs/TTS_SASV_eval_anony_TTS_1_low_pass_filter \
   --sample_rate 16000 \
   --min_cutoff 2000 \
   --max_cutoff 7500 \
   --prob 1.0 \
   --device cuda \
   --patterns "*.flac"
+
+
+# /nvme2/hungdx/code/Lightning-hydra/logs/train/runs/2026-01-14_23-28-36 new protocol
+
+# Kipot
+```bash
+python ./scripts/benchmark_py/benchmark.py -g 2 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_more_elevenlabs -b data/Kipot_benchmark -m pretrained/S_241214_conf-1.pth -a pretrained/MDT_241214_lora_250501 -r logs/results/Kipot_benchmark -n "MDT_241214_lora_250501" -l false
+```
+
+ # Benchmark Conformer + MDT
+ ```bash
+DEFAULT_BATCH_SIZE=256 python ./scripts/benchmark_py/benchmark.py -g 2 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b $(pwd)/data/Kipot_benchmark -m pretrained/20260125_014841_telephony_protocol_xlsr_conformertcm_ft_s241214.ckpt -r logs/results/Kipot_benchmark -n "jan26_xlsr_conformertcm_ft_s241214"
+ ```
+
+Benchmark Conformer
+```bash
+DEFAULT_BATCH_SIZE=256 python ./scripts/benchmark_py/benchmark.py -g 1 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b $(pwd)/data/Kipot_benchmark -m /data/hungdx/lighning-hydra-train-runs/runs/2026-01-28_01-08-10/checkpoints/averaged_top5.ckpt -r logs/results/Kipot_benchmark -n "jan26_xlsr_conformertcm_train_from_scratch"
+ ```
+
+ # Only clean benchmark
+```bash
+DEFAULT_BATCH_SIZE=196 uv run ./scripts/benchmark_py/benchmark.py -g 2 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b $(pwd)/data/benchmark_VAD_preprocess -m /data/hungdx/lighning-hydra-train-runs/runs/2026-02-06_08-42-20/checkpoints/averaged_top5.ckpt -r logs/results/benchmark_VAD_preprocess -n "06feb26_xlsr_conformertcm_mdt"
+```
+
+```bash
+DEFAULT_BATCH_SIZE=196 uv run ./scripts/benchmark_py/benchmark.py -g 2 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b $(pwd)/data/Kipot_benchmark -m /data/hungdx/lighning-hydra-train-runs/runs/2026-02-06_08-42-20/checkpoints/averaged_top5.ckpt -r logs/results/Kipot_benchmark -n "06feb26_xlsr_conformertcm_mdt"
+```
+
+ # Benchmark model trained on clean + vad trimmed (train from scratch)
+ ```bash
+ DEFAULT_BATCH_SIZE=196 uv run ./scripts/benchmark_py/benchmark.py -g 2 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b $(pwd)/data/Kipot_benchmark -m /data/hungdx/lighning-hydra-train-runs/runs/2026-02-24_23-46-15/checkpoints/averaged_top5.ckpt -r logs/results/Kipot_benchmark -n "26feb26_xlsr_conformertcm_mdt"
+ ```
+
+ # Benchmark model trained on clean + vad trimmed (train with lora)
+ ```bash
+ python ./scripts/benchmark_py/benchmark.py -g 1 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_more_elevenlabs -b data/Kipot_benchmark -m /data/hungdx/lighning-hydra-train-runs/runs/2026-02-06_08-42-20/checkpoints/averaged_top5.ckpt -a /data/hungdx/lighning-hydra-train-runs/runs/2026-02-25_00-16-36/checkpoints/epoch_000.ckpt -r logs/results/Kipot_benchmark -n "26feb26_xlsr_conformertcm_mdt_lora" -l true
+ ```
+
+
+  # Benchmark model trained on clean + vad trimmed (ft from pretrained )
+ ```bash
+ DEFAULT_BATCH_SIZE=196 uv run ./scripts/benchmark_py/benchmark.py -g 3 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b $(pwd)/data/Kipot_benchmark -m /data/hungdx/lighning-hydra-train-runs/runs/2026-02-25_00-24-49/checkpoints/averaged_top5.ckpt -r logs/results/Kipot_benchmark -n "26feb26_xlsr_conformertcm_mdt_ft_from_06feb26vad"
+ ```
+
+
+ # Multi 
+
+ # Latest
+```bash
+DEFAULT_BATCH_SIZE=512 uv run ./scripts/benchmark_py/benchmark.py -g 0 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b $(pwd)/data/benchmark_telephony -m pretrained/S_241214_conf-1.pth -a /home/hungdx/code/Lightning-hydra/logs/train/runs/2026-04-03_00-59-42/checkpoints/epoch_005.ckpt -r logs/results/benchmark_telephony -n "mbct_xlsr_conformertcm_lora_from_S_241214_conf-1" -l false
+```
+
+# exp_d1
+```bash
+DEFAULT_BATCH_SIZE=128 uv run ./scripts/benchmark_py/benchmark.py -g 0 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b $(pwd)/data/benchmark_telephony -m pretrained/S_241214_conf-1.pth -a /home/hung_cache/runs/2026-04-04_02-24-28/checkpoints/epoch_007-v1.ckpt -r logs/results/benchmark_telephony -n "mbct_xlsr_conformertcm_loraexp_d1_from_S_241214_conf-1" -l false
+```
+
+# exp_d_1_full_train_2band_normal_wideband
+```bash
+DEFAULT_BATCH_SIZE=128 uv run ./scripts/benchmark_py/benchmark.py -g MIG-8cdeef83-092c-5a8d-a748-452f299e1df0 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b $(pwd)/data/benchmark_telephony -m pretrained/S_241214_conf-1.pth -a /home/hung_cache/runs/2026-04-04_03-22-25/checkpoints/epoch_006-v1.ckpt -r logs/results/benchmark_telephony -n "mbct_xlsr_conformertcm_loraexp_d_1_full_train_2band_normal_wideband_from_S_241214_conf-1" -l false
+```
+
+# exp_d_1_full_train_2band_normal_narrowband
+```bash
+DEFAULT_BATCH_SIZE=128 uv run ./scripts/benchmark_py/benchmark.py -g MIG-6e4275af-2db0-51f1-a601-7ad8a1002745 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b $(pwd)/data/benchmark_telephony -m pretrained/S_241214_conf-1.pth -a /home/hung_cache/runs/2026-04-04_03-22-28/checkpoints/epoch_006-v1.ckpt -r logs/results/benchmark_telephony -n "mbct_xlsr_conformertcm_loraexp_d_1_full_train_2band_normal_narrowband_from_S_241214_conf-1" -l false
+```
+
+# exp_b_1
+
+```bash
+DEFAULT_BATCH_SIZE=196 uv run ./scripts/benchmark_py/benchmark.py -g 0 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b $(pwd)/data/benchmark_telephony -m /home/hung_cache/runs/2026-04-04_02-58-58/checkpoints/averaged_top5.ckpt -r logs/results/benchmark_telephony -n "mbct_xlsr_conformertcm_exp_b_1"
+```
+
+
+# thien_exp
+```bash
+DEFAULT_BATCH_SIZE=128 uv run ./scripts/benchmark_py/benchmark.py -g 1 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b $(pwd)/data/thien_benchmark -m pretrained/MDT_241214_lora_250501.pt -a /nvme2/hungdx/Lightning-hydra/logs/train/runs/2026-04-16_21-50-39/checkpoints/epoch_052.ckpt -r logs/results/thien_benchmark -n "MDT_241214_lora_250501_lora_record_best" -l false
+```
+
+
+```bash
+DEFAULT_BATCH_SIZE=128 uv run ./scripts/benchmark_py/benchmark.py -g 1 -c thien_exp/aasist_inference -b $(pwd)/data/thien_benchmark -m /data/hungdx/lighning-hydra-train-runs/runs/2026-04-23_21-59-44/checkpoints/averaged_top5.ckpt -r logs/results/thien_benchmark -n "aasist" -l true +trainer.precision=bf16-mixed
+```

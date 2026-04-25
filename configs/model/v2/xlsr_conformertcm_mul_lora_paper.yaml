@@ -28,5 +28,5 @@ args:
 ssl_pretrained_path: ${oc.env:XLSR_PRETRAINED_MODEL_PATH}
 cross_entropy_weight: [0.1, 0.9] # weight for cross entropy loss 0.1 for spoof and 0.9 for bonafide
 adapter_type: null
-base_model_path: /nvme1/hungdx/tcm_add/models/Conformer_w_TCM_LA_WCE_1e-06_ES144_H4_NE4_KS31_AUG3_w_sin_pos_multiview/best/avg_5_best_4.pth
+base_model_path: /nvme2/hungdx/tcm_add/models/Conformer_w_TCM_LA_WCE_1e-06_ES144_H4_NE4_KS31_AUG3_w_sin_pos_multiview/best/avg_5_best_4.pth
 is_base_model_path_ln: true

@@ -17,11 +17,11 @@ def proper_lora_loading_with_modules_to_save():
     """The correct way to load LoRA with modules_to_save"""
     
     # Load configuration
-    with open('/nvme1/hungdx/Lightning-hydra/configs/experiment/cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_more_elevenlabs_july4.yaml', 'r') as f:
+    with open('/nvme2/hungdx/Lightning-hydra/configs/experiment/cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_more_elevenlabs_july4.yaml', 'r') as f:
         config = yaml.safe_load(f)
     
     args = config['model']['args']['conformer']
-    ckpt = torch.load('/nvme1/hungdx/Lightning-hydra/notebooks/S_241214_conf-1.pth', weights_only=False)
+    ckpt = torch.load('/nvme2/hungdx/Lightning-hydra/notebooks/S_241214_conf-1.pth', weights_only=False)
     
     print("=== PROPER SOLUTION: Keep modules_to_save ===")
     print("modules_to_save is IMPORTANT - it unfreezes backend modules for fine-tuning")
@@ -30,7 +30,7 @@ def proper_lora_loading_with_modules_to_save():
     print("\nStep 1: Creating and saving LoRA model with modules_to_save...")
     
     model = XLSRConformerTCM(args=args,
-                             ssl_pretrained_path='/nvme1/hungdx/Lightning-hydra/xlsr2_300m.pt')
+                             ssl_pretrained_path='/nvme2/hungdx/Lightning-hydra/xlsr2_300m.pt')
     model.load_state_dict(ckpt, strict=True)
     
     # Keep the modules_to_save configuration - it's essential!
@@ -56,7 +56,7 @@ def proper_lora_loading_with_modules_to_save():
     
     # Create a fresh BASE model (not PEFT model)
     fresh_base_model = XLSRConformerTCM(args=args,
-                                        ssl_pretrained_path='/nvme1/hungdx/Lightning-hydra/xlsr2_300m.pt')
+                                        ssl_pretrained_path='/nvme2/hungdx/Lightning-hydra/xlsr2_300m.pt')
     fresh_base_model.load_state_dict(ckpt, strict=True)
     
     try:
@@ -79,7 +79,7 @@ def proper_lora_loading_with_modules_to_save():
             
             # Create a new PEFT model with the same config
             fresh_model = XLSRConformerTCM(args=args,
-                                           ssl_pretrained_path='/nvme1/hungdx/Lightning-hydra/xlsr2_300m.pt')
+                                           ssl_pretrained_path='/nvme2/hungdx/Lightning-hydra/xlsr2_300m.pt')
             fresh_model.load_state_dict(ckpt, strict=True)
             
             fresh_net = get_peft_model(fresh_model, lora_config)
@@ -98,7 +98,7 @@ def proper_lora_loading_with_modules_to_save():
             
             # Create the expected model structure
             debug_model = XLSRConformerTCM(args=args,
-                                           ssl_pretrained_path='/nvme1/hungdx/Lightning-hydra/xlsr2_300m.pt')
+                                           ssl_pretrained_path='/nvme2/hungdx/Lightning-hydra/xlsr2_300m.pt')
             debug_model.load_state_dict(ckpt, strict=True)
             debug_net = get_peft_model(debug_model, lora_config)
             
@@ -135,15 +135,15 @@ def test_successful_loading():
     print("\n=== TESTING SUCCESSFUL LOADING ===")
     
     # Try the approach used in your existing code
-    with open('/nvme1/hungdx/Lightning-hydra/configs/experiment/cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_more_elevenlabs_july4.yaml', 'r') as f:
+    with open('/nvme2/hungdx/Lightning-hydra/configs/experiment/cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_more_elevenlabs_july4.yaml', 'r') as f:
         config = yaml.safe_load(f)
     
     args = config['model']['args']['conformer']
-    ckpt = torch.load('/nvme1/hungdx/Lightning-hydra/notebooks/S_241214_conf-1.pth', weights_only=False)
+    ckpt = torch.load('/nvme2/hungdx/Lightning-hydra/notebooks/S_241214_conf-1.pth', weights_only=False)
     
     # Create base model
     base_model = XLSRConformerTCM(args=args,
-                                  ssl_pretrained_path='/nvme1/hungdx/Lightning-hydra/xlsr2_300m.pt')
+                                  ssl_pretrained_path='/nvme2/hungdx/Lightning-hydra/xlsr2_300m.pt')
     base_model.load_state_dict(ckpt, strict=True)
     
     # Try loading from existing saved models

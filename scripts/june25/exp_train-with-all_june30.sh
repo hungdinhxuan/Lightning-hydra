@@ -16,8 +16,8 @@ CUDA_VISIBLE_DEVICES=$CUDA_DEVICE OMP_NUM_THREADS=1 python src/train.py \
     experiment=cnsl/lora/ft/June30/xlsr_conformertcm_mdt_lora_all \
     ++model.is_base_model_path_ln=false \
     logger=wandb \
-    ++data.data_dir="/nvme1/hungdx/Lightning-hydra/data/shortcutASV" \
-    ++data.args.protocol_path="/nvme1/hungdx/Lightning-hydra/data/shortcutASV/protocol.txt" 
+    ++data.data_dir="/nvme2/hungdx/Lightning-hydra/data/shortcutASV" \
+    ++data.args.protocol_path="/nvme2/hungdx/Lightning-hydra/data/shortcutASV/protocol.txt" 
 
 
 # logger=wandb \

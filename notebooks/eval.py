@@ -39,7 +39,7 @@ def eval_to_score_file(score_file, cm_key_file):
 
 
 full_df = pd.read_csv(
-    "/nvme1/hungdx/Lightning-hydra/data/0_large-corpus/AIHub/protocol_for_cm.txt", sep=" ", header=None)
+    "/nvme2/hungdx/Lightning-hydra/data/0_large-corpus/AIHub/protocol_for_cm.txt", sep=" ", header=None)
 
 full_df.columns = ["utt", "subset", "label"]
 
@@ -48,7 +48,7 @@ full_df = full_df[full_df["utt"].str.startswith("Elevenlabs")]
 
 # filter with subset = "eval"
 full_df = full_df[full_df["subset"] == "eval"]
-score_file = "/nvme1/hungdx/Lightning-hydra/logs/eval/cnsl/aihub_new/AIHUB_new_lora_xlsr_conformertcm_mdt_large_corpus_s202412_v2.txt"
+score_file = "/nvme2/hungdx/Lightning-hydra/logs/eval/cnsl/aihub_new/AIHUB_new_lora_xlsr_conformertcm_mdt_large_corpus_s202412_v2.txt"
 pred_df = pd.read_csv(score_file, sep=" ", header=None)
 print(score_file)
 pred_df.columns = ["utt", "spoof", "score"]

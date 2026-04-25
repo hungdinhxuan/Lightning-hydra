@@ -1,0 +1,5 @@
+category_type,category,label,samples
+vocoder,hifigan,spoof,2627
+vocoder,hn_sinc_nsf,spoof,2595
+vocoder,hn_sinc_nsf_hifi,spoof,2531
+vocoder,waveglow,spoof,2511

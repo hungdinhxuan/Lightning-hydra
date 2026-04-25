@@ -1,0 +1,10 @@
+- training dataset:
+    - datadir location: data/DVC_DSD-Large-Corpus/raw/0_large-corpus_toys
+    - protocol.txt data/protocols/cnsl/new_protocol_trim_vocoded_cleaned_v4_corrected.txt
+- LoRA MBCT dry-run (plan step 2): `scripts/cnsl/April2026/0_mbct_dry_run.sh`
+- LoRA MBCT full training: `scripts/cnsl/April2026/1_xlsr_conformertcm_mbct_lora.sh` (requires `XLSR_PRETRAINED_MODEL_PATH`)
+- Benchmark datasets:
+    - benchmark dataset location: data/benchmark_telephony
+    - Inside <benchmark dataset location> is each dataset name, each datset name will have a protocol.txt file inside
+- Validate protocol file for both training set and benchmark sets:
+    - content of protocol.txt must be in format <file_path> <subset> <label>, they seperate by space

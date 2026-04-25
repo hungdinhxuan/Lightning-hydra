@@ -1,0 +1,74 @@
+# @package _global_
+#
+# EXP D variant: MDT (views 1–4s) × two MBCT bands — normal + narrowband only.
+# Same as exp_d_xlsr_conformertcm_mbct_mdt_lora but fewer bands (8 composite keys).
+#
+# Run:
+#   LARGE_CORPUS_FOR_CNSL=... LARGE_CORPUS_FOR_CNSL_PROTOCOLS=... XLSR_PRETRAINED_MODEL_PATH=... \
+#   python src/train.py experiment=cnsl/April2026/exp_d_xlsr_conformertcm_mbct_mdt_lora_2band_normal_narrowband
+
+defaults:
+  - override /data: normal_largecorpus_MBCT_MDT_cnsl
+  - override /model: v2/xlsr_conformertcm_mbct_lora
+  - override /callbacks: default_lora_loss_earlystop_logger
+  - override /trainer: default
+
+tags:
+  - exp_D
+  - normal_largecorpus_MBCT_MDT_cnsl
+  - xlsr_conformertcm_mbct_mdt_lora
+  - mbct_2band_normal_narrowband
+
+seed: 1234
+
+trainer:
+  max_epochs: 100
+  gradient_clip_val: 0.0
+  accelerator: cuda
+
+model:
+  optimizer:
+    _target_: torch.optim.AdamW
+    lr: 0.00005
+    weight_decay: 0.0001
+  net: null
+  scheduler:
+    _target_: torch.optim.lr_scheduler.MultiStepLR
+    _partial_: true
+    milestones: [5, 15]
+    gamma: 0.1
+  cross_entropy_weight: [0.5, 0.5]
+  weighted_views:
+    1_normal: 1
+    1_narrowband: 1
+    2_normal: 1
+    2_narrowband: 1
+    3_normal: 1
+    3_narrowband: 1
+    4_normal: 1
+    4_narrowband: 1
+  base_model_path: pretrained/S_241214_conf-1.pth
+  is_base_model_path_ln: false
+
+data:
+  data_dir: data/DVC_DSD-Large-Corpus/raw/0_large-corpus_toys
+  batch_size: 8
+  num_workers: 8
+  pin_memory: true
+  args:
+    protocol_path: data/protocols/cnsl/new_protocol_trim_vocoded_cleaned_v4_corrected.txt
+    padding_type: repeat
+    random_start: true
+    augmentation_methods: ["RawBoostdf", "RawBoost12", "none"]
+    mbct_band_configs:
+      normal:
+        type: normal
+      narrowband:
+        type: narrowband
+
+logger:
+  wandb:
+    tags: ${tags}
+    group: "exp_D_mbct_mdt_lora_2band_nn"
+  aim:
+    experiment: "exp_D_mbct_mdt_lora_2band_nn"

@@ -14,13 +14,13 @@ from src.models.components.xlsr_conformertcm_baseline import Model as XLSRConfor
 
 def main():
     # Load configuration
-    with open('/nvme1/hungdx/Lightning-hydra/configs/experiment/cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_more_elevenlabs_july4.yaml', 'r') as f:
+    with open('/nvme2/hungdx/Lightning-hydra/configs/experiment/cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_more_elevenlabs_july4.yaml', 'r') as f:
         config = yaml.safe_load(f)
     
     args = config['model']['args']['conformer']
     
     # Load checkpoint
-    ckpt = torch.load('/nvme1/hungdx/Lightning-hydra/notebooks/S_241214_conf-1.pth', weights_only=False)
+    ckpt = torch.load('/nvme2/hungdx/Lightning-hydra/notebooks/S_241214_conf-1.pth', weights_only=False)
     
     print("=== WORKING SOLUTION: Proper LoRA handling ===")
     
@@ -28,7 +28,7 @@ def main():
     print("Step 1: Creating and saving LoRA model...")
     
     model = XLSRConformerTCM(args=args,
-                             ssl_pretrained_path='/nvme1/hungdx/Lightning-hydra/xlsr2_300m.pt')
+                             ssl_pretrained_path='/nvme2/hungdx/Lightning-hydra/xlsr2_300m.pt')
     model.load_state_dict(ckpt, strict=True)
     
     # Use the configuration from the config file
@@ -52,7 +52,7 @@ def main():
     
     # Create a fresh base model
     fresh_model = XLSRConformerTCM(args=args,
-                                   ssl_pretrained_path='/nvme1/hungdx/Lightning-hydra/xlsr2_300m.pt')
+                                   ssl_pretrained_path='/nvme2/hungdx/Lightning-hydra/xlsr2_300m.pt')
     fresh_model.load_state_dict(ckpt, strict=True)
     
     # Load the LoRA adapter using PeftModel.from_pretrained
@@ -69,7 +69,7 @@ def main():
         try:
             # Create model with same LoRA config
             fallback_model = XLSRConformerTCM(args=args,
-                                             ssl_pretrained_path='/nvme1/hungdx/Lightning-hydra/xlsr2_300m.pt')
+                                             ssl_pretrained_path='/nvme2/hungdx/Lightning-hydra/xlsr2_300m.pt')
             fallback_model.load_state_dict(ckpt, strict=True)
             
             fallback_net = get_peft_model(fallback_model, lora_config)
@@ -85,7 +85,7 @@ def main():
     print("Alternative: Loading without modules_to_save...")
     
     alt_model = XLSRConformerTCM(args=args,
-                                 ssl_pretrained_path='/nvme1/hungdx/Lightning-hydra/xlsr2_300m.pt')
+                                 ssl_pretrained_path='/nvme2/hungdx/Lightning-hydra/xlsr2_300m.pt')
     alt_model.load_state_dict(ckpt, strict=True)
     
     # Create LoRA config without modules_to_save

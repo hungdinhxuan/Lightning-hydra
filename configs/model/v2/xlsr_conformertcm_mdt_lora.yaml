@@ -28,3 +28,4 @@ ssl_pretrained_path: ${oc.env:XLSR_PRETRAINED_MODEL_PATH}
 cross_entropy_weight: [0.1, 0.9] # weight for cross entropy loss 0.1 for spoof and 0.9 for bonafide
 adapter_type: "lora"
 base_model_path: ${oc.env:BASE_LINE_FT_PATH}
+compile_model: false

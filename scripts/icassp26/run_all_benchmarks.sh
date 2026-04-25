@@ -98,23 +98,23 @@ mkdir -p "$RESULTS_FOLDER"
 
 # Define model configurations
 declare -A AASIST_CONFIGS=(
-    #["g1"]="background_music_noise:/home/hungdx/logs/train/runs/2025-09-12_14-07-14/checkpoints/epoch_010.ckpt:/nvme1/hungdx/Lightning-hydra/protocols_icassp/background_music_noise.txt"
-    # ["g2"]="auto_tune:/home/hungdx/logs/train/runs/2025-09-11_02-21-04/checkpoints/epoch_018.ckpt:/nvme1/hungdx/Lightning-hydra/protocols_icassp/auto_tune.txt"
-    # ["g3"]="band_pass_filter:/home/hungdx/logs/train/runs/2025-09-11_04-04-11/checkpoints/epoch_029.ckpt:/nvme1/hungdx/Lightning-hydra/protocols_icassp/band_pass_filter.txt"
-    #["g4"]="echo:/home/hungdx/logs/train/runs/2025-09-13_04-27-17/checkpoints/epoch_022.ckpt:/nvme1/hungdx/Lightning-hydra/protocols_icassp/echo.txt"
-    #["g5"]="manipulation:/home/hungdx/logs/train/runs/2025-09-13_03-14-46/checkpoints/epoch_019.ckpt:/nvme1/hungdx/Lightning-hydra/protocols_icassp/manipulation.txt"
-    ["g5"]="gaussian_noise:/home/hungdx/logs/train/runs/2025-09-13_10-52-28/checkpoints/epoch_014.ckpt:/nvme1/hungdx/Lightning-hydra/protocols_icassp/gaussian_noise.txt"
-    ["g7"]="reverberation:/home/hungdx/logs/train/runs/2025-09-13_09-54-56/checkpoints/epoch_012.ckpt:/nvme1/hungdx/Lightning-hydra/protocols_icassp/reverberation.txt"
+    #["g1"]="background_music_noise:/home/hungdx/logs/train/runs/2025-09-12_14-07-14/checkpoints/epoch_010.ckpt:/nvme2/hungdx/Lightning-hydra/protocols_icassp/background_music_noise.txt"
+    # ["g2"]="auto_tune:/home/hungdx/logs/train/runs/2025-09-11_02-21-04/checkpoints/epoch_018.ckpt:/nvme2/hungdx/Lightning-hydra/protocols_icassp/auto_tune.txt"
+    # ["g3"]="band_pass_filter:/home/hungdx/logs/train/runs/2025-09-11_04-04-11/checkpoints/epoch_029.ckpt:/nvme2/hungdx/Lightning-hydra/protocols_icassp/band_pass_filter.txt"
+    #["g4"]="echo:/home/hungdx/logs/train/runs/2025-09-13_04-27-17/checkpoints/epoch_022.ckpt:/nvme2/hungdx/Lightning-hydra/protocols_icassp/echo.txt"
+    #["g5"]="manipulation:/home/hungdx/logs/train/runs/2025-09-13_03-14-46/checkpoints/epoch_019.ckpt:/nvme2/hungdx/Lightning-hydra/protocols_icassp/manipulation.txt"
+    ["g5"]="gaussian_noise:/home/hungdx/logs/train/runs/2025-09-13_10-52-28/checkpoints/epoch_014.ckpt:/nvme2/hungdx/Lightning-hydra/protocols_icassp/gaussian_noise.txt"
+    ["g7"]="reverberation:/home/hungdx/logs/train/runs/2025-09-13_09-54-56/checkpoints/epoch_012.ckpt:/nvme2/hungdx/Lightning-hydra/protocols_icassp/reverberation.txt"
 )
 
 declare -A CONFORMERTCM_CONFIGS=(
-    #["g1"]="background_music_noise:/home/hungdx/logs/train/runs/2025-09-12_14-09-27/checkpoints/epoch_019.ckpt:/nvme1/hungdx/Lightning-hydra/protocols_icassp/background_music_noise.txt"
-    # ["g2"]="auto_tune:/home/hungdx/logs/train/runs/2025-09-11_05-38-53/checkpoints/epoch_029.ckpt:/nvme1/hungdx/Lightning-hydra/protocols_icassp/auto_tune.txt"
-    # ["g3"]="band_pass_filter:/home/hungdx/logs/train/runs/2025-09-11_06-02-37/checkpoints/epoch_011.ckpt:/nvme1/hungdx/Lightning-hydra/protocols_icassp/band_pass_filter.txt"
-    #["g4"]="echo:/home/hungdx/logs/train/runs/2025-09-13_04-26-58/checkpoints/epoch_014.ckpt:/nvme1/hungdx/Lightning-hydra/protocols_icassp/echo.txt"
-    #["g5"]="manipulation:/home/hungdx/logs/train/runs/2025-09-13_03-16-14/checkpoints/epoch_014.ckpt:/nvme1/hungdx/Lightning-hydra/protocols_icassp/manipulation.txt"
-    ["g5"]="gaussian_noise:/home/hungdx/logs/train/runs/2025-09-13_10-52-27/checkpoints/epoch_005.ckpt:/nvme1/hungdx/Lightning-hydra/protocols_icassp/gaussian_noise.txt"
-    ["g7"]="reverberation:/home/hungdx/logs/train/runs/2025-09-13_09-54-51/checkpoints/epoch_008.ckpt:/nvme1/hungdx/Lightning-hydra/protocols_icassp/reverberation.txt"
+    #["g1"]="background_music_noise:/home/hungdx/logs/train/runs/2025-09-12_14-09-27/checkpoints/epoch_019.ckpt:/nvme2/hungdx/Lightning-hydra/protocols_icassp/background_music_noise.txt"
+    # ["g2"]="auto_tune:/home/hungdx/logs/train/runs/2025-09-11_05-38-53/checkpoints/epoch_029.ckpt:/nvme2/hungdx/Lightning-hydra/protocols_icassp/auto_tune.txt"
+    # ["g3"]="band_pass_filter:/home/hungdx/logs/train/runs/2025-09-11_06-02-37/checkpoints/epoch_011.ckpt:/nvme2/hungdx/Lightning-hydra/protocols_icassp/band_pass_filter.txt"
+    #["g4"]="echo:/home/hungdx/logs/train/runs/2025-09-13_04-26-58/checkpoints/epoch_014.ckpt:/nvme2/hungdx/Lightning-hydra/protocols_icassp/echo.txt"
+    #["g5"]="manipulation:/home/hungdx/logs/train/runs/2025-09-13_03-16-14/checkpoints/epoch_014.ckpt:/nvme2/hungdx/Lightning-hydra/protocols_icassp/manipulation.txt"
+    ["g5"]="gaussian_noise:/home/hungdx/logs/train/runs/2025-09-13_10-52-27/checkpoints/epoch_005.ckpt:/nvme2/hungdx/Lightning-hydra/protocols_icassp/gaussian_noise.txt"
+    ["g7"]="reverberation:/home/hungdx/logs/train/runs/2025-09-13_09-54-51/checkpoints/epoch_008.ckpt:/nvme2/hungdx/Lightning-hydra/protocols_icassp/reverberation.txt"
 )
 
 # Function to run benchmark for a specific model and group
@@ -151,11 +151,11 @@ run_benchmark() {
     
     if [ "$model_name" == "aasist" ]; then
         experiment_config="icassp26/aasist_ssl/xlsr_aasist_single_lora"
-        base_model_path="/nvme1/hungdx/Lightning-hydra/Best_LA_model_for_DF.pth"
+        base_model_path="/nvme2/hungdx/Lightning-hydra/Best_LA_model_for_DF.pth"
         random_start="false"
     elif [ "$model_name" == "conformertcm" ]; then
         experiment_config="icassp26/conformertcm/xlsr_conformertcm_single_lora"
-        base_model_path="/nvme1/hungdx/tcm_add/models/pretrained/DF/avg_5_best.pth"
+        base_model_path="/nvme2/hungdx/tcm_add/models/pretrained/DF/avg_5_best.pth"
         random_start="false"
     fi
     

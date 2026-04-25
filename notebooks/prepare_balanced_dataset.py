@@ -17,13 +17,13 @@ import os
 def load_and_prepare_data():
     """Load spoof and bonafide data and merge them."""
     print("Loading spoof data...")
-    spoof_df = pd.read_csv('/nvme1/hungdx/Lightning-hydra/data/0_large-corpus/AIHUB_FreeCommunication/may/june_week1_spoof.csv')
+    spoof_df = pd.read_csv('/nvme2/hungdx/Lightning-hydra/data/0_large-corpus/AIHUB_FreeCommunication/may/june_week1_spoof.csv')
     spoof_df.columns = ['spk_id', 'path_audio', 'attack_type']
     spoof_df['label'] = 'spoof'
     spoof_df['path_audio'] = spoof_df['path_audio'].apply(lambda x: f"Spoof/{x}")
 
     print("Loading bonafide data...")
-    bonafide_df = pd.read_csv('/nvme1/hungdx/Lightning-hydra/data/0_large-corpus/AIHUB_FreeCommunication/may/may_bona.csv')
+    bonafide_df = pd.read_csv('/nvme2/hungdx/Lightning-hydra/data/0_large-corpus/AIHUB_FreeCommunication/may/may_bona.csv')
     bonafide_df['path_audio'] = bonafide_df['path_audio'].apply(lambda x: f"Bonafide/{x}")
     bonafide_df['label'] = 'bonafide'
     bonafide_df['attack_type'] = '-'  # Bonafide samples marked with '-'
@@ -105,7 +105,7 @@ def create_balanced_dataset(merged_df, target_attacks=['a01', 'a04', 'a08', '-']
     
     return train_df, dev_df
 
-def save_datasets(train_df, dev_df, output_dir='/nvme1/hungdx/Lightning-hydra/data/cnsl_benchmark/AIHUB_FreeCommunication_balanced'):
+def save_datasets(train_df, dev_df, output_dir='/nvme2/hungdx/Lightning-hydra/data/cnsl_benchmark/AIHUB_FreeCommunication_balanced'):
     """Save the balanced datasets to files."""
     
     # Create output directory
@@ -153,7 +153,7 @@ def save_datasets(train_df, dev_df, output_dir='/nvme1/hungdx/Lightning-hydra/da
     
     return metadata_path, protocol_path
 
-def create_replay_sets(full_df, replay_ratio=0.3, output_dir='/nvme1/hungdx/Lightning-hydra/data/cnsl_benchmark/AIHUB_FreeCommunication_balanced'):
+def create_replay_sets(full_df, replay_ratio=0.3, output_dir='/nvme2/hungdx/Lightning-hydra/data/cnsl_benchmark/AIHUB_FreeCommunication_balanced'):
     """
     Create novel and replay sets for continual learning experiments.
     

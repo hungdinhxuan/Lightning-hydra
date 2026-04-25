@@ -1603,11 +1603,12 @@ def lowpass_hifigan(x, args, sr=16000, audio_path=None):
 def RawBoost12(x, args, sr=16000, audio_path=None):
     aug_dir = args.aug_dir
     utt_id = os.path.basename(audio_path).split('.')[0]
-    aug_audio_path = os.path.join(aug_dir, 'RawBoost12', utt_id + '.wav')
+    
     if args.online_aug:
         return process_Rawboost_feature(x, sr, args, algo=5)
     else:
         # check if the augmented file exists
+        aug_audio_path = os.path.join(aug_dir, 'RawBoost12', utt_id + '.wav')
         if (os.path.exists(aug_audio_path)):
             waveform, _ = librosa.load(aug_audio_path, sr=sr, mono=True)
             return waveform
@@ -1621,10 +1622,11 @@ def RawBoost12(x, args, sr=16000, audio_path=None):
 def RawBoostFull(x, args, sr=16000, audio_path=None):
     aug_dir = args.aug_dir
     utt_id = os.path.basename(audio_path).split('.')[0]
-    aug_audio_path = os.path.join(aug_dir, 'RawBoostFull', utt_id + '.wav')
+    
     if args.online_aug:
         return process_Rawboost_feature(x, sr, args, algo=4)
     else:
+        aug_audio_path = os.path.join(aug_dir, 'RawBoostFull', utt_id + '.wav')
         # check if the augmented file exists
         if (os.path.exists(aug_audio_path)):
             waveform, _ = librosa.load(aug_audio_path, sr=sr, mono=True)

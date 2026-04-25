@@ -8,6 +8,8 @@ from torch import nn
 import torch
 import os
 import numpy as np
+import threading
+import queue
 from src.utils import load_ln_model_weights
 
 
@@ -40,9 +42,19 @@ class BaseLitModule(LightningModule):
         
         self.criterion = self.init_criteria(**kwargs)
         
-        # Optional: Initialize buffered writing for better performance
+        # Stable buffered text writing (low memory footprint, less open/close overhead).
         self._write_buffer = []
-        self._buffer_size = kwargs.get("write_buffer_size", 100)  # Buffer 100 batches by default
+        # If write_buffer_size is unset, adapt flush cadence to current batch size.
+        self._buffer_size = kwargs.get("write_buffer_size", None)  # number of batches before flush
+        self._buffer_target_rows = kwargs.get("write_buffer_target_rows", 65536)
+        self._dynamic_flush_batches = 32
+        self._buffered_batches = 0
+        self._score_fh = None
+        self._async_score_write = kwargs.get("async_score_write", True)
+        self._score_writer_queue_size = kwargs.get("score_writer_queue_size", 16)
+        self._score_writer_queue = None
+        self._score_writer_thread = None
+        self._score_writer_error = None
   
         # metric objects for calculating and averaging accuracy across batches
         self.train_acc = BinaryAccuracy()
@@ -137,6 +149,49 @@ class BaseLitModule(LightningModule):
             else:
                 raise ValueError("score_save_path is not provided")
 
+    def on_test_start(self) -> None:
+        """Lightning hook that is called when a test epoch starts."""
+        self._write_buffer.clear()
+        self._buffered_batches = 0
+        self._score_writer_error = None
+        if self._score_fh is not None:
+            self._score_fh.close()
+            self._score_fh = None
+        if self.score_save_path is not None:
+            self._score_fh = open(self.score_save_path, 'a', encoding='utf-8')
+        if self._async_score_write:
+            self._score_writer_queue = queue.Queue(maxsize=max(1, self._score_writer_queue_size))
+            self._score_writer_thread = threading.Thread(
+                target=self._score_writer_worker,
+                name="score-writer-thread",
+                daemon=True,
+            )
+            self._score_writer_thread.start()
+
+    def _score_writer_worker(self) -> None:
+        """Background worker: formats and writes score chunks."""
+        try:
+            while True:
+                item = self._score_writer_queue.get()
+                if item is None:
+                    self._score_writer_queue.task_done()
+                    break
+
+                utt_chunk, score_chunk = item
+                if self.spec_eval:
+                    self._score_fh.writelines(
+                        f"{fname} {scores[0]} {scores[1]}\n"
+                        for fname, scores in zip(utt_chunk, score_chunk)
+                    )
+                else:
+                    self._score_fh.writelines(
+                        f"{fname} {score}\n"
+                        for fname, score in zip(utt_chunk, score_chunk)
+                    )
+                self._score_writer_queue.task_done()
+        except Exception as exc:
+            self._score_writer_error = exc
+
     def _export_score_file(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int, inference_mode=True) -> None:
         """Get the score file for the batch of data.
 
@@ -153,38 +208,72 @@ class BaseLitModule(LightningModule):
         else:
             batch_out = self.forward(batch_x, inference_mode=inference_mode)
         
-        # Optimized tensor to numpy conversion (avoid .data and .tolist())
-        if batch_out.is_cuda:
-            scores_np = batch_out.detach().cpu().numpy()
-        else:
-            scores_np = batch_out.detach().numpy()
-        
-        # Pre-build all lines for batch writing (much faster than line-by-line)
+        # Reduce GPU->CPU transfer volume by slicing needed scores on GPU first.
+        batch_out_detached = batch_out.detach()
         if self.spec_eval:
-            batch_lines = [f'{fname} {scores[0]} {scores[1]}\n' 
-                          for fname, scores in zip(utt_id, scores_np)]
+            # Keep both class scores for the expected text output format.
+            score_tensor = batch_out_detached[:, :2]
         else:
-            batch_lines = [f'{fname} {scores[1]}\n' 
-                          for fname, scores in zip(utt_id, scores_np)]
-        
-        # Use buffered writing for maximum performance
-        self._write_buffer.extend(batch_lines)
-        
-        # Flush buffer when it reaches the specified size
-        if len(self._write_buffer) >= self._buffer_size * len(batch_lines):
-            self._flush_buffer()
+            # In normal mode we only need score index 1.
+            score_tensor = batch_out_detached[:, 1]
+        score_tensor_cpu = score_tensor.to("cpu")
+        # Keep the original score precision; text export does not preserve tensor dtype.
+        score_chunk = score_tensor_cpu.tolist()
+
+        if self._async_score_write:
+            if self._score_writer_error is not None:
+                raise RuntimeError(f"Background score writer failed: {self._score_writer_error}")
+            self._score_writer_queue.put((list(utt_id), score_chunk))
+        else:
+            if self.spec_eval:
+                batch_lines = [
+                    f"{fname} {scores[0]} {scores[1]}\n"
+                    for fname, scores in zip(utt_id, score_chunk)
+                ]
+            else:
+                batch_lines = [
+                    f"{fname} {score}\n"
+                    for fname, score in zip(utt_id, score_chunk)
+                ]
+
+            self._write_buffer.extend(batch_lines)
+            if self._buffer_size is None:
+                batch_rows = max(1, len(batch_lines))
+                self._dynamic_flush_batches = max(1, self._buffer_target_rows // batch_rows)
+            self._buffered_batches += 1
+            flush_every_batches = self._buffer_size if self._buffer_size is not None else self._dynamic_flush_batches
+            if self._buffered_batches >= flush_every_batches:
+                self._flush_buffer()
 
     def _flush_buffer(self):
-        """Flush the write buffer to file."""
-        if self._write_buffer:
+        """Flush buffered lines to score file."""
+        if not self._write_buffer:
+            return
+        if self._score_fh is None:
             with open(self.score_save_path, 'a', encoding='utf-8') as fh:
                 fh.writelines(self._write_buffer)
-            self._write_buffer.clear()
+        else:
+            self._score_fh.writelines(self._write_buffer)
+        self._write_buffer.clear()
+        self._buffered_batches = 0
 
     def on_test_epoch_end(self) -> None:
         """Lightning hook that is called when a test epoch ends."""
-        # Ensure any remaining buffered data is written
-        self._flush_buffer()
+        if self._async_score_write and self._score_writer_queue is not None:
+            self._score_writer_queue.put(None)
+            self._score_writer_queue.join()
+            if self._score_writer_thread is not None:
+                self._score_writer_thread.join(timeout=5.0)
+            self._score_writer_queue = None
+            self._score_writer_thread = None
+            if self._score_writer_error is not None:
+                raise RuntimeError(f"Background score writer failed: {self._score_writer_error}")
+        else:
+            self._flush_buffer()
+        if self._score_fh is not None:
+            self._score_fh.flush()
+            self._score_fh.close()
+            self._score_fh = None
         pass
 
     def setup(self, stage: str) -> None:
@@ -196,7 +285,12 @@ class BaseLitModule(LightningModule):
 
         :param stage: Either `"fit"`, `"validate"`, `"test"`, or `"predict"`.
         """
+        # print(f"Compiling model in setup hook for stage: {stage}")
+        # if self.hparams.compile and stage == "fit":
+        #     self.net = torch.compile(self.net, dynamic=False)
+        #     print("Model compiled!")
         pass
+        
 
     def configure_optimizers(self) -> Dict[str, Any]:
         """Choose what optimizers and learning-rate schedulers to use in your optimization.

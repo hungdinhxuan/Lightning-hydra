@@ -60,16 +60,16 @@ model:
     '3': 1
     '4': 1
 
-  base_model_path: "/nvme1/hungdx/Lightning-hydra/logs/best_ckpt/MDT_241214_lora_250501_merged.pth"
+  base_model_path: "/nvme2/hungdx/Lightning-hydra/logs/best_ckpt/MDT_241214_lora_250501_merged.pth"
   
 data:
   batch_size: 16
   num_workers: 8
   pin_memory: true
-  data_dir: /nvme1/hungdx/Lightning-hydra/data/0_large-corpus
+  data_dir: /nvme2/hungdx/Lightning-hydra/data/0_large-corpus
 
   args:
-    protocol_path: /nvme1/hungdx/Lightning-hydra/data/june2_25_protocol.txt
+    protocol_path: /nvme2/hungdx/Lightning-hydra/data/june2_25_protocol.txt
     augmentation_methods: ["RawBoost12", "pitch_1", "volume_10", "speed_01", "none"] # "none" is the original data
     padding_type: repeat
     random_start: True

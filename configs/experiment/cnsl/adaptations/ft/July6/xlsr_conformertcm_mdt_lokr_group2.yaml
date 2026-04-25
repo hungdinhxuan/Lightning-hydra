@@ -55,20 +55,20 @@ model:
     '2': 1
     '3': 1
     '4': 1
-  base_model_path: "/nvme1/hungdx/Lightning-hydra/notebooks/S_241214_conf-1.pth"
+  base_model_path: "/nvme2/hungdx/Lightning-hydra/notebooks/S_241214_conf-1.pth"
   
   
 data:
   batch_size: 12
   num_workers: 8
   pin_memory: true
-  enable_cache: true # Enable caching at the top level
+  enable_cache: false # Enable caching at the top level
   args:
-    enable_cache: true # Whether to enable caching in args
+    enable_cache: false # Whether to enable caching in args
     online_aug: True
     protocol_paths: ${oc.env:LARGE_CORPUS_FOR_CNSL_CONTINUOUS_PROTOCOLS}
     augmentation_methods: ["gaussian_v1"]
-    aug_dir: /nvme1/hungdx/Lightning-hydra/data/normal_250702_noise
+    aug_dir: /nvme2/hungdx/Lightning-hydra/data/normal_250702_noise
     padding_type: repeat
     random_start: True
     is_dev_aug: True # Use dev augmentation to verify the augmentation process

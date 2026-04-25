@@ -6,9 +6,9 @@ import pandas as pd
 from pathlib import Path
 
 # Constants
-METADATA_PATH = "/nvme1/hungdx/Lightning-hydra/data/cnsl_benchmark/AIHUB_FreeCommunication_may/protocol.txt"
-META_CSV_PATH = "/nvme1/hungdx/Lightning-hydra/data/cnsl_benchmark/AIHUB_FreeCommunication_may_meta.csv"
-PREDICTION_FILE = "/nvme1/hungdx/Lightning-hydra/logs/results/cnsl_benchmark/ConformerTCM_MDT_LoRA_LargeCorpus_MoreElevenlabs/AIHUB_FreeCommunication_may_cnsl_lora_elevenlabs_xlsr_conformertcm_mdt_more_elevenlabs_ConformerTCM_MDT_LoRA_LargeCorpus_MoreElevenlabs.txt"
+METADATA_PATH = "/nvme2/hungdx/Lightning-hydra/data/cnsl_benchmark/AIHUB_FreeCommunication_may/protocol.txt"
+META_CSV_PATH = "/nvme2/hungdx/Lightning-hydra/data/cnsl_benchmark/AIHUB_FreeCommunication_may_meta.csv"
+PREDICTION_FILE = "/nvme2/hungdx/Lightning-hydra/logs/results/cnsl_benchmark/ConformerTCM_MDT_LoRA_LargeCorpus_MoreElevenlabs/AIHUB_FreeCommunication_may_cnsl_lora_elevenlabs_xlsr_conformertcm_mdt_more_elevenlabs_ConformerTCM_MDT_LoRA_LargeCorpus_MoreElevenlabs.txt"
 
 def load_metadata() -> pd.DataFrame:
     """Load and process metadata files."""

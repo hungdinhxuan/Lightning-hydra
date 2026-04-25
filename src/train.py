@@ -94,6 +94,10 @@ def train(cfg: DictConfig) -> Tuple[Dict[str, Any], Dict[str, Any]]:
 
     if cfg.get("train"):
         log.info("Starting training!")
+        # Compile the model
+        # print("Compiling model...")
+        # model = torch.compile(model, dynamic=False)
+        # print("Model compiled!")
         trainer.fit(model=model, datamodule=datamodule,
                     ckpt_path=cfg.get("ckpt_path"))
 

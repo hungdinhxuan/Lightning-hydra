@@ -16,5 +16,5 @@ CUDA_VISIBLE_DEVICES=$CUDA_DEVICE OMP_NUM_THREADS=1 python src/train.py \
     experiment=cnsl/lora/June1/xlsr_conformertcm_mdt_exp_2_lora_on_merge \
     ++model.is_base_model_path_ln=false \
     logger=wandb \
-    ++data.data_dir="/nvme1/hungdx/Lightning-hydra/data/0_large-corpus" \
-    ++data.args.protocol_path="/nvme1/hungdx/Lightning-hydra/data/june1_25_protocol.txt" 
+    ++data.data_dir="/nvme2/hungdx/Lightning-hydra/data/0_large-corpus" \
+    ++data.args.protocol_path="/nvme2/hungdx/Lightning-hydra/data/june1_25_protocol.txt" 

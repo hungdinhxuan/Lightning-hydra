@@ -34,7 +34,7 @@ def parse_args():
     parser.add_argument('--checkpoint_path', type=str, required=True,
                       help='Path to the checkpoint file')
     parser.add_argument('--ssl_pretrained_path', type=str, 
-                      default='/nvme1/hungdx/Towards-Real-Time-Deepfake-Speech-Detection-in-Resource-Limited-Scenarios/pretrained/xlsr2_300m.pt',
+                      default='/nvme2/hungdx/Towards-Real-Time-Deepfake-Speech-Detection-in-Resource-Limited-Scenarios/pretrained/xlsr2_300m.pt',
                       help='Path to SSL pretrained model')
     parser.add_argument('--config_path', type=str, required=True,
                       help='Path to the config file')

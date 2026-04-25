@@ -15,9 +15,9 @@ print_color() {
 }
 
 # Default paths
-FUSION_DIR="/nvme1/hungdx/Lightning-hydra/logs/results/huggingface_benchrmark_Speech-DF-Arena/fused_scores"
-PROTOCOL_DIR="/nvme1/hungdx/Lightning-hydra/data/huggingface_benchrmark_Speech-DF-Arena"
-SUMMARY_FILE="/nvme1/hungdx/Lightning-hydra/logs/results/huggingface_benchrmark_Speech-DF-Arena/fusion_summary.txt"
+FUSION_DIR="/nvme2/hungdx/Lightning-hydra/logs/results/huggingface_benchrmark_Speech-DF-Arena/fused_scores"
+PROTOCOL_DIR="/nvme2/hungdx/Lightning-hydra/data/huggingface_benchrmark_Speech-DF-Arena"
+SUMMARY_FILE="/nvme2/hungdx/Lightning-hydra/logs/results/huggingface_benchrmark_Speech-DF-Arena/fusion_summary.txt"
 SCORE_EVAL_SCRIPT="scripts/score_file_to_eer.py"
 
 # Usage message

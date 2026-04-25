@@ -1,0 +1,68 @@
+_target_: src.data.normal_mbct_mdt_datamodule_optimized.NormalMBCTMDTDataModule
+data_dir: ${oc.env:LARGE_CORPUS_FOR_CNSL}
+batch_size: 16
+num_workers: 4
+pin_memory: True
+enable_cache: false
+args:
+  # Kept for compatibility with existing args shape.
+  protocol_path: ${oc.env:LARGE_CORPUS_FOR_CNSL_PROTOCOLS}
+  # WebDataset shard root, e.g. /path/to/wds_data or /dev/shm/wds_data.
+  wds_data_dir: ${oc.env:WDS_DATA_DIR}
+  wds_shm_dir: ${oc.env:WDS_SHM_DIR,null}
+  wds_use_brace_pattern: true
+  wds_shard_shuffle: 100
+  wds_sample_shuffle: 2000
+  wds_eval_return_utt_id: true
+  wds_auto_epoch_batches: true
+  # Optional: define nominal iterable epoch lengths (in batches).
+  # Example: train=2000, val=200
+  wds_train_epoch_batches: null
+  wds_val_epoch_batches: null
+  wds_test_epoch_batches: null
+
+  mbct_fix_duration_in_dataset: true
+  mbct_max_length_sec: null
+  mbct_band_configs: null
+  view_padding_configs:
+    "1":
+      padding_type: repeat
+      random_start: false
+    "2":
+      padding_type: repeat
+      random_start: false
+    "3":
+      padding_type: repeat
+      random_start: false
+    "4":
+      padding_type: repeat
+      random_start: false
+
+  wav_samp_rate: 16000
+  trim_length: 64000
+  padding_type: repeat
+  random_start: true
+
+  augmentation_methods: ["RawBoost12", "none"]
+  aug_dir: ${oc.env:AUG_PATH}
+  noise_path: ${oc.env:NOISE_PATH}
+  rir_path: ${oc.env:RIR_PATH}
+  online_aug: true
+
+  enable_cache: false  # Whether to enable caching in args
+  nBands: 5
+  minF: 20
+  maxF: 8000
+  minBW: 100
+  maxBW: 1000
+  minCoeff: 10
+  maxCoeff: 100
+  minG: 0
+  maxG: 0
+  minBiasLinNonLin: 5
+  maxBiasLinNonLin: 20
+  N_f: 5
+  P: 10
+  g_sd: 2
+  SNRmin: 10
+  SNRmax: 40
