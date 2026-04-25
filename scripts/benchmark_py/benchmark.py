@@ -29,8 +29,22 @@ from benchmark_py.validation import validate_score_file, check_protocol_exists
 from benchmark_py.protocol import create_missing_protocol
 from benchmark_py.scores import merge_score_files
 from benchmark_py.execution import BenchmarkConfig, execute_benchmark, evaluate_results
-from benchmark_py.eer import calculate_pooled_eer, calculate_average_eer
+from benchmark_py.eer import calculate_pooled_eer
 from benchmark_py.merge import create_merged_protocol
+
+
+def infer_eval_config_path(benchmark_folder: Path) -> Optional[Path]:
+    candidate = Path("configs/eval") / f"{benchmark_folder.name}.yaml"
+    return candidate if candidate.exists() else None
+
+
+def resolve_eval_config_path(
+    benchmark_folder: Path,
+    explicit_eval_config: Optional[Path],
+) -> Optional[Path]:
+    if explicit_eval_config is not None:
+        return explicit_eval_config
+    return infer_eval_config_path(benchmark_folder)
 
 def parse_arguments() -> argparse.Namespace:
     """Parse command line arguments"""
@@ -69,8 +83,12 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument('-z', '--batch-size', default=CONSTANTS.default_batch_size,
                        type=int,
                        help='Batch size (default: 128)')
+    parser.add_argument('--eval-config', default=None, type=Path,
+                       help='Optional eval yaml path for fill_policy and reporting. Default: auto-detect configs/eval/<benchmark_folder_name>.yaml')
     
-    return parser.parse_args()
+    args, unknown_args = parser.parse_known_args()
+    args.extra_overrides = unknown_args
+    return args
 
 
 def validate_arguments(args: argparse.Namespace) -> bool:
@@ -83,12 +101,36 @@ def validate_arguments(args: argparse.Namespace) -> bool:
     Returns:
         True if valid, False otherwise
     """
+    invalid_overrides = [
+        arg for arg in args.extra_overrides
+        if not (arg.startswith("+") or arg.startswith("++"))
+    ]
+    if invalid_overrides:
+        print_color(
+            Color.RED,
+            "Error: Unknown non-Hydra arguments found: "
+            + ", ".join(invalid_overrides)
+        )
+        print_color(
+            Color.YELLOW,
+            "Hint: Extra arguments must be Hydra overrides, e.g. +trainer.precision=bf16-mixed"
+        )
+        return False
+
     if not args.benchmark_folder.exists():
         print_color(Color.RED, f"Error: Benchmark folder '{args.benchmark_folder}' does not exist.")
         return False
     
     if not args.benchmark_folder.is_dir():
         print_color(Color.RED, f"Error: Benchmark folder '{args.benchmark_folder}' is not a directory.")
+        return False
+
+    if args.eval_config is not None and not args.eval_config.exists():
+        print_color(Color.RED, f"Error: Eval config '{args.eval_config}' does not exist.")
+        return False
+
+    if args.eval_config is not None and not args.eval_config.is_file():
+        print_color(Color.RED, f"Error: Eval config '{args.eval_config}' is not a file.")
         return False
     
     return True
@@ -101,7 +143,8 @@ def initialize_results(
     base_model_path: str,
     adapter_paths: Optional[str],
     is_ln: bool,
-    trim_length: int
+    trim_length: int,
+    eval_config_path: Optional[Path],
 ) -> tuple:
     """
     Initialize results directory and summary file
@@ -136,9 +179,10 @@ def initialize_results(
         f.write(f"Lora Path: {adapter_paths if adapter_paths else 'None'}\n")
         f.write(f"Is Base Model Path LN: {is_ln}\n")
         f.write(f"Trim Length: {trim_length}\n")
+        f.write(f"Eval Config: {eval_config_path if eval_config_path else 'None'}\n")
         f.write(f"Date: {timestamp}\n")
         f.write("\n")
-        f.write("Dataset | EER | min_score | max_score | Threshold | Accuracy\n")
+        f.write("Dataset | EER | ROC-AUC | Accuracy\n")
     
     return complete_results_folder, summary_file, normalized_yaml
 
@@ -179,7 +223,10 @@ def process_dataset(
     is_random_start: bool,
     trim_length: int,
     batch_size: int,
-    summary_file: Path
+    summary_file: Path,
+    extra_overrides: List[str],
+    eval_config_path: Optional[Path],
+    benchmark_root: Path,
 ) -> bool:
     """
     Process a single dataset
@@ -198,6 +245,7 @@ def process_dataset(
         trim_length: Trim length value
         batch_size: Batch size value
         summary_file: Path to summary file
+        extra_overrides: Additional Hydra overrides passed from CLI
         
     Returns:
         True if successful, False otherwise
@@ -221,7 +269,7 @@ def process_dataset(
     
     if validation_result.is_valid:
         # Score file is complete, just evaluate
-        if evaluate_results(score_save_path, protocol_path, summary_file, subfolder_name):
+        if evaluate_results(score_save_path, protocol_path, summary_file, subfolder_name, eval_config_path, results_folder, benchmark_root, normalized_yaml, comment):
             print_color(Color.GREEN, f"✓ Results for {subfolder_name} (using existing complete score file)")
             return True
         else:
@@ -252,7 +300,7 @@ def process_dataset(
                 # Re-validate to make sure
                 validation_result = validate_score_file(score_save_path, protocol_path, verbose=False)
                 if validation_result.is_valid:
-                    if evaluate_results(score_save_path, protocol_path, summary_file, subfolder_name):
+                    if evaluate_results(score_save_path, protocol_path, summary_file, subfolder_name, eval_config_path, results_folder, benchmark_root, normalized_yaml, comment):
                         print_color(Color.GREEN, f"✓ Results for {subfolder_name} (using existing complete score file)")
                 return True
             else:
@@ -302,7 +350,8 @@ def process_dataset(
         is_random_start=is_random_start,
         trim_length=trim_length,
         batch_size=batch_size,
-        adapter_paths=adapter_paths
+        adapter_paths=adapter_paths,
+        extra_overrides=extra_overrides
     )
     
     # Debug: Show what paths we're using
@@ -414,7 +463,7 @@ def process_dataset(
     
     if validation_result.is_valid:
         print_color(Color.GREEN, f"✓ Score file is complete ({validation_result.score_lines}/{validation_result.expected_lines} lines)")
-        evaluate_results(score_save_path, protocol_path, summary_file, subfolder_name)
+        evaluate_results(score_save_path, protocol_path, summary_file, subfolder_name, eval_config_path, results_folder, benchmark_root, normalized_yaml, comment)
         return True
     elif score_save_path.exists():
         missing_lines = validation_result.expected_lines - validation_result.score_lines
@@ -439,7 +488,7 @@ def process_dataset(
                 print_color(Color.CYAN, f"  ✓ Completion rate ({completion_rate:.1f}%) >= minimum threshold ({CONSTANTS.min_completion_rate}%)")
                 print_color(Color.CYAN, f"  💡 Evaluating with {validation_result.score_lines} available samples...")
                 try:
-                    evaluate_results(score_save_path, protocol_path, summary_file, subfolder_name)
+                    evaluate_results(score_save_path, protocol_path, summary_file, subfolder_name, eval_config_path, results_folder, benchmark_root, normalized_yaml, comment)
                     print_color(Color.YELLOW, f"  ⚠️ Results for {subfolder_name} (PARTIAL - {completion_rate:.1f}% complete)")
                     return True  # Return True to continue with other datasets
                 except Exception as e:
@@ -472,6 +521,10 @@ def main():
     # Print configuration
     print_color(Color.CYAN, f"IS_RANDOM_START: {args.random_start}")
     print_color(Color.CYAN, f"BATCH_SIZE: {args.batch_size}")
+    if args.extra_overrides:
+        print_color(Color.CYAN, f"EXTRA_OVERRIDES: {' '.join(args.extra_overrides)}")
+    eval_config_path = resolve_eval_config_path(args.benchmark_folder, args.eval_config)
+    print_color(Color.CYAN, f"EVAL_CONFIG: {eval_config_path if eval_config_path else 'None'}")
     
     # Initialize results directory and summary file
     results_folder, summary_file, normalized_yaml = initialize_results(
@@ -481,7 +534,8 @@ def main():
         args.model_path,
         args.adapter_paths,
         args.is_ln,
-        args.trim_length
+        args.trim_length,
+        eval_config_path,
     )
     
     # Get list of subdirectories
@@ -528,7 +582,10 @@ def main():
             args.random_start,
             args.trim_length,
             args.batch_size,
-            summary_file
+            summary_file,
+            args.extra_overrides,
+            eval_config_path,
+            args.benchmark_folder,
         )
         
         if success:
@@ -543,8 +600,7 @@ def main():
     print_color(Color.MAGENTA, "│                    CALCULATING POOLED EER                       │")
     print_color(Color.MAGENTA, "└─────────────────────────────────────────────────────────────────┘")
     
-    calculate_pooled_eer(results_folder, normalized_yaml, args.comment, summary_file, subdirs)
-    calculate_average_eer(summary_file)
+    calculate_pooled_eer(results_folder, normalized_yaml, args.comment, summary_file, subdirs, eval_config_path)
     
     # Create merged protocol file for reuse
     create_merged_protocol(
@@ -563,6 +619,8 @@ def main():
     print_color(Color.MAGENTA, "└─────────────────────────────────────────────────────────────────┘")
     print_color(Color.GREEN, "✓ All benchmarks completed successfully!")
     print_color(Color.CYAN, f"✓ Summary available at: {summary_file}")
+    print_color(Color.CYAN, f"✓ Detailed text summary available at: {summary_file.with_name(f'{summary_file.stem}_detailed.txt')}")
+    print_color(Color.CYAN, f"✓ Detailed JSONL summary available at: {summary_file.with_name(f'{summary_file.stem}_details.jsonl')}")
     print_color(Color.CYAN, f"✓ Merged protocol available at: {results_folder}/merged_protocol_{normalized_yaml}_{args.comment}.txt")
     print_color(Color.CYAN, f"✓ Merged scores available at: {results_folder}/merged_scores_{normalized_yaml}_{args.comment}.txt")
     print_color(Color.CYAN, f"✓ Protocol metadata available at: {results_folder}/pooled_merged_protocol_{normalized_yaml}_{args.comment}.txt")

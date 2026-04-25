@@ -1,161 +1,146 @@
 #!/usr/bin/env python
-# scripts/score_file_to_eer.py
+"""Binary spoof/bonafide evaluator."""
 
-import sys
+import argparse
 import os.path
-import numpy as np
-import pandas
-import eval_metrics_DF as em
-from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay, accuracy_score, f1_score, recall_score, precision_score, det_curve
+from pathlib import Path
+
+from benchmark_py.binary_eval import (
+    build_eval_frame,
+    compute_legacy_compatibility_metrics,
+    dumps_json,
+    evaluate_binary_classification,
+)
 
 
-def parse_protocol_line(line: str):
-    """
-    Parse protocol line handling paths with spaces and quotes.
-    Format: <path> <subset> <label>
-    
-    Returns: (file_id, subset, label) or None if invalid
-    """
-    line = line.strip()
-    if not line or line.startswith("#"):
-        return None
-    
-    # Check if path is quoted
-    if line.startswith('"') or line.startswith("'"):
-        quote_char = line[0]
-        close_quote_idx = line.find(quote_char, 1)
-        if close_quote_idx == -1:
-            return None
-        
-        file_id = line[1:close_quote_idx]
-        remainder = line[close_quote_idx + 1:].strip()
-        parts = remainder.split()
-        
-        if len(parts) != 2:
-            return None
-        
-        subset, label = parts
-        return file_id, subset, label
-    
-    # Parse from right: last 2 tokens are subset and label
-    parts = line.rsplit(maxsplit=2)
-    if len(parts) != 3:
-        return None
-    
-    file_id, subset, label = parts
-    return file_id, subset, label
-
-
-def parse_score_line(line: str):
-    """
-    Parse score line handling paths with spaces and quotes.
-    Format: <path> <score1> <score2> or <path> <score>
-    
-    Returns: (file_id, score1, score2) or None if invalid
-    """
-    line = line.strip()
-    if not line or line.startswith("#"):
-        return None
-    
-    # Check if path is quoted
-    if line.startswith('"') or line.startswith("'"):
-        quote_char = line[0]
-        close_quote_idx = line.find(quote_char, 1)
-        if close_quote_idx == -1:
-            return None
-        
-        file_id = line[1:close_quote_idx]
-        remainder = line[close_quote_idx + 1:].strip()
-        parts = remainder.split()
-        
-        try:
-            if len(parts) >= 2:
-                score1 = float(parts[0])
-                score2 = float(parts[1])
-                return file_id, score1, score2
-            elif len(parts) == 1:
-                score = float(parts[0])
-                return file_id, score, score
-        except ValueError:
-            return None
-        
-        return None
-    
-    # Parse from right: last 2 (or 1) numbers are scores
-    parts = line.split()
+def _safe_float(value) -> float:
+    if value is None:
+        return float("nan")
     try:
-        if len(parts) >= 3:
-            score1 = float(parts[-2])
-            score2 = float(parts[-1])
-            file_id = ' '.join(parts[:-2])
-            return file_id, score1, score2
-        elif len(parts) >= 2:
-            score = float(parts[-1])
-            file_id = ' '.join(parts[:-1])
-            return file_id, score, score
-    except ValueError:
-        return None
-    
-    return None
+        return float(value)
+    except (TypeError, ValueError):
+        return float("nan")
 
 
-def eval_to_score_file(score_file, cm_key_file):
-    # Read protocol file with proper parsing
-    cm_data_list = []
-    with open(cm_key_file, 'r') as f:
-        for line in f:
-            parsed = parse_protocol_line(line)
-            if parsed:
-                filename, subset, label = parsed
-                cm_data_list.append({'filename': filename, 'subset': subset, 'label': label})
-    
-    cm_data = pandas.DataFrame(cm_data_list)
-    
-    # Read score file with proper parsing to handle paths with spaces and quotes
-    score_data = []
-    with open(score_file, 'r') as f:
-        for line in f:
-            parsed = parse_score_line(line)
-            if parsed:
-                filename, spoof_score, score = parsed
-                score_data.append({'filename': filename, 'spoof': spoof_score, 'score': score})
-    
-    submission_scores = pandas.DataFrame(score_data)
-    
-    cm_scores = submission_scores.merge(
-        cm_data, left_on='filename', right_on='filename', how='inner')
-    
-    cm_scores['pred'] = cm_scores.apply(
-        lambda x: 'bonafide' if x['spoof'] < x['score'] else 'spoof', axis=1)
-    
-    accuracy = accuracy_score(cm_scores['label'], cm_scores['pred']) * 100
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Evaluate binary bonafide/spoof scores with optional validation thresholds."
+    )
+    parser.add_argument("score_file", help="Test score file")
+    parser.add_argument("protocol_file", help="Test protocol file")
+    parser.add_argument(
+        "--validation-score-file",
+        help="Validation score file used to select thresholds. If omitted, test data is used as a legacy fallback.",
+    )
+    parser.add_argument(
+        "--validation-protocol-file",
+        help="Validation protocol file. Required when --validation-score-file is set.",
+    )
+    parser.add_argument(
+        "--output-format",
+        choices=["legacy", "json", "table"],
+        default="legacy",
+        help="legacy keeps the original five-value stdout format.",
+    )
+    parser.add_argument(
+        "--protocol-subset",
+        default=None,
+        help="Optional preferred subset name (for example: eval or dev). Falls back to all rows if the subset is absent.",
+    )
+    parser.add_argument(
+        "--dataset-name",
+        default=None,
+        help="Optional dataset name override for summary output.",
+    )
+    parser.add_argument(
+        "--include-best-f1-threshold",
+        action="store_true",
+        help="Also select and report the best-F1 threshold on validation.",
+    )
+    parser.add_argument(
+        "--no-test-threshold-fallback",
+        action="store_true",
+        help="Do not select thresholds from test data when validation data is missing.",
+    )
+    return parser.parse_args()
 
-    bona_cm = cm_scores[cm_scores['label'] == 'bonafide']['score'].values
-    spoof_cm = cm_scores[cm_scores['label'] == 'spoof']['score'].values
-    
-    eer_cm, th = em.compute_eer(bona_cm, spoof_cm)
 
-    return min(cm_scores['score']), max(cm_scores['score']), th, eer_cm * 100, accuracy
+def validate_paths(args: argparse.Namespace) -> None:
+    required_paths = [args.score_file, args.protocol_file]
+    if args.validation_score_file or args.validation_protocol_file:
+        if not (args.validation_score_file and args.validation_protocol_file):
+            raise SystemExit("--validation-score-file and --validation-protocol-file must be provided together.")
+        required_paths.extend([args.validation_score_file, args.validation_protocol_file])
+
+    for path_text in required_paths:
+        if not os.path.isfile(path_text):
+            raise SystemExit(f"{path_text} doesn't exist")
+
+
+def main() -> None:
+    args = parse_args()
+    validate_paths(args)
+
+    test_frame = build_eval_frame(
+        score_file=Path(args.score_file),
+        protocol_file=Path(args.protocol_file),
+        dataset_name=args.dataset_name,
+        preferred_subset=args.protocol_subset,
+        fallback_to_all=True,
+    )
+
+    validation_frame = None
+    if args.validation_score_file and args.validation_protocol_file:
+        validation_frame = build_eval_frame(
+            score_file=Path(args.validation_score_file),
+            protocol_file=Path(args.validation_protocol_file),
+            dataset_name=args.dataset_name or "validation",
+            preferred_subset=args.protocol_subset,
+            fallback_to_all=True,
+        )
+
+    legacy = compute_legacy_compatibility_metrics(test_frame)
+    if args.output_format == "legacy" and validation_frame is None and not args.include_best_f1_threshold:
+        print(
+            f"{_safe_float(legacy.get('min_score')):.6f} "
+            f"{_safe_float(legacy.get('max_score')):.6f} "
+            f"{_safe_float(legacy.get('threshold')):.6f} "
+            f"{_safe_float(legacy.get('eer')):.6f} "
+            f"{_safe_float(legacy.get('accuracy')):.6f}"
+        )
+        return
+
+    results = evaluate_binary_classification(
+        test_frame=test_frame,
+        validation_frame=validation_frame,
+        include_best_f1_threshold=args.include_best_f1_threshold,
+        allow_test_threshold_fallback=not args.no_test_threshold_fallback,
+    )
+    payload = {
+        "legacy_compat": legacy,
+        "results": results,
+    }
+
+    if args.output_format == "table":
+        print(results["summary_text"])
+        return
+
+    if args.output_format == "legacy":
+        eer_threshold = results["validation"]["thresholds"].get("eer_threshold", {})
+        accuracy = results["threshold_based"].get("eer_threshold", {}).get("raw_pooled", {}).get("accuracy")
+        accuracy_percent = _safe_float(accuracy) * 100.0
+        pooled_eer_percent = _safe_float(results['threshold_free']['raw_pooled']['threshold_free'].get('eer')) * 100.0
+        print(
+            f"{_safe_float(legacy.get('min_score')):.6f} "
+            f"{_safe_float(legacy.get('max_score')):.6f} "
+            f"{_safe_float(eer_threshold.get('threshold')):.6f} "
+            f"{pooled_eer_percent:.6f} "
+            f"{accuracy_percent:.6f}"
+        )
+        return
+
+    print(dumps_json(payload))
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 3:
-        print("CHECK: invalid input arguments. Please read the instruction below:")
-        print("Usage: {} <score_file> <protocol_file>".format(sys.argv[0]))
-        exit(1)
-
-    submit_file = sys.argv[1]
-    cm_key_file = sys.argv[2]
-    
-    if not os.path.isfile(submit_file):
-        print("%s doesn't exist" % (submit_file))
-        exit(1)
-
-    if not os.path.isfile(cm_key_file):
-        print("%s doesn't exist" % (cm_key_file))
-        exit(1)
-
-    min_score, max_score, threshold, eer_cm, accuracy = eval_to_score_file(submit_file, cm_key_file)
-    
-    # Print in a format that can be easily parsed by the bash script
-    print(f"{min_score:.6f} {max_score:.6f} {threshold:.6f} {eer_cm:.6f} {accuracy:.6f}")
+    main()

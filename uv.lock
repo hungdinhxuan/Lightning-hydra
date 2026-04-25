@@ -1,15 +1,9 @@
 version = 1
-revision = 3
+revision = 2
 requires-python = "==3.9.21"
 resolution-markers = [
     "sys_platform == 'linux'",
     "sys_platform != 'linux'",
-]
-
-[manifest]
-members = [
-    "generate-speechonly",
-    "lightning-hydra",
 ]
 
 [[package]]
@@ -623,27 +617,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/09/6a/37e6b70c5bda3161e40265861e63b64a86bfc6ca6a8f1c35328a675c84fd/gdown-5.2.0.tar.gz", hash = "sha256:2145165062d85520a3cd98b356c9ed522c5e7984d408535409fd46f94defc787", size = 284647, upload-time = "2024-05-12T06:45:12.725Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/54/70/e07c381e6488a77094f04c85c9caf1c8008cdc30778f7019bc52e5285ef0/gdown-5.2.0-py3-none-any.whl", hash = "sha256:33083832d82b1101bdd0e9df3edd0fbc0e1c5f14c9d8c38d2a35bf1683b526d6", size = 18235, upload-time = "2024-05-12T06:45:10.017Z" },
-]
-
-[[package]]
-name = "generate-speechonly"
-version = "0.1.0"
-source = { virtual = "data/generate_speechonly" }
-dependencies = [
-    { name = "librosa" },
-    { name = "soundfile" },
-    { name = "torch" },
-    { name = "torchaudio" },
-    { name = "tqdm" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "librosa", specifier = ">=0.9.2" },
-    { name = "soundfile", specifier = ">=0.13.1" },
-    { name = "torch", specifier = "==2.8.0" },
-    { name = "torchaudio", specifier = ">=2.8.0" },
-    { name = "tqdm", specifier = ">=4.67.1" },
 ]
 
 [[package]]

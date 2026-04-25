@@ -20,6 +20,8 @@ class XLSRConformertcmMDTLitModule(MDTLitModule):
         super().__init__(optimizer, scheduler, args, **kwargs)
         self.net = self.init_model(**kwargs)
         self.init_adapter()
+        self.compile_model = kwargs.get("compile_model", False)
+        self._is_compiled = False
         
     def forward(self, x: torch.Tensor, inference_mode=False) -> torch.Tensor:
         return self.net(x)
@@ -31,3 +33,9 @@ class XLSRConformertcmMDTLitModule(MDTLitModule):
         return XLSRConformerTCM(
             self.args['conformer'], ssl_pretrained_path
         )
+
+    def on_fit_start(self) -> None:
+        """Compile after adapters/checkpoint are loaded to avoid key mismatch."""
+        if self.compile_model and (not self._is_compiled):
+            self.net = torch.compile(self.net)
+            self._is_compiled = True

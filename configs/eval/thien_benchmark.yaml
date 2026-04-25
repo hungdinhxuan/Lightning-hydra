@@ -1,0 +1,16 @@
+fill_policy:
+  April16_2026_Thien_recording:
+    bonafide_source: null
+    spoof_source: null
+
+  ASVspoof2019_PA_eval_toys:
+    bonafide_source: null
+    spoof_source: recording_sw
+
+  recording_sw:
+    bonafide_source: null
+    spoof_source: null
+
+  RIRplayDCExtsVADv15_PA_dev:
+    bonafide_source: null
+    spoof_source: recording_sw

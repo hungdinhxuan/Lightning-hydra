@@ -216,7 +216,9 @@ class BaseLitModule(LightningModule):
         else:
             # In normal mode we only need score index 1.
             score_tensor = batch_out_detached[:, 1]
-        score_chunk = np.ascontiguousarray(score_tensor.to("cpu").numpy())
+        score_tensor_cpu = score_tensor.to("cpu")
+        # Keep the original score precision; text export does not preserve tensor dtype.
+        score_chunk = score_tensor_cpu.tolist()
 
         if self._async_score_write:
             if self._score_writer_error is not None:

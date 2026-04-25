@@ -408,7 +408,7 @@ class NormalDataModule(LightningDataModule):
             shuffle=True,
             drop_last=True,
             collate_fn=self.collate_fn,
-            persistent_workers=True
+            persistent_workers=True if self.hparams.num_workers > 0 else False
         )
 
     def val_dataloader(self) -> DataLoader[Any]:

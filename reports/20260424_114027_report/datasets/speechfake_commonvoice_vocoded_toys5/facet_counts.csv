@@ -1,0 +1,9 @@
+category,facet_type,facet,samples,bonafide,spoof
+hifigan,language,en,2493,0,2493
+hn_sinc_nsf,language,en,2484,0,2484
+hn_sinc_nsf_hifi,language,en,2400,0,2400
+waveglow,language,en,2385,0,2385
+hifigan,language,ko,134,0,134
+hn_sinc_nsf_hifi,language,ko,131,0,131
+waveglow,language,ko,126,0,126
+hn_sinc_nsf,language,ko,111,0,111

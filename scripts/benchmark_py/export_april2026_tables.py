@@ -69,15 +69,28 @@ def parse_summary_file(summary_path: Path) -> Tuple[Dict[str, str], pd.DataFrame
             continue
         if "|" in line:
             parts = [p.strip() for p in line.split("|")]
-            if len(parts) >= 6 and parts[0] not in {"Dataset", "POOLED_EER", "AVERAGE_EER"}:
+            if len(parts) >= 4 and parts[0] not in {"Dataset", "POOLED_EER", "BALANCED_POOLED_EER", "AVERAGE_EER"}:
+                if len(parts) >= 6:
+                    min_score = _to_float(parts[2])
+                    max_score = _to_float(parts[3])
+                    threshold = _to_float(parts[4])
+                    accuracy = _to_float(parts[5])
+                    roc_auc = math.nan
+                else:
+                    min_score = math.nan
+                    max_score = math.nan
+                    threshold = math.nan
+                    roc_auc = _to_float(parts[2])
+                    accuracy = _to_float(parts[3])
                 rows.append(
                     {
                         "dataset": parts[0],
                         "eer": _to_float(parts[1]),
-                        "min_score": _to_float(parts[2]),
-                        "max_score": _to_float(parts[3]),
-                        "threshold": _to_float(parts[4]),
-                        "accuracy": _to_float(parts[5]),
+                        "roc_auc": roc_auc,
+                        "min_score": min_score,
+                        "max_score": max_score,
+                        "threshold": threshold,
+                        "accuracy": accuracy,
                     }
                 )
         elif ":" in line:

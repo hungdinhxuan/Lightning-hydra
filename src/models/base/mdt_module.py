@@ -123,8 +123,9 @@ class MDTLitModule(AdapterLitModule):
 
             view = str(view)  # Convert view to string for indexing
 
-            # Ensure the input tensor is of type float
-            x = x.float()
+            # Avoid unnecessary dtype-copy when input is already float32.
+            if x.dtype != torch.float32:
+                x = x.float()
 
             logits = self.forward(x)
             # print size of logits and size of y

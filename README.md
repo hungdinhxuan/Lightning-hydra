@@ -451,3 +451,14 @@ DEFAULT_BATCH_SIZE=128 uv run ./scripts/benchmark_py/benchmark.py -g MIG-6e4275a
 ```bash
 DEFAULT_BATCH_SIZE=196 uv run ./scripts/benchmark_py/benchmark.py -g 0 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b $(pwd)/data/benchmark_telephony -m /home/hung_cache/runs/2026-04-04_02-58-58/checkpoints/averaged_top5.ckpt -r logs/results/benchmark_telephony -n "mbct_xlsr_conformertcm_exp_b_1"
 ```
+
+
+# thien_exp
+```bash
+DEFAULT_BATCH_SIZE=128 uv run ./scripts/benchmark_py/benchmark.py -g 1 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b $(pwd)/data/thien_benchmark -m pretrained/MDT_241214_lora_250501.pt -a /nvme2/hungdx/Lightning-hydra/logs/train/runs/2026-04-16_21-50-39/checkpoints/epoch_052.ckpt -r logs/results/thien_benchmark -n "MDT_241214_lora_250501_lora_record_best" -l false
+```
+
+
+```bash
+DEFAULT_BATCH_SIZE=128 uv run ./scripts/benchmark_py/benchmark.py -g 1 -c thien_exp/aasist_inference -b $(pwd)/data/thien_benchmark -m /data/hungdx/lighning-hydra-train-runs/runs/2026-04-23_21-59-44/checkpoints/averaged_top5.ckpt -r logs/results/thien_benchmark -n "aasist" -l true +trainer.precision=bf16-mixed
+```

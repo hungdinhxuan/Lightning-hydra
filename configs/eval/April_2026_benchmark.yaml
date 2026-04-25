@@ -1,0 +1,28 @@
+fill_policy:
+  2026_April_Dataset_jiwon:
+    bonafide_source: M-AILABS
+    spoof_source: null
+
+  2025_Kipot:
+    bonafide_source: null
+    spoof_source: null
+
+  M-AILABS:
+    bonafide_source: null
+    spoof_source: null
+
+  MLAAD_v7:
+    bonafide_source: M-AILABS
+    spoof_source: null
+  
+  MLAAD_v8:
+    bonafide_source: M-AILABS
+    spoof_source: null
+
+  MLAAD_v9:
+    bonafide_source: M-AILABS
+    spoof_source: null
+
+  MLAAD_dev_v10_April21_2026:
+    bonafide_source: M-AILABS
+    spoof_source: null
