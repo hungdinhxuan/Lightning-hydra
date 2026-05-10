@@ -372,15 +372,30 @@ class ReplayDataModule(LightningDataModule):
 
             # For validation and test, we can use the optimized datasets from normal_multiview_datamodule
             from src.data.normal_multiview_datamodule import Dataset_for_dev, Dataset_for_eval
-            
-            self.data_val = Dataset_for_dev(
-                self.args, 
-                list_IDs=novel_files_dev, 
-                labels=novel_labels_dev,
-                base_dir=self.data_dir+'/', 
-                is_train=False, 
-                **self.args
-            )
+            if len(novel_files_dev) == 0:
+                print("No novel validation trials found; using replay validation trials")
+                val_labels, val_files = replay_labels_dev, replay_files_dev
+                
+                self.data_val = Dataset_for_dev(
+                    self.args, 
+                    list_IDs=val_files, 
+                    labels=val_labels,
+                    base_dir=self.data_dir+'/', 
+                    is_train=False, 
+                    **self.args
+                )
+            else:
+                self.data_val = ReplayDataset(
+                    self.args, 
+                    novel_list_IDs=novel_files_dev, 
+                    novel_labels=novel_labels_dev,
+                    replay_list_IDs=replay_files_dev, 
+                    replay_labels=replay_labels_dev,
+                    base_dir=self.data_dir+'/',
+                    novel_ratio=self.novel_ratio,
+                    replay_ratio=self.replay_ratio,
+                    **self.args
+                )
 
             self.data_test = Dataset_for_eval(
                 self.args, 

@@ -60,3 +60,24 @@ DEFAULT_BATCH_SIZE=128 uv run ./scripts/benchmark_py/benchmark.py -g 2 -c cnsl/l
 ```bash
 DEFAULT_BATCH_SIZE=128 uv run ./scripts/benchmark_py/benchmark.py -g 2 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b data/April_2026_benchmark_quick_check -m /NAS1_pretrained_lab/06feb26_xlsr_conformertcm_mdt_vad.pt -a /data/hungdx/lighning-hydra-train-runs/runs/2026-04-21_01-40-54/checkpoints/epoch_006.ckpt -r logs/results/April_2026_benchmark_quick_check -n "21April26_xlsr_conformertcm_mdt_lora_from_feb_bf16-mixed" -l false +trainer.precision=bf16-mixed
  ```
+
+### re-train avg
+```bash
+DEFAULT_BATCH_SIZE=128 uv run ./scripts/benchmark_py/benchmark.py -g 1 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b data/April_2026_benchmark -m /nvme2/hungdx/Lightning-hydra/logs/train/runs/2026-04-24_22-43-39/checkpoints/averaged_top5.ckpt -r logs/results/April_2026_benchmark -n "24April26_xlsr_conformertcm_mdt_bf16-mixed" -l true +trainer.precision=bf16-mixed
+ ```
+
+ ### re-train best
+```bash
+DEFAULT_BATCH_SIZE=128 uv run ./scripts/benchmark_py/benchmark.py -g 1 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b data/April_2026_benchmark -m /nvme2/hungdx/Lightning-hydra/logs/train/runs/2026-04-24_22-43-39/checkpoints/epoch_000-v1.ckpt -r logs/results/April_2026_benchmark -n "24April26_xlsr_conformertcm_mdt_best_bf16-mixed" -l true +trainer.precision=bf16-mixed
+ ```
+
+ ### lora replay
+ ```bash
+DEFAULT_BATCH_SIZE=128 uv run ./scripts/benchmark_py/benchmark.py -g 1 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b data/April_2026_benchmark -m /NAS1_pretrained_lab/06feb26_xlsr_conformertcm_mdt_vad.pt -a /data/hungdx/lighning-hydra-train-runs/runs/2026-04-26_16-36-55/checkpoints/epoch_010.ckpt -r logs/results/April_2026_benchmark -n "24April26_xlsr_conformertcm_mdt_lora_replay_from_06feb26_xlsr_conformertcm_mdt_vad_bf16-mixed" -l false +trainer.precision=bf16-mixed
+ ```
+
+
+  ### lora replay conf-2
+ ```bash
+DEFAULT_BATCH_SIZE=128 uv run ./scripts/benchmark_py/benchmark.py -g 1 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b data/April_2026_benchmark -m /NAS1_pretrained_lab/06feb26_xlsr_conformertcm_mdt_vad.pt -a /data/hungdx/lighning-hydra-train-runs/runs/2026-04-26_22-17-41/checkpoints/epoch_009.ckpt -r logs/results/April_2026_benchmark -n "24April26_xlsr_conformertcm_mdt_lora_replay-conf-2_from_06feb26_xlsr_conformertcm_mdt_vad_bf16-mixed" -l false +trainer.precision=bf16-mixed
+ ```

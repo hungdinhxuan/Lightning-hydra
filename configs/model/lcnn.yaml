@@ -1,0 +1,19 @@
+_target_: src.models.aasist_module.AASISTLitModule
+
+optimizer:
+  _target_: torch.optim.Adam
+  _partial_: true
+  lr: 0.0001
+  weight_decay: 0.0001
+
+scheduler: null
+
+net:
+  _target_: src.models.components.lcnn.LCNN
+  input_channels: 1
+  num_coefficients: 384
+  output_dim: 2
+  dropout: 0.7
+
+compile: false
+

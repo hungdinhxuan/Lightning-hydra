@@ -12,6 +12,7 @@ import argparse
 import sys
 import os
 import random
+import subprocess
 import time
 from pathlib import Path
 from typing import List, Optional
@@ -85,6 +86,9 @@ def parse_arguments() -> argparse.Namespace:
                        help='Batch size (default: 128)')
     parser.add_argument('--eval-config', default=None, type=Path,
                        help='Optional eval yaml path for fill_policy and reporting. Default: auto-detect configs/eval/<benchmark_folder_name>.yaml')
+    parser.add_argument('--missing-protocol-label', default='ask',
+                       choices=['ask', 'skip', 'auto', 'spoof', 'bonafide'],
+                       help='What to do when a dataset has no protocol.txt. "ask" prompts interactively; labels run make_protocol.py; "skip" skips dataset. Default: ask')
     
     args, unknown_args = parser.parse_known_args()
     args.extra_overrides = unknown_args
@@ -210,6 +214,105 @@ def get_subdirectories(benchmark_folder: Path) -> List[Path]:
     return subdirs
 
 
+def prompt_missing_protocol_label(dataset_name: str) -> Optional[str]:
+    """Ask user which label to use for generated protocol."""
+    choices = {
+        "1": "auto",
+        "a": "auto",
+        "auto": "auto",
+        "2": "spoof",
+        "s": "spoof",
+        "spoof": "spoof",
+        "3": "bonafide",
+        "b": "bonafide",
+        "bonafide": "bonafide",
+        "4": "skip",
+        "skip": "skip",
+        "q": "skip",
+    }
+
+    print_color(Color.YELLOW, f"⚠️ No protocol.txt found for {dataset_name}.")
+    print_color(Color.WHITE, "Choose label for generated protocol:")
+    print_color(Color.WHITE, "  1) auto     infer from path")
+    print_color(Color.WHITE, "  2) spoof    mark all files spoof")
+    print_color(Color.WHITE, "  3) bonafide mark all files bonafide")
+    print_color(Color.WHITE, "  4) skip")
+
+    while True:
+        try:
+            selected = input("Label [auto/spoof/bonafide/skip]: ").strip().lower()
+        except EOFError:
+            return None
+
+        if not selected:
+            selected = "auto"
+
+        label = choices.get(selected)
+        if label == "skip":
+            return None
+        if label:
+            return label
+
+        print_color(Color.YELLOW, "Invalid choice. Use auto, spoof, bonafide, or skip.")
+
+
+def ensure_protocol_available(
+    subfolder: Path,
+    protocol_path: Path,
+    missing_protocol_label: str,
+) -> bool:
+    """Create protocol.txt with make_protocol.py when missing."""
+    if protocol_path.exists():
+        return True
+
+    if missing_protocol_label == "skip":
+        print_color(Color.RED, f"⚠️ Warning: Protocol file not found at {protocol_path}. Skipping this dataset.")
+        return False
+
+    if missing_protocol_label == "ask":
+        if not sys.stdin.isatty():
+            print_color(Color.RED, f"⚠️ Warning: Protocol file not found at {protocol_path}.")
+            print_color(Color.YELLOW, "  Non-interactive stdin. Re-run with --missing-protocol-label auto|spoof|bonafide to generate it.")
+            return False
+        label = prompt_missing_protocol_label(subfolder.name)
+        if label is None:
+            print_color(Color.YELLOW, f"Skipping {subfolder.name}.")
+            return False
+    else:
+        label = missing_protocol_label
+
+    make_protocol_path = Path(__file__).resolve().parents[2] / "make_protocol.py"
+    if not make_protocol_path.exists():
+        print_color(Color.RED, f"❌ make_protocol.py not found at {make_protocol_path}")
+        return False
+
+    command = [
+        sys.executable,
+        str(make_protocol_path),
+        "--root-dir",
+        str(subfolder),
+        "--output",
+        str(protocol_path),
+        "--subset",
+        "eval",
+        "--label",
+        label,
+    ]
+
+    print_color(Color.CYAN, f"🔄 Creating protocol.txt for {subfolder.name} with label '{label}'...")
+    try:
+        subprocess.run(command, check=True)
+    except subprocess.CalledProcessError as e:
+        print_color(Color.RED, f"❌ make_protocol.py failed for {subfolder.name} (exit {e.returncode})")
+        return False
+
+    if not protocol_path.exists():
+        print_color(Color.RED, f"❌ make_protocol.py completed but did not create {protocol_path}")
+        return False
+
+    return True
+
+
 def process_dataset(
     subfolder: Path,
     gpu_number: str,
@@ -227,6 +330,7 @@ def process_dataset(
     extra_overrides: List[str],
     eval_config_path: Optional[Path],
     benchmark_root: Path,
+    missing_protocol_label: str,
 ) -> bool:
     """
     Process a single dataset
@@ -256,6 +360,9 @@ def process_dataset(
     data_dir = subfolder
     protocol_path = subfolder / "protocol.txt"
     score_save_path = results_folder / f"{subfolder_name}_{normalized_yaml}_{comment}.txt"
+
+    if not ensure_protocol_available(subfolder, protocol_path, missing_protocol_label):
+        return False
     
     # Initialize variables for protocol and score path handling
     protocol_to_use = protocol_path
@@ -586,6 +693,7 @@ def main():
             args.extra_overrides,
             eval_config_path,
             args.benchmark_folder,
+            args.missing_protocol_label,
         )
         
         if success:
