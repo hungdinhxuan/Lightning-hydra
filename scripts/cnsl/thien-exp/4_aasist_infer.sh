@@ -1,0 +1,1 @@
+DEFAULT_BATCH_SIZE=128 uv run ./scripts/benchmark_py/benchmark.py -g 1 -c thien_exp/aasist_inference -b $(pwd)/data/thien_benchmark -m /data/hungdx/lighning-hydra-train-runs/runs/2026-04-23_21-59-44/checkpoints/averaged_top5.ckpt -r logs/results/thien_benchmark -n "aasist" -l true +trainer.precision=bf16-mixed

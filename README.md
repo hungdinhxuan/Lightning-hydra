@@ -462,3 +462,17 @@ DEFAULT_BATCH_SIZE=128 uv run ./scripts/benchmark_py/benchmark.py -g 1 -c cnsl/l
 ```bash
 DEFAULT_BATCH_SIZE=128 uv run ./scripts/benchmark_py/benchmark.py -g 1 -c thien_exp/aasist_inference -b $(pwd)/data/thien_benchmark -m /data/hungdx/lighning-hydra-train-runs/runs/2026-04-23_21-59-44/checkpoints/averaged_top5.ckpt -r logs/results/thien_benchmark -n "aasist" -l true +trainer.precision=bf16-mixed
 ```
+
+data/May_2026_benchmark/
+
+DEFAULT_BATCH_SIZE=128 uv run ./scripts/benchmark_py/benchmark.py -g 1 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b data/May_2026_benchmark -m /NAS1_pretrained_lab/06feb26_xlsr_conformertcm_mdt_vad.pt -a /NAS1_pretrained_lab/lora/29April26_xlsr_conformertcm_mdt_lora_replay_from_06feb26_xlsr_conformertcm_mdt_vad_bf16-mixed -r logs/results/May_2026_benchmark -n "29April26_xlsr_conformertcm_mdt_lora_replay_from_06feb26_xlsr_conformertcm_mdt_vad_bf16-mixed" -l false +trainer.precision=bf16-mixed
+
+
+# Merge checkpoint
+python scripts/inference/merge_lora_to_base.py --checkpoint_path="/NAS1_pretrained_lab/06feb26_xlsr_conformertcm_mdt_vad.pt" --config_path="/nvme2/hungdx/Lightning-hydra/configs/experiment/cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_more_elevenlabs.yaml" --lora_path="/NAS1_pretrained_lab/lora/29April26_xlsr_conformertcm_mdt_lora_replay_from_06feb26_xlsr_conformertcm_mdt_vad_bf16-mixed" --output_path="/NAS1_pretrained_lab/29April26_xlsr_conformertcm_mdt_lora_merged" --device='cpu'
+
+# telephony
+DEFAULT_BATCH_SIZE=128 uv run ./scripts/benchmark_py/benchmark.py -g 1 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b data/May_2026_benchmark -m /NAS1_pretrained_lab/29April26_xlsr_conformertcm_mdt_lora_merged.pth -a /data/hungdx/lighning-hydra-train-runs/runs/2026-05-10_15-26-15/checkpoints/epoch_018.ckpt -r logs/results/May_2026_benchmark -n "10May2026_lora_from_29April26_xlsr_conformertcm_mdt" -l false +trainer.precision=bf16-mixed
+
+# telephony (conf-2)
+DEFAULT_BATCH_SIZE=128 uv run ./scripts/benchmark_py/benchmark.py -g 1 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b data/May_2026_benchmark -m /NAS1_pretrained_lab/29April26_xlsr_conformertcm_mdt_lora_merged.pth -a /data/hungdx/lighning-hydra-train-runs/runs/2026-05-10_23-18-21/checkpoints/epoch_019.ckpt -r logs/results/May_2026_benchmark -n "10May2026_lora_from_29April26_xlsr_conformertcm_mdt-conf2" -l false +trainer.precision=bf16-mixed

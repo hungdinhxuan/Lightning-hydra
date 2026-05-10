@@ -3,9 +3,9 @@ _target_: src.trainer.cl_trainer.ContinualTrainer
 default_root_dir: ${paths.output_dir}
 
 min_epochs: 1 # prevents early stopping
-max_epochs: 10
+max_epochs: 100
 
-accelerator: cpu
+accelerator: cuda
 devices: 1
 
 # mixed precision for extra speed-up

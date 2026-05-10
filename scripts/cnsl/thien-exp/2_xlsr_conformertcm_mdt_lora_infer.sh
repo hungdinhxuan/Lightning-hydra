@@ -1,0 +1,1 @@
+DEFAULT_BATCH_SIZE=128 uv run ./scripts/benchmark_py/benchmark.py -g 1 -c cnsl/thien-exp/xlsr_conformertcm_mdt_lora_infer -b $(pwd)/data/thien_benchmark -m pretrained/MDT_241214_lora_250501.pt -a /nvme2/hungdx/Lightning-hydra/logs/train/runs/2026-04-16_21-50-39/checkpoints/epoch_052.ckpt -r logs/results/thien_benchmark -n "MDT_241214_lora_250501_lora_record_best" -l false

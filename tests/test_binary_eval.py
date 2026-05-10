@@ -70,6 +70,38 @@ def test_validation_thresholds_and_one_class_nan():
     assert math.isfinite(far_1pct["mdr"])
 
 
+def test_threshold_metrics_include_class_accuracy_in_detail_text():
+    validation_frame = make_frame(
+        [
+            ("va_bf_1", "dev", "validation", "bonafide", 1, 0.1, 0.80),
+            ("va_sp_1", "dev", "validation", "spoof", 0, 0.8, 0.20),
+        ]
+    )
+    test_frame = make_frame(
+        [
+            ("bf_ok", "eval", "dataset_a", "bonafide", 1, 0.1, 0.90),
+            ("bf_miss", "eval", "dataset_a", "bonafide", 1, 0.6, 0.10),
+            ("sp_ok", "eval", "dataset_a", "spoof", 0, 0.9, 0.20),
+            ("sp_false_accept", "eval", "dataset_a", "spoof", 0, 0.2, 0.85),
+        ]
+    )
+
+    results = evaluate_binary_classification(
+        test_frame=test_frame,
+        validation_frame=validation_frame,
+        allow_test_threshold_fallback=False,
+    )
+    metrics = results["threshold_based"]["eer_threshold"]["per_dataset"][0]
+    threshold_free = results["threshold_free"]["per_dataset"][0]["threshold_free"]
+
+    assert math.isclose(metrics["bonafide_accuracy"], 0.5)
+    assert math.isclose(metrics["spoof_accuracy"], 0.5)
+    assert math.isclose(threshold_free["bonafide_accuracy"], 0.5)
+    assert math.isclose(threshold_free["spoof_accuracy"], 0.5)
+    assert "bonafide_accuracy" in results["summary_text"]
+    assert "spoof_accuracy" in results["summary_text"]
+
+
 def test_balanced_pooled_differs_from_raw_pooled():
     large_easy_rows = []
     for index in range(40):

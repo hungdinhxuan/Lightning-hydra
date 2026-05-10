@@ -163,6 +163,20 @@ class MDTLitModule(AdapterLitModule):
         :return: A tensor of losses between model predictions and targets.
         """
         loss, preds, targets, loss_detail, view_acc = self.model_step(batch)
+        # if not loss.requires_grad:
+        #     trainable_names = [
+        #         name for name, param in self.named_parameters() if param.requires_grad
+        #     ]
+        #     preview = ", ".join(trainable_names[:20])
+        #     if len(trainable_names) > 20:
+        #         preview += ", ..."
+        #     raise RuntimeError(
+        #         "Training loss does not require gradients. This usually means "
+        #         "the configured adapter target_modules are not on the active "
+        #         "forward path, or all trainable parameters are disconnected "
+        #         f"from the loss. Trainable parameters ({len(trainable_names)}): "
+        #         f"{preview or 'none'}"
+        #     )
 
         # Update train_view_acc and log metrics
         for k, v in view_acc.items():

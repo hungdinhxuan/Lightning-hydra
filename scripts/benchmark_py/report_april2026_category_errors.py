@@ -18,6 +18,7 @@ Notes:
 from __future__ import annotations
 
 import argparse
+import fnmatch
 import json
 import math
 import os
@@ -29,7 +30,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
-os.environ.setdefault("MPLCONFIGDIR", "/tmp/matplotlib")
+os.environ.setdefault("MPLCONFIGDIR", "/tmp/hungdx_matplotlib")
 Path(os.environ["MPLCONFIGDIR"]).mkdir(parents=True, exist_ok=True)
 
 import matplotlib
@@ -72,6 +73,20 @@ def parse_args() -> argparse.Namespace:
         default=100,
         help="Minimum samples per category for leaderboard ranking",
     )
+    parser.add_argument(
+        "--model",
+        action="append",
+        default=None,
+        help=(
+            "Analyze only matching model folder names. Can be repeated. "
+            "Supports exact names, shell globs, and substring matches."
+        ),
+    )
+    parser.add_argument(
+        "--per-model-reports",
+        action="store_true",
+        help="Also write one compact report per model under <output-dir>/models/<model>/report.md",
+    )
     return parser.parse_args()
 
 
@@ -99,6 +114,12 @@ def slugify_config(config_text: str) -> str:
 
 def slugify_name(text: str) -> str:
     return re.sub(r"[^A-Za-z0-9]+", "_", text.strip()).strip("_").lower()
+
+
+def model_matches(name: str, patterns: Optional[Sequence[str]]) -> bool:
+    if not patterns:
+        return True
+    return any(name == pattern or fnmatch.fnmatch(name, pattern) or pattern in name for pattern in patterns)
 
 
 def parse_summary_metadata(summary_path: Path) -> Dict[str, str]:
@@ -602,7 +623,24 @@ def render_image_markdown(image_path: Path, alt_text: str) -> str:
     return f"![{alt_text}]({image_path.name})"
 
 
+def add_category_label(df: pd.DataFrame) -> pd.DataFrame:
+    labeled = df.copy()
+    if labeled.empty:
+        labeled["category_label"] = []
+        return labeled
+    labeled["category_label"] = labeled["dataset"].astype(str) + " / " + labeled["category"].astype(str)
+    return labeled
+
+
 def build_dataset_index_rows(primary_df: pd.DataFrame, top_k: int, min_samples: int) -> pd.DataFrame:
+    columns = [
+        "dataset",
+        "models_seen",
+        "categories_seen",
+        "hardest_category",
+        "hardest_mean_accuracy_pct",
+        "hardest_total_errors",
+    ]
     rows: List[Dict[str, object]] = []
     for dataset in sorted(primary_df["dataset"].dropna().unique()):
         dataset_df = primary_df[(primary_df["dataset"] == dataset) & (primary_df["samples"] >= min_samples)].copy()
@@ -623,7 +661,12 @@ def build_dataset_index_rows(primary_df: pd.DataFrame, top_k: int, min_samples: 
                 "hardest_total_errors": int(top_row["total_errors"]),
             }
         )
-    return pd.DataFrame(rows).sort_values(by=["hardest_mean_accuracy_pct", "hardest_total_errors"], ascending=[True, False])
+    if not rows:
+        return pd.DataFrame(columns=columns)
+    return pd.DataFrame(rows, columns=columns).sort_values(
+        by=["hardest_mean_accuracy_pct", "hardest_total_errors"],
+        ascending=[True, False],
+    )
 
 
 def build_dataset_report(
@@ -779,6 +822,184 @@ def build_dataset_report(
     )
 
 
+def build_model_report(
+    run: ModelRun,
+    model_dir: Path,
+    model_primary_df: pd.DataFrame,
+    model_secondary_df: pd.DataFrame,
+    top_k: int,
+    min_samples: int,
+) -> None:
+    filtered_primary = model_primary_df[model_primary_df["samples"] >= min_samples].copy()
+    filtered_primary = filtered_primary.sort_values(by=["accuracy_pct", "errors", "samples"], ascending=[True, False, False])
+    error_primary = filtered_primary.sort_values(by=["errors", "accuracy_pct", "samples"], ascending=[False, True, False])
+
+    filtered_secondary = model_secondary_df[model_secondary_df["samples"] >= min_samples].copy()
+    filtered_secondary = filtered_secondary.sort_values(by=["accuracy_pct", "errors", "samples"], ascending=[True, False, False])
+
+    accuracy_png = model_dir / "lowest_accuracy_categories.png"
+    errors_png = model_dir / "highest_error_categories.png"
+
+    save_horizontal_bar_chart(
+        df=add_category_label(filtered_primary.head(top_k)),
+        label_col="category_label",
+        value_col="accuracy_pct",
+        title=f"{run.model_name}: Lowest Accuracy Categories",
+        xlabel="Accuracy (%)",
+        output_path=accuracy_png,
+        color="#c44e52",
+        annotate_pct=True,
+    )
+    save_horizontal_bar_chart(
+        df=add_category_label(error_primary.head(top_k)),
+        label_col="category_label",
+        value_col="errors",
+        title=f"{run.model_name}: Highest Misclassification Counts",
+        xlabel="Misclassifications",
+        output_path=errors_png,
+        color="#4c72b0",
+        annotate_pct=False,
+    )
+
+    dataset_sections: List[str] = []
+    for dataset in sorted(model_primary_df["dataset"].dropna().unique()):
+        dataset_primary = model_primary_df[
+            (model_primary_df["dataset"] == dataset) & (model_primary_df["samples"] >= min_samples)
+        ].copy()
+        dataset_primary = dataset_primary.sort_values(
+            by=["accuracy_pct", "errors", "samples"],
+            ascending=[True, False, False],
+        )
+        if dataset_primary.empty:
+            continue
+
+        dataset_secondary = model_secondary_df[
+            (model_secondary_df["dataset"] == dataset) & (model_secondary_df["samples"] >= min_samples)
+        ].copy()
+        dataset_secondary = dataset_secondary.sort_values(
+            by=["accuracy_pct", "errors", "samples"],
+            ascending=[True, False, False],
+        )
+
+        dataset_sections.extend(
+            [
+                f"## {dataset}",
+                "",
+                "### Hardest Categories",
+                "",
+                render_dataframe(
+                    dataset_primary.assign(
+                        accuracy_pct=dataset_primary["accuracy_pct"].map(format_pct),
+                        error_rate_pct=dataset_primary["error_rate_pct"].map(format_pct),
+                    ),
+                    columns=[
+                        "category",
+                        "category_type",
+                        "samples",
+                        "errors",
+                        "accuracy_pct",
+                        "false_accepts",
+                        "false_rejects",
+                    ],
+                    top_k=top_k,
+                ),
+                "",
+                "### Fine-Grained Slices",
+                "",
+                render_dataframe(
+                    dataset_secondary.assign(
+                        accuracy_pct=dataset_secondary["accuracy_pct"].map(format_pct),
+                        error_rate_pct=dataset_secondary["error_rate_pct"].map(format_pct),
+                    ),
+                    columns=[
+                        "category",
+                        "facet_type",
+                        "facet",
+                        "samples",
+                        "errors",
+                        "accuracy_pct",
+                        "false_accepts",
+                        "false_rejects",
+                    ],
+                    top_k=top_k,
+                ),
+                "",
+            ]
+        )
+
+    report_lines = [
+        f"# {run.model_name}",
+        "",
+        f"- Overall accuracy: `{run.overall_accuracy_pct:.2f}%`",
+        f"- Overall errors: `{run.overall_errors}` / `{run.overall_samples}`",
+        f"- Threshold: `{run.threshold:.6f}`",
+        f"- Threshold source: `{run.threshold_source}`",
+        f"- Threshold note: `{run.threshold_note}`",
+        f"- Config: `{run.config}`",
+        f"- Base model path: `{run.base_model_path}`",
+        f"- Ranking filter: categories with at least `{min_samples}` scored samples",
+        "",
+        "## Visualizations",
+        "",
+        render_image_markdown(accuracy_png, f"{run.model_name} lowest accuracy categories"),
+        "",
+        render_image_markdown(errors_png, f"{run.model_name} highest error categories"),
+        "",
+        "## Overall Hardest Categories",
+        "",
+        render_dataframe(
+            filtered_primary.assign(
+                accuracy_pct=filtered_primary["accuracy_pct"].map(format_pct),
+                error_rate_pct=filtered_primary["error_rate_pct"].map(format_pct),
+            ),
+            columns=[
+                "dataset",
+                "category",
+                "category_type",
+                "samples",
+                "errors",
+                "accuracy_pct",
+                "false_accepts",
+                "false_rejects",
+            ],
+            top_k=top_k,
+        ),
+        "",
+        "## Overall Fine-Grained Slices",
+        "",
+        render_dataframe(
+            filtered_secondary.assign(
+                accuracy_pct=filtered_secondary["accuracy_pct"].map(format_pct),
+                error_rate_pct=filtered_secondary["error_rate_pct"].map(format_pct),
+            ),
+            columns=[
+                "dataset",
+                "category",
+                "facet_type",
+                "facet",
+                "samples",
+                "errors",
+                "accuracy_pct",
+                "false_accepts",
+                "false_rejects",
+            ],
+            top_k=top_k,
+        ),
+        "",
+        *dataset_sections,
+    ]
+
+    (model_dir / "report.md").write_text("\n".join(report_lines) + "\n")
+    model_primary_df.sort_values(by=["dataset", "accuracy_pct", "errors"], ascending=[True, True, False]).to_csv(
+        model_dir / "category_metrics.csv",
+        index=False,
+    )
+    model_secondary_df.sort_values(by=["dataset", "accuracy_pct", "errors"], ascending=[True, True, False]).to_csv(
+        model_dir / "category_slice_metrics.csv",
+        index=False,
+    )
+
+
 def build_report(
     runs: Sequence[ModelRun],
     skipped_runs: Sequence[SkippedRun],
@@ -788,6 +1009,8 @@ def build_report(
     output_dir: Path,
     top_k: int,
     min_samples: int,
+    model_report_paths: Optional[Dict[str, Path]] = None,
+    model_filters: Optional[Sequence[str]] = None,
 ) -> str:
     run_rows = pd.DataFrame(
         [
@@ -799,6 +1022,11 @@ def build_report(
                 "threshold": run.threshold,
                 "threshold_source": run.threshold_source,
                 "threshold_note": run.threshold_note,
+                "model_report": (
+                    str(model_report_paths[run.model_name].relative_to(output_dir))
+                    if model_report_paths and run.model_name in model_report_paths
+                    else ""
+                ),
             }
             for run in runs
         ]
@@ -820,6 +1048,7 @@ def build_report(
         f"- Models analyzed: `{len(runs)}`",
         f"- Models skipped: `{len(skipped_runs)}`",
         f"- Ranking filter: categories with at least `{min_samples}` scored samples",
+        f"- Model filter: `{', '.join(model_filters) if model_filters else 'all'}`",
         f"- Decision rule: `bonafide if bonafide_score >= pooled_eer_threshold`",
         "",
         "## Skipped Models",
@@ -844,6 +1073,7 @@ def build_report(
                 "threshold",
                 "threshold_source",
                 "threshold_note",
+                "model_report",
             ],
         ),
         "",
@@ -872,6 +1102,7 @@ def build_report(
             "",
             "- Main index is intentionally short; details moved into one report per dataset.",
             "- Each dataset report includes plots for lowest-accuracy categories, highest-error categories, and a model-by-category accuracy heatmap.",
+            "- With `--per-model-reports`, each model also gets its own compact report under `models/<model>/report.md`.",
             "- Category rules still come from a very small sample of scored paths, not by reading full raw dataset protocols manually.",
         ]
     )
@@ -885,9 +1116,13 @@ def main() -> None:
     output_dir = (args.output_dir or (results_root / "category_subset_report")).resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    model_dirs = sorted(path for path in results_root.iterdir() if path.is_dir())
+    model_dirs = sorted(
+        path for path in results_root.iterdir()
+        if path.is_dir() and model_matches(path.name, args.model)
+    )
     if not model_dirs:
-        raise FileNotFoundError(f"No model folders found under {results_root}")
+        filter_text = f" matching {args.model}" if args.model else ""
+        raise FileNotFoundError(f"No model folders{filter_text} found under {results_root}")
 
     runs: List[ModelRun] = []
     skipped_runs: List[SkippedRun] = []
@@ -938,6 +1173,7 @@ def main() -> None:
     report_md = output_dir / "subset_error_report.md"
     datasets_dir = output_dir / "datasets"
     datasets_dir.mkdir(parents=True, exist_ok=True)
+    model_report_paths: Dict[str, Path] = {}
 
     primary_df.sort_values(by=["model", "accuracy_pct", "errors"], ascending=[True, True, False]).to_csv(primary_csv, index=False)
     secondary_df.sort_values(by=["model", "accuracy_pct", "errors"], ascending=[True, True, False]).to_csv(secondary_csv, index=False)
@@ -961,6 +1197,22 @@ def main() -> None:
             min_samples=args.min_samples,
         )
 
+    if args.per_model_reports:
+        models_dir = output_dir / "models"
+        models_dir.mkdir(parents=True, exist_ok=True)
+        for run in runs:
+            per_model_dir = models_dir / slugify_name(run.model_name)
+            per_model_dir.mkdir(parents=True, exist_ok=True)
+            build_model_report(
+                run=run,
+                model_dir=per_model_dir,
+                model_primary_df=primary_df[primary_df["model"] == run.model_name].copy(),
+                model_secondary_df=secondary_df[secondary_df["model"] == run.model_name].copy(),
+                top_k=args.top_k,
+                min_samples=args.min_samples,
+            )
+            model_report_paths[run.model_name] = per_model_dir / "report.md"
+
     report_text = build_report(
         runs=runs,
         skipped_runs=skipped_runs,
@@ -970,6 +1222,8 @@ def main() -> None:
         output_dir=output_dir,
         top_k=args.top_k,
         min_samples=args.min_samples,
+        model_report_paths=model_report_paths,
+        model_filters=args.model,
     )
     report_md.write_text(report_text)
 
@@ -977,6 +1231,8 @@ def main() -> None:
     print(f"Wrote: {primary_csv}")
     print(f"Wrote: {secondary_csv}")
     print(f"Wrote: {primary_summary_csv}")
+    if model_report_paths:
+        print(f"Wrote per-model reports: {len(model_report_paths)}")
     print(f"Models analyzed: {len(runs)}")
     print(f"Models skipped: {len(skipped_runs)}")
 

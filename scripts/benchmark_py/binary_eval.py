@@ -97,6 +97,8 @@ def _nan_threshold_metrics(reason: str, threshold: float) -> Dict[str, Any]:
     return {
         "threshold": threshold,
         "accuracy": math.nan,
+        "bonafide_accuracy": math.nan,
+        "spoof_accuracy": math.nan,
         "precision": math.nan,
         "recall": math.nan,
         "f1": math.nan,
@@ -454,6 +456,8 @@ def compute_threshold_metrics(
     fn = float(weights[(~pred_positive) & positive].sum())
 
     accuracy = _safe_ratio(tp + tn, tp + tn + fp + fn)
+    bonafide_accuracy = _safe_ratio(tp, tp + fn)
+    spoof_accuracy = _safe_ratio(tn, tn + fp)
     precision = _safe_ratio(tp, tp + fp)
     recall = _safe_ratio(tp, tp + fn)
     f1 = _safe_ratio(2.0 * precision * recall, precision + recall) if np.isfinite(precision + recall) else math.nan
@@ -464,6 +468,8 @@ def compute_threshold_metrics(
     return {
         "threshold": float(threshold),
         "accuracy": accuracy,
+        "bonafide_accuracy": bonafide_accuracy,
+        "spoof_accuracy": spoof_accuracy,
         "precision": precision,
         "recall": recall,
         "f1": f1,
@@ -475,6 +481,35 @@ def compute_threshold_metrics(
         "tn": tn,
         "fp": fp,
         "fn": fn,
+    }
+
+
+def compute_score_comparison_metrics(
+    frame: pd.DataFrame,
+    sample_weight: Optional[Sequence[float]] = None,
+) -> Dict[str, Any]:
+    if frame.empty:
+        return {
+            "accuracy": math.nan,
+            "bonafide_accuracy": math.nan,
+            "spoof_accuracy": math.nan,
+        }
+
+    pred = (frame["score"].to_numpy(dtype=float) >= frame["spoof_score"].to_numpy(dtype=float)).astype(int)
+    label = frame["label"].to_numpy(dtype=int)
+    weights = (
+        np.asarray(sample_weight, dtype=float)
+        if sample_weight is not None
+        else np.ones_like(label, dtype=float)
+    )
+    positive = label == 1
+    negative = label == 0
+    correct = pred == label
+
+    return {
+        "accuracy": _safe_ratio(float(weights[correct].sum()), float(weights.sum())),
+        "bonafide_accuracy": _safe_ratio(float(weights[correct & positive].sum()), float(weights[positive].sum())),
+        "spoof_accuracy": _safe_ratio(float(weights[correct & negative].sum()), float(weights[negative].sum())),
     }
 
 
@@ -575,6 +610,7 @@ def _evaluate_scope(
     labels = frame["label"].to_numpy(dtype=int) if not frame.empty else np.asarray([], dtype=int)
     scores = frame["score"].to_numpy(dtype=float) if not frame.empty else np.asarray([], dtype=float)
     legacy_metrics = compute_legacy_compatibility_metrics(frame)
+    score_comparison_metrics = compute_score_comparison_metrics(frame, sample_weight=sample_weight)
     threshold_metrics: Dict[str, Dict[str, Any]] = {}
     for threshold_name, threshold_info in thresholds.items():
         threshold_value = _safe_float(threshold_info.get("threshold"))
@@ -603,6 +639,9 @@ def _evaluate_scope(
             "eer": eer,
             "eer_threshold": eer_threshold,
             "roc_auc": auc,
+            "accuracy": score_comparison_metrics["accuracy"],
+            "bonafide_accuracy": score_comparison_metrics["bonafide_accuracy"],
+            "spoof_accuracy": score_comparison_metrics["spoof_accuracy"],
             "reason": reason,
             "note": threshold_free_note,
         },
@@ -888,14 +927,29 @@ def build_readable_summary(results: Dict[str, Any]) -> str:
                 str(record.get("completion", {}).get("effective_n_spoof", record["n_spoof"])),
                 _format_percent(record["threshold_free"]["eer"]),
                 _format_percent(record["threshold_free"]["roc_auc"]),
+                _format_percent(record["threshold_free"].get("accuracy")),
+                _format_percent(record["threshold_free"].get("bonafide_accuracy")),
+                _format_percent(record["threshold_free"].get("spoof_accuracy")),
                 record["threshold_free"].get("note") or record["threshold_free"].get("reason") or "",
             ]
         )
     sections.append(
         "Threshold-Free Per-Dataset Metrics\n"
         + _render_table(
-            ["dataset", "n_bonafide", "n_spoof", "eff_bonafide", "eff_spoof", "EER", "ROC-AUC", "note"],
-            per_dataset_rows or [["-", "-", "-", "-", "-", "-", "-", "no datasets"]],
+            [
+                "dataset",
+                "n_bonafide",
+                "n_spoof",
+                "eff_bonafide",
+                "eff_spoof",
+                "EER",
+                "ROC-AUC",
+                "accuracy",
+                "bonafide_accuracy",
+                "spoof_accuracy",
+                "note",
+            ],
+            per_dataset_rows or [["-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "no datasets"]],
         )
     )
 
@@ -909,6 +963,9 @@ def build_readable_summary(results: Dict[str, Any]) -> str:
                 str(pooled["n_spoof"]),
                 _format_percent(pooled["threshold_free"]["eer"]),
                 _format_percent(pooled["threshold_free"]["roc_auc"]),
+                _format_percent(pooled["threshold_free"].get("accuracy")),
+                _format_percent(pooled["threshold_free"].get("bonafide_accuracy")),
+                _format_percent(pooled["threshold_free"].get("spoof_accuracy")),
                 pooled["threshold_free"].get("reason") or "",
             ]
         )
@@ -919,12 +976,18 @@ def build_readable_summary(results: Dict[str, Any]) -> str:
             "-",
             _format_percent(results["threshold_free"]["macro_average_eer"]),
             "-",
+            "-",
+            "-",
+            "-",
             "",
         ]
     )
     sections.append(
         "Threshold-Free Pooled Metrics\n"
-        + _render_table(["scope", "n_bonafide", "n_spoof", "EER", "ROC-AUC", "note"], pooled_rows)
+        + _render_table(
+            ["scope", "n_bonafide", "n_spoof", "EER", "ROC-AUC", "accuracy", "bonafide_accuracy", "spoof_accuracy", "note"],
+            pooled_rows,
+        )
     )
 
     for threshold_name, threshold_result in results["threshold_based"].items():
@@ -937,6 +1000,8 @@ def build_readable_summary(results: Dict[str, Any]) -> str:
                     str(record["n_spoof"]),
                     _format_float(record.get("threshold")),
                     _format_percent(record.get("accuracy")),
+                    _format_percent(record.get("bonafide_accuracy")),
+                    _format_percent(record.get("spoof_accuracy")),
                     _format_percent(record.get("precision")),
                     _format_percent(record.get("recall")),
                     _format_percent(record.get("f1")),
@@ -957,6 +1022,8 @@ def build_readable_summary(results: Dict[str, Any]) -> str:
                     "-",
                     _format_float(raw_pooled.get("threshold")),
                     _format_percent(raw_pooled.get("accuracy")),
+                    _format_percent(raw_pooled.get("bonafide_accuracy")),
+                    _format_percent(raw_pooled.get("spoof_accuracy")),
                     _format_percent(raw_pooled.get("precision")),
                     _format_percent(raw_pooled.get("recall")),
                     _format_percent(raw_pooled.get("f1")),
@@ -971,6 +1038,8 @@ def build_readable_summary(results: Dict[str, Any]) -> str:
                     "-",
                     _format_float(balanced_pooled.get("threshold")),
                     _format_percent(balanced_pooled.get("accuracy")),
+                    _format_percent(balanced_pooled.get("bonafide_accuracy")),
+                    _format_percent(balanced_pooled.get("spoof_accuracy")),
                     _format_percent(balanced_pooled.get("precision")),
                     _format_percent(balanced_pooled.get("recall")),
                     _format_percent(balanced_pooled.get("f1")),
@@ -990,6 +1059,8 @@ def build_readable_summary(results: Dict[str, Any]) -> str:
                     "n_spoof",
                     "threshold",
                     "accuracy",
+                    "bonafide_accuracy",
+                    "spoof_accuracy",
                     "precision",
                     "recall",
                     "f1",
@@ -998,7 +1069,7 @@ def build_readable_summary(results: Dict[str, Any]) -> str:
                     "mdr",
                     "note",
                 ],
-                threshold_rows or [["-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "no metrics"]],
+                threshold_rows or [["-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "-", "no metrics"]],
             )
         )
 

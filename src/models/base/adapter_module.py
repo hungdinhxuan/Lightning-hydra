@@ -121,10 +121,52 @@ class AdapterLitModule(BaseLitModule):
         try:
             adapter_config = self._create_adapter_config()
             self.net = self._apply_peft_adapter(adapter_config)
+            self._ensure_fairseq_attention_uses_lora_forward()
             self.net.print_trainable_parameters()
             print(f"Successfully applied {self.adapter_type.upper()} adapter")
         except Exception as e:
             raise ValueError(f"Failed to apply {self.adapter_type} adapter: {str(e)}")
+
+    def _ensure_fairseq_attention_uses_lora_forward(self) -> None:
+        """Disable fairseq MHA fast path when LoRA wraps q/k/v projections.
+
+        fairseq's optimized path passes q_proj.weight/k_proj.weight/v_proj.weight
+        directly into torch.nn.functional.multi_head_attention_forward. PEFT LoRA
+        applies its delta in the Linear module's forward method, so that fast path
+        bypasses the trainable LoRA weights.
+        """
+        if str(self.adapter_type).lower() != "lora":
+            return
+
+        adapter_args = self.args.get("adapter", {}) if self.args else {}
+        target_modules = set(adapter_args.get("target_modules", []))
+        projection_targets = {"q_proj", "k_proj", "v_proj", "out_proj"}
+        if not target_modules.intersection(projection_targets):
+            return
+
+        try:
+            from fairseq.modules.multihead_attention import MultiheadAttention
+        except Exception:
+            return
+
+        patched_count = 0
+        for module in self.net.modules():
+            if not isinstance(module, MultiheadAttention):
+                continue
+
+            has_lora_projection = any(
+                hasattr(getattr(module, projection_name, None), "lora_A")
+                for projection_name in projection_targets
+            )
+            if has_lora_projection:
+                module.skip_embed_dim_check = True
+                patched_count += 1
+
+        if patched_count > 0:
+            print(
+                "Disabled fairseq MultiheadAttention fast path for "
+                f"{patched_count} LoRA-wrapped modules"
+            )
 
     def _create_adapter_config(self):
         """Creates the appropriate adapter configuration based on adapter type."""

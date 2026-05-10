@@ -1,0 +1,16 @@
+_target_: src.data.feature_datamodule.FeatureProtocolDataModule
+data_dir: ${oc.env:LARGE_CORPUS_FOR_CNSL}
+protocol_path: ${oc.env:LARGE_CORPUS_FOR_CNSL_PROTOCOLS}
+batch_size: 8
+num_workers: 4
+pin_memory: true
+args:
+  feature_type: lfcc
+  wav_samp_rate: 16000
+  n_coefficients: 128
+  max_frames: 400
+  repeat_pad: true
+  n_fft: 512
+  win_length: 400
+  hop_length: 160
+
