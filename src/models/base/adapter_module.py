@@ -121,7 +121,7 @@ class AdapterLitModule(BaseLitModule):
         try:
             adapter_config = self._create_adapter_config()
             self.net = self._apply_peft_adapter(adapter_config)
-            self._ensure_fairseq_attention_uses_lora_forward()
+            #self._ensure_fairseq_attention_uses_lora_forward()
             self.net.print_trainable_parameters()
             print(f"Successfully applied {self.adapter_type.upper()} adapter")
         except Exception as e:

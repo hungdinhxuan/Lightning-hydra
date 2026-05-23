@@ -17,6 +17,7 @@ from src.data.components.collate_fn import multi_view_collate_fn, variable_multi
 import shlex
 # augwrapper
 from src.data.components.augwrapper import SUPPORTED_AUGMENTATION
+from src.models.components.continual_distill_strategy import SOURCE_NOVEL, SOURCE_REPLAY
 
 # dynamic import of augmentation methods
 for aug in SUPPORTED_AUGMENTATION:
@@ -29,6 +30,7 @@ class ReplayDataset(Dataset_base):
                  augmentation_methods=[], eval_augment=None, num_additional_real=2, num_additional_spoof=2,
                  trim_length=66800, wav_samp_rate=16000, noise_path=None, rir_path=None,
                  aug_dir=None, online_aug=True, repeat_pad=True, is_train=True, random_start=False,
+                 return_source=False,
                  **kwargs):
         super(ReplayDataset, self).__init__(args, novel_list_IDs, novel_labels, base_dir, algo, vocoders,
                                           augmentation_methods, eval_augment, num_additional_real, num_additional_spoof,
@@ -41,6 +43,7 @@ class ReplayDataset(Dataset_base):
         self.replay_labels = replay_labels
         self.novel_ratio = novel_ratio
         self.replay_ratio = replay_ratio
+        self.return_source = return_source
         
         # Add cache support
         self.cache_dir = kwargs.get('cache_dir')
@@ -65,7 +68,7 @@ class ReplayDataset(Dataset_base):
         # Return length based on novel set
         return self.novel_size
 
-    def _get_sample(self, utt_id, labels_dict):
+    def _get_sample(self, utt_id, labels_dict, source=None):
         """Unified method to get a sample (removes code duplication)"""
         filepath = os.path.join(self.base_dir, utt_id)
         X = load_audio(filepath, sr=self.sample_rate, cache_dir=self.cache_dir)
@@ -78,6 +81,8 @@ class ReplayDataset(Dataset_base):
 
         x_inp = Tensor(X)
         target = labels_dict[utt_id]
+        if self.return_source:
+            return x_inp, target, source
         return x_inp, target
 
     def __getitem__(self, idx):
@@ -95,12 +100,12 @@ class ReplayDataset(Dataset_base):
         else:
             # Single index - fallback to novel samples
             utt_id = self.novel_list_IDs[idx]
-            return self._get_sample(utt_id, self.novel_labels)
+            return self._get_sample(utt_id, self.novel_labels, SOURCE_NOVEL)
 
     def get_novel_sample(self, idx):
         """Get a sample from the novel set"""
         utt_id = self.novel_list_IDs[idx]
-        return self._get_sample(utt_id, self.novel_labels)
+        return self._get_sample(utt_id, self.novel_labels, SOURCE_NOVEL)
 
     def get_replay_sample(self, idx=None):
         """Get a random sample from the replay set"""
@@ -110,7 +115,7 @@ class ReplayDataset(Dataset_base):
             idx = idx % self.replay_size  # Handle overflow
             
         utt_id = self.replay_list_IDs[idx]
-        return self._get_sample(utt_id, self.replay_labels)
+        return self._get_sample(utt_id, self.replay_labels, SOURCE_REPLAY)
 
 
 class ReplaySampler(Sampler):
@@ -226,6 +231,7 @@ class ReplayDataModule(LightningDataModule):
         replay_protocol_path: Optional[str] = None,
         chunking_eval: bool = False,
         enable_cache: bool = False,
+        return_source: bool = False,
     ) -> None:
         """Initialize a ReplayDataModule.
 
@@ -240,6 +246,7 @@ class ReplayDataModule(LightningDataModule):
         :param replay_protocol_path: Path to replay set protocol file.
         :param chunking_eval: Whether to use chunking for evaluation. Defaults to `False`.
         :param enable_cache: Whether to enable caching. Defaults to `False`.
+        :param return_source: Whether training/validation batches include novel/replay source ids.
         """
         super().__init__()
 
@@ -260,6 +267,7 @@ class ReplayDataModule(LightningDataModule):
         self.enable_cache = enable_cache
         self.novel_ratio = novel_ratio
         self.replay_ratio = replay_ratio
+        self.return_source = return_source
         
         # Set protocol paths
         self.novel_protocol_path = novel_protocol_path or os.path.join(self.data_dir, 'novel_protocol.txt')
@@ -367,6 +375,7 @@ class ReplayDataModule(LightningDataModule):
                 base_dir=self.data_dir+'/',
                 novel_ratio=self.novel_ratio,
                 replay_ratio=self.replay_ratio,
+                return_source=self.return_source,
                 **self.args
             )
 
@@ -394,6 +403,7 @@ class ReplayDataModule(LightningDataModule):
                     base_dir=self.data_dir+'/',
                     novel_ratio=self.novel_ratio,
                     replay_ratio=self.replay_ratio,
+                    return_source=self.return_source,
                     **self.args
                 )
 

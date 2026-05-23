@@ -15,7 +15,7 @@ import random
 import subprocess
 import time
 from pathlib import Path
-from typing import List, Optional
+from typing import Callable, List, Optional
 from datetime import datetime
 
 # Add parent directory to path for imports
@@ -331,6 +331,7 @@ def process_dataset(
     eval_config_path: Optional[Path],
     benchmark_root: Path,
     missing_protocol_label: str,
+    execute_benchmark_fn: Optional[Callable[[BenchmarkConfig], bool]] = None,
 ) -> bool:
     """
     Process a single dataset
@@ -469,8 +470,10 @@ def process_dataset(
     # Record files before benchmark
     before_time = time.time()
     
+    benchmark_executor = execute_benchmark_fn or execute_benchmark
+
     # Execute benchmark
-    if not execute_benchmark(config):
+    if not benchmark_executor(config):
         print_color(Color.RED, f"❌ Benchmark failed for {subfolder_name}")
         return False
     

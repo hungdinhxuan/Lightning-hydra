@@ -1,0 +1,1 @@
+done gpu=2 exp=cnsl/May2026/10th_xlsr_conformertcm_mdt_cl-distill-conf-2-light-drop005 log=logs/train/manual/cld_conf2_light_drop005_20260512_000421.log

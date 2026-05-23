@@ -476,3 +476,52 @@ DEFAULT_BATCH_SIZE=128 uv run ./scripts/benchmark_py/benchmark.py -g 1 -c cnsl/l
 
 # telephony (conf-2)
 DEFAULT_BATCH_SIZE=128 uv run ./scripts/benchmark_py/benchmark.py -g 1 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b data/May_2026_benchmark -m /NAS1_pretrained_lab/29April26_xlsr_conformertcm_mdt_lora_merged.pth -a /data/hungdx/lighning-hydra-train-runs/runs/2026-05-10_23-18-21/checkpoints/epoch_019.ckpt -r logs/results/May_2026_benchmark -n "10May2026_lora_from_29April26_xlsr_conformertcm_mdt-conf2" -l false +trainer.precision=bf16-mixed
+
+# telephony (re-run)
+DEFAULT_BATCH_SIZE=128 uv run ./scripts/benchmark_py/benchmark.py -g 1 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b data/May_2026_benchmark -m /NAS1_pretrained_lab/29April26_xlsr_conformertcm_mdt_lora_merged.pth -a /data/hungdx/lighning-hydra-train-runs/runs/2026-05-11_09-49-49/checkpoints/epoch_015.ckpt -r logs/results/May_2026_benchmark -n "10May2026_lora_from_29April26_xlsr_conformertcm_mdt-conf1" -l false +trainer.precision=bf16-mixed
+
+# (conf-3)
+
+DEFAULT_BATCH_SIZE=128 OMP_NUM_THREADS=8 uv run ./scripts/benchmark_py/benchmark.py -g 0 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b data/May_2026_benchmark -m /NAS1_pretrained_lab/29April26_xlsr_conformertcm_mdt_lora_merged.pth -a /data/hungdx/lighning-hydra-train-runs/runs/2026-05-11_11-25-02/checkpoints/epoch_004.ckpt -r logs/results/May_2026_benchmark -n "10May2026_lora_from_29April26_xlsr_conformertcm_mdt-conf3" -l false +trainer.precision=bf16-mixed
+
+# (conf-4)
+
+DEFAULT_BATCH_SIZE=128 OMP_NUM_THREADS=8 uv run ./scripts/benchmark_py/benchmark.py -g 2 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b data/May_2026_benchmark -m /NAS1_pretrained_lab/29April26_xlsr_conformertcm_mdt_lora_merged.pth -a /data/hungdx/lighning-hydra-train-runs/runs/2026-05-11_11-27-01/checkpoints/epoch_004.ckpt -r logs/results/May_2026_benchmark -n "10May2026_lora_from_29April26_xlsr_conformertcm_mdt-conf4" -l false +trainer.precision=bf16-mixed
+
+
+# (conf-5)
+
+DEFAULT_BATCH_SIZE=128 OMP_NUM_THREADS=8 uv run ./scripts/benchmark_py/benchmark.py -g 3 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b data/May_2026_benchmark -m /NAS1_pretrained_lab/29April26_xlsr_conformertcm_mdt_lora_merged.pth -a /data/hungdx/lighning-hydra-train-runs/runs/2026-05-11_11-27-02/checkpoints/epoch_004.ckpt -r logs/results/May_2026_benchmark -n "10May2026_lora_from_29April26_xlsr_conformertcm_mdt-conf5" -l false +trainer.precision=bf16-mixed
+
+# (conf-6)
+
+DEFAULT_BATCH_SIZE=128 OMP_NUM_THREADS=8 uv run ./scripts/benchmark_py/benchmark.py -g 3 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b data/May_2026_benchmark -m /NAS1_pretrained_lab/29April26_xlsr_conformertcm_mdt_lora_merged.pth -a /data/hungdx/lighning-hydra-train-runs/runs/2026-05-11_14-48-28/checkpoints/epoch_004.ckpt -r logs/results/May_2026_benchmark -n "10May2026_lora_from_29April26_xlsr_conformertcm_mdt-conf6" -l false +trainer.precision=bf16-mixed
+
+# (conf-kd)
+
+DEFAULT_BATCH_SIZE=128 OMP_NUM_THREADS=8 uv run ./scripts/benchmark_py/benchmark.py -g 3 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b data/May_2026_benchmark -m /NAS1_pretrained_lab/29April26_xlsr_conformertcm_mdt_lora_merged.pth -a /data/hungdx/lighning-hydra-train-runs/runs/2026-05-11_16-13-09/checkpoints/epoch_004.ckpt -r logs/results/May_2026_benchmark -n "10May2026_lora_from_29April26_xlsr_conformertcm_mdt-conf-kd" -l false +trainer.precision=bf16-mixed
+
+# May 12 2026  (add MLAADv6 + telephony)
+DEFAULT_BATCH_SIZE=128 OMP_NUM_THREADS=8 uv run ./scripts/benchmark_py/benchmark.py -g 0 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b data/May_2026_benchmark -m /NAS1_pretrained_lab/29April26_xlsr_conformertcm_mdt_lora_merged.pth -a /data/hungdx/lighning-hydra-train-runs/runs/2026-05-12_15-59-48/checkpoints/epoch_003.ckpt -r logs/results/May_2026_benchmark -n "12May2026_lora_from_29April26_xlsr_conformertcm_mdt" -l false +trainer.precision=bf16-mixed
+
+DEFAULT_BATCH_SIZE=128 OMP_NUM_THREADS=8 uv run ./scripts/benchmark_py/benchmark.py -g 1 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b data/April_2026_benchmark -m /NAS1_pretrained_lab/29April26_xlsr_conformertcm_mdt_lora_merged.pth -a /data/hungdx/lighning-hydra-train-runs/runs/2026-05-12_15-59-48/checkpoints/epoch_003.ckpt -r logs/results/April_2026_benchmark -n "12May2026_lora_from_29April26_xlsr_conformertcm_mdt" -l false +trainer.precision=bf16-mixed
+
+# May 12 2026  (add MLAADv6 + telephony) - conf-3
+DEFAULT_BATCH_SIZE=128 OMP_NUM_THREADS=8 uv run ./scripts/benchmark_py/benchmark.py -g 0 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b data/May_2026_benchmark -m /NAS1_pretrained_lab/29April26_xlsr_conformertcm_mdt_lora_merged.pth -a /data/hungdx/lighning-hydra-train-runs/runs/2026-05-12_22-15-02/checkpoints/epoch_003.ckpt -r logs/results/May_2026_benchmark -n "12May2026_lora_from_29April26_xlsr_conformertcm_mdt-conf-3" -l false +trainer.precision=bf16-mixed
+
+# May 18 2026 (full training from scratch on May 15052026)
+
+DEFAULT_BATCH_SIZE=128 OMP_NUM_THREADS=8 uv run ./scripts/benchmark_py/benchmark.py -g 0 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b data/April_2026_benchmark -m /data/hungdx/lighning-hydra-train-runs/runs/2026-05-17_01-00-11/checkpoints/averaged_top5.ckpt -r logs/results/April_2026_benchmark -n "15May2026_xlsr_conformertcm_mdt" -l true +trainer.precision=bf16-mixed
+
+DEFAULT_BATCH_SIZE=128 OMP_NUM_THREADS=8 uv run ./scripts/benchmark_py/benchmark.py -g 1 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b data/May_2026_benchmark -m /data/hungdx/lighning-hydra-train-runs/runs/2026-05-17_01-00-11/checkpoints/averaged_top5.ckpt -r logs/results/May_2026_benchmark -n "15May2026_xlsr_conformertcm_mdt" -l true +trainer.precision=bf16-mixed
+
+## May 21 2026 Hyper params
+
+DEFAULT_BATCH_SIZE=128 OMP_NUM_THREADS=8 uv run ./scripts/benchmark_py/benchmark.py -g 1 -c cnsl/lora/elevenlabs/xlsr_conformertcm_mdt_lora_infer -b data/April_2026_benchmark -m /data/hungdx/lighning-hydra-train-runs/runs/2026-05-21_02-47-54/checkpoints/averaged_top5.ckpt -r logs/results/April_2026_benchmark -n "21May2026_xlsr_conformertcm_mdt" -l true +trainer.precision=bf16-mixed
+
+
+# XLSR + SLS
+DEFAULT_BATCH_SIZE=128 OMP_NUM_THREADS=8 uv run ./scripts/benchmark_py/benchmark.py -g 0 -c cnsl/May2026/17th_xlsr_sls_mdt -b data/May_2026_benchmark -m /data/hungdx/lighning-hydra-train-runs/runs/2026-05-19_00-14-25/checkpoints/averaged_top5.ckpt -r logs/results/May_2026_benchmark -n "15May2026_xlsr_sls_mdt" -l true +trainer.precision=bf16-mixed
+
+
+DEFAULT_BATCH_SIZE=128 OMP_NUM_THREADS=8 uv run ./scripts/benchmark_py/benchmark.py -g 2 -c cnsl/May2026/17th_xlsr_sls_mdt -b data/April_2026_benchmark -m /data/hungdx/lighning-hydra-train-runs/runs/2026-05-19_00-14-25/checkpoints/averaged_top5.ckpt -r logs/results/April_2026_benchmark -n "15May2026_xlsr_sls_mdt" -l true +trainer.precision=bf16-mixed

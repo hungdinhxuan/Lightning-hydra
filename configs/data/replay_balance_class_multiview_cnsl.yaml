@@ -1,0 +1,56 @@
+_target_: src.data.replay_balance_class_multiview_datamodule.ReplayBalanceClassDataModule
+data_dir: ${oc.env:CL_DATA_DIR}
+batch_size: 16
+num_workers: 4
+pin_memory: True
+enable_cache: false
+novel_ratio: 0.7
+replay_ratio: 0.3
+novel_protocol_path: ${oc.env:CL_DATA_DIR}/protocols/novel_protocol.txt
+replay_protocol_path: ${oc.env:CL_DATA_DIR}/protocols/replay_protocol.txt
+chunking_eval: false
+args:
+  views: [1, 2, 3, 4]
+  cache_dir: ${oc.env:CACHE_DIR}
+  enable_cache: false
+  nBands: 5
+  minF: 20
+  maxF: 8000
+  minBW: 100
+  maxBW: 1000
+  minCoeff: 10
+  maxCoeff: 100
+  minG: 0
+  maxG: 0
+  minBiasLinNonLin: 5
+  maxBiasLinNonLin: 20
+  N_f: 5
+  P: 10
+  g_sd: 2
+  SNRmin: 10
+  SNRmax: 40
+
+  view_padding_configs:
+    '1':
+      padding_type: repeat
+      random_start: False
+    '2':
+      padding_type: repeat
+      random_start: False
+    '3':
+      padding_type: repeat
+      random_start: False
+    '4':
+      padding_type: repeat
+      random_start: False
+
+  augmentation_methods:
+    ["RawBoost12", "pitch_1", "volume_10", "speed_01", "none"]
+  wav_samp_rate: 16000
+  trim_length: 64000
+  online_aug: true
+  aug_dir: ${oc.env:AUG_PATH}
+  noise_path: ${oc.env:NOISE_PATH}
+  rir_path: ${oc.env:RIR_PATH}
+  repeat_pad: True
+  random_start: True

@@ -1,0 +1,1 @@
+done gpu=0 exp=cnsl/May2026/10th_xlsr_conformertcm_mdt_cl-distill-conf-2-light-rank8-replay40 log=logs/train/manual/cld_conf2_light_rank8_replay40_20260512_045807.log

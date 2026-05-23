@@ -1,0 +1,14 @@
+# @package _global_
+
+defaults:
+  - /experiment/cnsl/May2026/10th_xlsr_conformertcm_mdt_cl-distill-conf-2-light
+  - _self_
+
+tags: ["replay_normal_largecorpus_multiview_cnsl", "xlsr_conformertcm_mdt_lora", "distill", "conf2_light_lr5e6"]
+
+model:
+  optimizer:
+    lr: 0.000005
+  scheduler:
+    min_lr: 5e-7
+
