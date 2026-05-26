@@ -1,0 +1,11 @@
+# @package _global_
+
+defaults:
+  - /experiment/cnsl/May2026/10th_xlsr_conformertcm_mdt_cl-distill-conf-2-light-rank16
+  - _self_
+
+tags: ["replay_normal_largecorpus_multiview_cnsl", "xlsr_conformertcm_mdt_lora", "distill", "conf2_light_rank16_replay40"]
+
+data:
+  novel_ratio: 0.6
+  replay_ratio: 0.4

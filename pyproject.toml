@@ -52,6 +52,7 @@ dependencies = [
     "tokenizers==0.21.1",
     "triton==3.4.0",
     "webdataset>=0.2.100",
+    "mlflow==2.20.0",
 ]
 
 [tool.uv.workspace]

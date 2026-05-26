@@ -17,7 +17,7 @@ tags: ["replay_normal_largecorpus_multiview_cnsl", "xlsr_conformertcm_mdt_lora"]
 seed: 1234
 
 trainer:
-  max_epochs: 20
+  max_epochs: 5
   gradient_clip_val: 0.0
   accelerator: cuda
 
@@ -35,7 +35,7 @@ model:
     patience: 3
     min_lr: 1e-6
 
-  cross_entropy_weight: [0.1, 0.9] # amplify bonafide loss
+  cross_entropy_weight: [0.3, 0.7] # amplify bonafide loss
   args:
     adapter:
       r: 4
@@ -53,10 +53,10 @@ model:
   
 data:
   batch_size: 16
-  num_workers: 16
+  num_workers: 8
   pin_memory: true
-  novel_ratio: 0.7
-  replay_ratio: 0.3
+  novel_ratio: 0.5
+  replay_ratio: 0.5
 
   args:
     protocol_paths: ${oc.env:LARGE_CORPUS_FOR_CNSL_CONTINUOUS_PROTOCOLS}

@@ -1,0 +1,31 @@
+_target_: src.models.v2.xlsr_sls_mdt_module.XLSRSLSMDTLitModule
+
+optimizer:
+  _target_: torch.optim.Adam
+  _partial_: true
+  lr: 0.000001
+  weight_decay: 0.0001
+
+scheduler: null
+
+net: null
+
+args:
+  sls:
+    hidden_dim: 1024
+    output_dim: 2
+    pool_time: 67
+    pool_feature: 341
+    apply_output_selu: false
+    return_log_probs: false
+
+ssl_pretrained_path: ${oc.env:XLSR_PRETRAINED_MODEL_PATH}
+cross_entropy_weight: [0.1, 0.9]
+weighted_views:
+  "1": 1.0
+  "2": 1.0
+  "3": 1.0
+  "4": 1.0
+compile: false
+adapter_type: null
+compile_model: false

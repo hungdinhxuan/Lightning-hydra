@@ -41,7 +41,13 @@ def multi_view_collate_fn(batch, views=[1, 2, 3, 4], sample_rate=16000, padding_
     # print("Warning: padding_type and random_start are not used in this function. Please use view_padding_configs instead")
 
     # Process each sample in the batch
-    for x, label in batch:
+    has_source = len(batch[0]) == 3 if batch else False
+    for sample in batch:
+        if has_source:
+            x, label, source = sample
+        else:
+            x, label = sample
+            source = None
         # Pad each sample for each view
         for view in views:
             view_length = view * sample_rate
@@ -51,14 +57,24 @@ def multi_view_collate_fn(batch, views=[1, 2, 3, 4], sample_rate=16000, padding_
             if not torch.is_tensor(x_view):
 
                 x_view = torch.from_numpy(x_view)
-            view_batches[view].append((x_view, label))
+            if has_source:
+                view_batches[view].append((x_view, label, source))
+            else:
+                view_batches[view].append((x_view, label))
 
     # Convert lists to tensors
     for view in views:
-        sequences, labels = zip(*view_batches[view])
-        padded_sequences = torch.stack(sequences)
-        labels = torch.tensor(labels, dtype=torch.long)
-        view_batches[view] = (padded_sequences, labels)
+        if has_source:
+            sequences, labels, sources = zip(*view_batches[view])
+            padded_sequences = torch.stack(sequences)
+            labels = torch.tensor(labels, dtype=torch.long)
+            sources = torch.tensor(sources, dtype=torch.long)
+            view_batches[view] = (padded_sequences, labels, sources)
+        else:
+            sequences, labels = zip(*view_batches[view])
+            padded_sequences = torch.stack(sequences)
+            labels = torch.tensor(labels, dtype=torch.long)
+            view_batches[view] = (padded_sequences, labels)
 
     return view_batches
 
@@ -217,7 +233,13 @@ def variable_multi_view_collate_fn(batch, top_k=4, min_duration=16000, max_durat
     views = np.unique(durations)
     view_batches = {view: [] for view in views}
     # Process each sample in the batch
-    for x, label in batch:
+    has_source = len(batch[0]) == 3 if batch else False
+    for sample in batch:
+        if has_source:
+            x, label, source = sample
+        else:
+            x, label = sample
+            source = None
         # Pad each sample for each view
         for view in views:
             view_length = view
@@ -226,14 +248,24 @@ def variable_multi_view_collate_fn(batch, top_k=4, min_duration=16000, max_durat
             # Check if x_view is Tensor or numpy array and convert to Tensor if necessary
             if not torch.is_tensor(x_view):
                 x_view = torch.from_numpy(x_view)
-            view_batches[view].append((x_view, label))
+            if has_source:
+                view_batches[view].append((x_view, label, source))
+            else:
+                view_batches[view].append((x_view, label))
 
     # Convert lists to tensors
     for view in views:
-        sequences, labels = zip(*view_batches[view])
-        padded_sequences = torch.stack(sequences)
-        labels = torch.tensor(labels, dtype=torch.long)
-        view_batches[view] = (padded_sequences, labels)
+        if has_source:
+            sequences, labels, sources = zip(*view_batches[view])
+            padded_sequences = torch.stack(sequences)
+            labels = torch.tensor(labels, dtype=torch.long)
+            sources = torch.tensor(sources, dtype=torch.long)
+            view_batches[view] = (padded_sequences, labels, sources)
+        else:
+            sequences, labels = zip(*view_batches[view])
+            padded_sequences = torch.stack(sequences)
+            labels = torch.tensor(labels, dtype=torch.long)
+            view_batches[view] = (padded_sequences, labels)
 
     return view_batches
 
